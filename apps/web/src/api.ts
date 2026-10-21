@@ -27,5 +27,11 @@ export type IssuedInvite = {
   emailed: boolean;
 };
 export type InvitePreview = {
-  invite: { companyName: string; email: string; role: Role; inviterName: string };
+  invite: {
+    companyName: string;
+    teamName: string | null;
+    email: string;
+    role: Role;
+    inviterName: string;
+  };
 };

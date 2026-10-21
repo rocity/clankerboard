@@ -8,6 +8,8 @@ export const createInviteInput = z.object({
     .toLowerCase()
     .pipe(z.email({ error: "Enter a valid email address." })),
   role: companyRole.default("member"),
+  /** Makes it a Team Invite: accepting also joins this Team. */
+  teamId: z.string().min(1).optional(),
 });
 export type CreateInviteInput = z.infer<typeof createInviteInput>;
 

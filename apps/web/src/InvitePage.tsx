@@ -47,8 +47,16 @@ export function InvitePage({ me, onJoined }: Props) {
   return (
     <div className="stack">
       <p>
-        {preview.inviterName} invited you to join <strong>{preview.companyName}</strong> as{" "}
-        {preview.role}.
+        {preview.inviterName} invited you to join{" "}
+        {preview.teamName ? (
+          <>
+            the {preview.teamName} team at <strong>{preview.companyName}</strong>.
+          </>
+        ) : (
+          <>
+            <strong>{preview.companyName}</strong> as {preview.role}.
+          </>
+        )}
       </p>
       {me ? (
         <button type="button" onClick={accept}>

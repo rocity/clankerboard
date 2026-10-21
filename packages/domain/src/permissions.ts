@@ -31,6 +31,12 @@ export function canInvite(actor: CompanyRole, role: CompanyRole) {
   return actor === "admin" && role !== "owner";
 }
 
+/** Team Invites also let that Team's leads bring people in as plain members. */
+export function canInviteToTeam(actor: CompanyRole, role: CompanyRole, isLeadOfTeam: boolean) {
+  return canInvite(actor, role) || (isLeadOfTeam && role === "member");
+}
+
+/** Owners and admins see every Invite; leads see their own Teams' Invites. */
 export function canListInvites(actor: CompanyRole) {
   return isAdmin(actor);
 }
