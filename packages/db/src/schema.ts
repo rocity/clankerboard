@@ -217,9 +217,10 @@ export const apiKeys = pgTable(
   "api_keys",
   {
     id: text().primaryKey(),
+    // Restrict, like every reference to an Agent: Agents are revoked, never deleted.
     agentId: text()
       .notNull()
-      .references(() => agents.id, { onDelete: "cascade" }),
+      .references(() => agents.id, { onDelete: "restrict" }),
     label: text().notNull(),
     /** The start of the key, safe to show, such as `cb_Ab12Cd34`. */
     prefix: text().notNull(),
