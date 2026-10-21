@@ -4,7 +4,12 @@ import type { TeamRole } from "@clankerboard/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";
-import { canManageTeamMembers, canManageTeams, canSetTeamRole } from "./permissions";
+import {
+  assertMayDelete,
+  canManageTeamMembers,
+  canManageTeams,
+  canSetTeamRole,
+} from "./permissions";
 
 export type TeamView = {
   id: string;
@@ -134,6 +139,7 @@ export async function renameTeam(
 }
 
 export async function deleteTeam({ db }: DomainDeps, ctx: CompanyContext, teamId: string) {
+  assertMayDelete(ctx);
   await findTeam(db, ctx, teamId);
   if (!canManageTeams(ctx.role)) throw forbidden();
   await db.delete(teams).where(eq(teams.id, teamId));
@@ -184,6 +190,7 @@ export async function removeTeamMember(
   teamId: string,
   userId: string,
 ) {
+  assertMayDelete(ctx);
   await assertCanManageMembers(db, ctx, teamId);
   const removed = await db
     .delete(teamMemberships)

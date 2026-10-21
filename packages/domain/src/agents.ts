@@ -1,7 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { type Db, schema } from "@clankerboard/db";
-import { and, asc, eq, isNull, max, sql } from "drizzle-orm";
-import type { CompanyContext, DomainDeps } from "./context";
+import { and, asc, eq, inArray, isNull, max, sql } from "drizzle-orm";
+import type { Clock } from "./clock";
+import type { CompanyContext, DomainDeps, DomainHooks } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound, unauthorized } from "./errors";
 import { canRevokeAgent, canSeeAllAgents } from "./permissions";
 
@@ -217,6 +218,40 @@ export async function revokeApiKey(
     .returning(keyColumns);
   if (!key) throw notFound();
   return key;
+}
+
+/**
+ * The member-removed hook that revokes every Agent (and key) the departing
+ * User owns in that Company, inside the removal's transaction.
+ */
+export function revokeAgentsOfRemovedMember(clock: Clock): DomainHooks["memberRemoved"][number] {
+  return async (tx, { companyId, userId }) => {
+    const now = clock.now();
+    const revoked = await tx
+      .update(agents)
+      .set({ revokedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(agents.companyId, companyId),
+          eq(agents.ownerUserId, userId),
+          isNull(agents.revokedAt),
+        ),
+      )
+      .returning({ id: agents.id });
+    if (revoked.length === 0) return;
+    await tx
+      .update(apiKeys)
+      .set({ revokedAt: now })
+      .where(
+        and(
+          inArray(
+            apiKeys.agentId,
+            revoked.map((agent) => agent.id),
+          ),
+          isNull(apiKeys.revokedAt),
+        ),
+      );
+  };
 }
 
 export type AgentAuthentication = {

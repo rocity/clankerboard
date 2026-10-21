@@ -5,6 +5,7 @@ import {
   type DomainHooks,
   type Mailer,
   noopMailer,
+  revokeAgentsOfRemovedMember,
 } from "@clankerboard/domain";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
@@ -33,7 +34,7 @@ export type AppDeps = {
   mailer: Mailer;
   config: AppConfig;
   logger: Logger;
-  /** Domain extension points, such as revoking Agents when a member is removed. */
+  /** Extra domain hooks, run after the built-in ones (such as revoking a removed member's Agents). */
   hooks?: Partial<DomainHooks>;
 };
 
@@ -49,7 +50,12 @@ export function createApp(deps: AppDeps) {
       inviteTtlMs: config.inviteTtlMs,
       openSignup: config.openSignup,
     },
-    hooks: { memberRemoved: [], ...deps.hooks },
+    hooks: {
+      memberRemoved: [
+        revokeAgentsOfRemovedMember(deps.clock),
+        ...(deps.hooks?.memberRemoved ?? []),
+      ],
+    },
   };
   const auth = createAuth({ domain, config, logger: deps.logger });
 

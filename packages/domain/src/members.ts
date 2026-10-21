@@ -3,7 +3,7 @@ import type { CompanyRole } from "@clankerboard/shared";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, notFound } from "./errors";
-import { canChangeRole, canListMembers, canRemoveMember } from "./permissions";
+import { assertMayDelete, canChangeRole, canListMembers, canRemoveMember } from "./permissions";
 
 export type MemberView = {
   userId: string;
@@ -89,6 +89,7 @@ export async function removeMember(
   ctx: CompanyContext,
   userId: string,
 ): Promise<void> {
+  assertMayDelete(ctx);
   await db.transaction(async (tx) => {
     const owners = await ownerCount(tx, ctx.companyId);
     const member = await findMember(tx, ctx.companyId, userId);

@@ -1,4 +1,6 @@
 import type { CompanyRole } from "@clankerboard/shared";
+import type { CompanyContext } from "./context";
+import { forbidden } from "./errors";
 
 // The Role permission matrix: one function per action, so every adapter (REST
 // now, MCP later) asks the same question the same way.
@@ -62,4 +64,12 @@ export function canSeeAllAgents(actor: CompanyRole) {
 /** The Agent's owner, or an owner or admin, may revoke it or its keys. */
 export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
   return ownsAgent || isAdmin(actor);
+}
+
+/**
+ * The deletion guard. Every service that hard-deletes anything calls this
+ * first: deletion is a human-only action, whatever the owner's Role (ADR-0003).
+ */
+export function assertMayDelete(ctx: CompanyContext) {
+  if (ctx.actor.type !== "user") throw forbidden("Agents can't delete anything.");
 }
