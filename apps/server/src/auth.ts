@@ -3,7 +3,7 @@ import { type Db, schema } from "@clankerboard/db";
 import { isSignUpAllowed } from "@clankerboard/domain";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import type { AppConfig } from "./config";
+import { type AppConfig, enabledOAuthProviders } from "./config";
 import type { Logger } from "./logger";
 
 export type AuthDeps = {
@@ -13,6 +13,10 @@ export type AuthDeps = {
 };
 
 export function createAuth({ db, config, logger }: AuthDeps) {
+  const socialProviders = Object.fromEntries(
+    enabledOAuthProviders(config).map((provider) => [provider, config.oauth?.[provider]]),
+  );
+
   return betterAuth({
     baseURL: config.baseUrl,
     basePath: "/api/auth",
@@ -34,6 +38,7 @@ export function createAuth({ db, config, logger }: AuthDeps) {
     advanced: {
       database: { generateId: () => randomUUID() },
     },
+    socialProviders,
     emailAndPassword: {
       enabled: true,
       autoSignIn: true,

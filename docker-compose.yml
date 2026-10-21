@@ -10,6 +10,11 @@ services:
       # Leave unset to let the app generate one and keep it in the database.
       AUTH_SECRET: ${AUTH_SECRET:-}
       OPEN_SIGNUP: ${OPEN_SIGNUP:-false}
+      # GitHub and Google sign-in turn on only when both values are set.
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
       db:
         condition: service_healthy

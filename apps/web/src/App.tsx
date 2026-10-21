@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AuthForm } from "./AuthForm";
 import { api, type Me } from "./api";
+import { OAuthButtons } from "./OAuthButtons";
 import { navigate, usePath } from "./router";
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
     return (
       <Page title="Sign in">
         <AuthForm mode="sign-in" onDone={signedIn} />
+        <OAuthButtons />
         <p>
           New here? <a href="/sign-up">Sign up</a>
         </p>

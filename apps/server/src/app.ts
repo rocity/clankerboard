@@ -8,6 +8,7 @@ import type { AppEnv } from "./env";
 import type { Logger } from "./logger";
 import { requestLogger } from "./middleware/request-logger";
 import { loadSession } from "./middleware/session";
+import { authProviderRoutes } from "./routes/auth-providers";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
 import { webRoutes } from "./routes/web";
@@ -25,7 +26,10 @@ export type AppDeps = {
 export function createApp(deps: AppDeps) {
   const auth = createAuth(deps);
 
-  const api = new Hono<AppEnv>().use(loadSession(auth)).route("/", meRoutes());
+  const api = new Hono<AppEnv>()
+    .route("/", authProviderRoutes(deps.config))
+    .use(loadSession(auth))
+    .route("/", meRoutes());
 
   const app = new Hono<AppEnv>()
     .use(requestId())

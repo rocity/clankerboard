@@ -1,3 +1,8 @@
+export type OAuthCredentials = { clientId: string; clientSecret: string };
+
+export const oauthProviders = ["github", "google"] as const;
+export type OAuthProvider = (typeof oauthProviders)[number];
+
 export type AppConfig = {
   /** Public URL of this instance, used to build links. */
   baseUrl: string;
@@ -6,6 +11,8 @@ export type AppConfig = {
   authSecret: string;
   /** When false, only the first User or someone with an Invite can sign up. */
   openSignup: boolean;
+  /** OAuth providers to offer. A provider is on only when its credentials are present. */
+  oauth?: Partial<Record<OAuthProvider, OAuthCredentials>>;
   /** Directory holding the built web app. Unset means the server serves only the API. */
   webDistDir?: string;
 };
@@ -29,7 +36,19 @@ export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
     logLevel: env.LOG_LEVEL ?? "info",
     authSecret: env.AUTH_SECRET || undefined,
     openSignup: env.OPEN_SIGNUP === "true",
+    oauth: {
+      github: credentials(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET),
+      google: credentials(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET),
+    },
     webDistDir: env.WEB_DIST_DIR,
     migrationsDir: env.MIGRATIONS_DIR,
   };
+}
+
+function credentials(clientId?: string, clientSecret?: string): OAuthCredentials | undefined {
+  return clientId && clientSecret ? { clientId, clientSecret } : undefined;
+}
+
+export function enabledOAuthProviders(config: AppConfig): OAuthProvider[] {
+  return oauthProviders.filter((provider) => config.oauth?.[provider]);
 }
