@@ -10,20 +10,26 @@
     "dev": "pnpm --filter @clankerboard/server dev",
     "build": "pnpm --filter @clankerboard/web build && pnpm --filter @clankerboard/server build",
     "typecheck": "pnpm -r typecheck",
-    "lint": "biome check .",
+    "lint": "biome check . && node scripts/check-copy.mjs",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "pnpm --filter @clankerboard/db generate",
-    "db:test:up": "docker compose --profile test up -d --wait db-test"
+    "db:test:up": "docker compose --profile test up -d --wait db-test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "prepare": "simple-git-hooks"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",
     "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "pg": "^8.23.1",
+    "simple-git-hooks": "^2.14.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint && pnpm typecheck"
   }
 }

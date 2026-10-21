@@ -12,7 +12,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 // Better Auth owns these tables (ADR-0005). Property names follow Better Auth's
-// field names so its Drizzle adapter can read and write them.
+// field names so its Drizzle adapter can read and write them. Its schema check
+// rejects missing or unknown columns: read docs/better-auth.md before changing one.
 
 const timestamps = {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

@@ -29,6 +29,7 @@ function inviteTokenFrom(headers: Headers | undefined) {
   return cookie?.[1] ? decodeURIComponent(cookie[1]) : undefined;
 }
 
+// Gotchas (schema check, renames, blocked endpoints): docs/better-auth.md.
 export function createAuth({ domain, config, logger }: AuthDeps) {
   const { db } = domain;
   const socialProviders = Object.fromEntries(

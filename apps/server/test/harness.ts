@@ -1,10 +1,18 @@
 import type { Database } from "@clankerboard/db";
 import type { Clock, Mailer, MailMessage } from "@clankerboard/domain";
 import type { CompanyRole } from "@clankerboard/shared";
+import { pino } from "pino";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
 import { createLogger } from "../src/logger";
 
 export const baseUrl = "http://localhost:3000";
+
+// Unhandled errors reach stderr so a bare 500 still shows its cause.
+// CB_TEST_LOG=debug shows everything; CB_TEST_LOG=silent hides it all.
+const testLogger = createLogger(
+  process.env.CB_TEST_LOG ?? "error",
+  pino.destination({ fd: 2, sync: true }),
+);
 export const defaultPassword = "correct-horse-battery";
 
 export function testDatabase(): Database {
@@ -65,7 +73,7 @@ export function buildTestApp(
     clock,
     mailer,
     config,
-    logger: createLogger("silent"),
+    logger: testLogger,
     ...overrides.deps,
   });
 

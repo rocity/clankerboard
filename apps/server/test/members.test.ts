@@ -1,5 +1,6 @@
 import type { CompanyRole } from "@clankerboard/shared";
 import { describe, expect, it } from "vitest";
+import { createLogger } from "../src/logger";
 import { buildTestApp, createCompany, type SignedInUser } from "./harness";
 
 type Member = { userId: string; email: string; name: string; role: CompanyRole };
@@ -232,6 +233,8 @@ describe("Memberships", () => {
     it("runs in the same transaction as the removal", async () => {
       const t = buildTestApp({
         deps: {
+          // The 500 below is the point of the test; keep its log out of the output.
+          logger: createLogger("silent"),
           hooks: {
             memberRemoved: [
               async () => {
