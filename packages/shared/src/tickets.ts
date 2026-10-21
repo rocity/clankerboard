@@ -16,6 +16,10 @@ export type TicketType = z.infer<typeof ticketType>;
 export type TicketStatus = z.infer<typeof ticketStatus>;
 export type TicketPriority = z.infer<typeof ticketPriority>;
 
+export const ticketKey = z
+  .string({ error: "Use a ticket key like CB-42." })
+  .regex(/^[A-Za-z]{2,10}-[1-9]\d{0,9}$/, { error: "Use a ticket key like CB-42." });
+
 const title = z
   .string({ error: "Enter a title." })
   .trim()
@@ -32,6 +36,7 @@ export const createTicketInput = z.object({
   description: description.default(""),
   type: ticketType,
   priority: ticketPriority.default("medium"),
+  parentKey: ticketKey.nullish(),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -40,5 +45,7 @@ export const updateTicketInput = z.object({
   description: description.optional(),
   type: ticketType.optional(),
   priority: ticketPriority.optional(),
+  /** Null clears the Parent. */
+  parentKey: ticketKey.nullable().optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;

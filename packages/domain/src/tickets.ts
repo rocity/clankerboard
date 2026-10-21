@@ -7,7 +7,7 @@ import type {
   TicketType,
   UpdateTicketInput,
 } from "@clankerboard/shared";
-import { and, asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, sql } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { type ActivityEvent, withActivity } from "./activity";
 import {
@@ -20,6 +20,7 @@ import {
 } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
 import { notFound } from "./errors";
+import { assertChildrenAccept, assertPlacement } from "./hierarchy";
 import { findProject } from "./projects";
 
 export type TicketView = {
@@ -33,6 +34,7 @@ export type TicketView = {
   status: TicketStatus;
   priority: TicketPriority;
   rank: string;
+  parent: { key: string; title: string; type: TicketType } | null;
   assignee: ActorView | null;
   createdBy: ActorView;
   archivedAt: Date | null;
@@ -87,6 +89,15 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
   const assignees = rows.map((r) => refFromColumns(r.assigneeUserId, r.assigneeAgentId));
   const creators = rows.map((r) => refFromColumns(r.createdByUserId, r.createdByAgentId));
   const actor = await resolveActors(db, [...assignees, ...creators]);
+  const parentIds = [...new Set(rows.flatMap((r) => (r.parentId ? [r.parentId] : [])))];
+  const parents = new Map(
+    parentIds.length === 0
+      ? []
+      : (await selectTickets(db).where(inArray(tickets.id, parentIds))).map((p) => [
+          p.id,
+          { key: ticketKeyOf(p), title: p.title, type: p.type },
+        ]),
+  );
   return rows.map((row, i) => ({
     id: row.id,
     key: ticketKeyOf(row),
@@ -98,6 +109,7 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     status: row.status,
     priority: row.priority,
     rank: row.rank,
+    parent: (row.parentId && parents.get(row.parentId)) || null,
     assignee: actor(assignees[i] ?? null),
     createdBy: actor(creators[i] ?? null) as ActorView,
     archivedAt: row.archivedAt,
@@ -131,6 +143,8 @@ export async function createTicket(
   const now = deps.clock.now();
   return withActivity(deps, ctx, async (tx, record) => {
     const project = await findProject(tx, ctx, input.projectKey);
+    const parent = input.parentKey ? await findTicket(tx, ctx, input.parentKey) : null;
+    assertPlacement({ type: input.type, projectId: project.id }, parent);
     // Taking the number locks the Project row, so concurrent creates queue
     // here and each sees the previous one's rank.
     const [counter] = await tx
@@ -149,6 +163,7 @@ export async function createTicket(
         companyId: ctx.companyId,
         projectId: project.id,
         number,
+        parentId: parent?.id ?? null,
         title: input.title,
         description: input.description,
         type: input.type,
@@ -168,7 +183,13 @@ export async function createTicket(
       ticketId: row.id,
       ticketKey: ticketKeyOf(ticket),
       kind: "ticket.created",
-      payload: { title: row.title, type: row.type, status: row.status, priority: row.priority },
+      payload: {
+        title: row.title,
+        type: row.type,
+        status: row.status,
+        priority: row.priority,
+        parent: parent ? ticketKeyOf(parent) : null,
+      },
     });
     return ticketView(tx, ticket);
   });
@@ -198,12 +219,31 @@ export async function updateTicket(
 ): Promise<TicketView> {
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
-    const changes = diff(row, input);
+    const { parentKey, ...fields } = input;
+    const changes = diff(row, fields);
+
+    const currentParent = row.parentId ? await findTicketById(tx, row.parentId) : null;
+    const parent =
+      parentKey === undefined
+        ? currentParent
+        : parentKey === null
+          ? null
+          : await findTicket(tx, ctx, parentKey);
+    if ((parent?.id ?? null) !== row.parentId) {
+      changes.parent = {
+        from: currentParent ? ticketKeyOf(currentParent) : null,
+        to: parent ? ticketKeyOf(parent) : null,
+      };
+    }
     if (Object.keys(changes).length === 0) return ticketView(tx, row);
+
+    const type = fields.type ?? row.type;
+    assertPlacement({ type, projectId: row.projectId }, parent);
+    if (type !== row.type) assertChildrenAccept(type, await childrenOf(tx, row.id));
 
     const [updated] = await tx
       .update(tickets)
-      .set({ ...input, updatedAt: deps.clock.now() })
+      .set({ ...fields, parentId: parent?.id ?? null, updatedAt: deps.clock.now() })
       .where(eq(tickets.id, row.id))
       .returning();
     if (!updated) throw notFound();
@@ -216,6 +256,29 @@ export async function updateTicket(
     });
     return ticketView(tx, { ...updated, projectKey: row.projectKey });
   });
+}
+
+async function findTicketById(db: Db | Tx, id: string) {
+  const [row] = await selectTickets(db).where(eq(tickets.id, id));
+  if (!row) throw notFound();
+  return row;
+}
+
+/** Live (not archived) children, oldest first. */
+async function childrenOf(db: Db | Tx, ticketId: string) {
+  const rows = await selectTickets(db)
+    .where(and(eq(tickets.parentId, ticketId), isNull(tickets.archivedAt)))
+    .orderBy(asc(tickets.number));
+  return rows.map((row) => ({ ...row, key: ticketKeyOf(row) }));
+}
+
+export async function listChildren(
+  { db }: DomainDeps,
+  ctx: CompanyContext,
+  key: string,
+): Promise<TicketView[]> {
+  const ticket = await findTicket(db, ctx, key);
+  return ticketViews(db, await childrenOf(db, ticket.id));
 }
 
 export async function listTicketActivity(

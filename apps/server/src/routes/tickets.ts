@@ -2,6 +2,7 @@ import {
   createTicket,
   type DomainDeps,
   getTicket,
+  listChildren,
   listTicketActivity,
   updateTicket,
 } from "@clankerboard/domain";
@@ -29,6 +30,9 @@ export function ticketRoutes(deps: DomainDeps) {
         c.req.valid("json"),
       );
       return c.json({ ticket });
+    })
+    .get("/tickets/:key/children", async (c) => {
+      return c.json({ children: await listChildren(deps, c.var.company, c.req.param("key")) });
     })
     .get("/tickets/:key/activity", async (c) => {
       return c.json({

@@ -7,6 +7,7 @@ import {
 } from "@clankerboard/shared";
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -271,6 +272,8 @@ export const tickets = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     number: integer().notNull(),
+    /** Always in the same Project. Hierarchy rules live in the domain module. */
+    parentId: text().references((): AnyPgColumn => tickets.id, { onDelete: "set null" }),
     title: text().notNull(),
     description: text().notNull().default(""),
     type: ticketType().notNull(),
@@ -289,6 +292,7 @@ export const tickets = pgTable(
   (t) => [
     unique().on(t.projectId, t.number),
     index().on(t.projectId, t.status, t.rank),
+    index().on(t.parentId),
     check(
       "tickets_one_assignee",
       sql`num_nonnulls(${t.assigneeUserId}, ${t.assigneeAgentId}) <= 1`,
