@@ -3,6 +3,7 @@ import { type Db, schema } from "@clankerboard/db";
 import { isSignUpAllowed } from "@clankerboard/domain";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { organization } from "better-auth/plugins";
 import { type AppConfig, enabledOAuthProviders } from "./config";
 import type { Logger } from "./logger";
 
@@ -33,6 +34,9 @@ export function createAuth({ db, config, logger }: AuthDeps) {
         session: schema.sessions,
         account: schema.accounts,
         verification: schema.verifications,
+        organization: schema.companies,
+        member: schema.memberships,
+        invitation: schema.invites,
       },
     }),
     advanced: {
@@ -43,6 +47,18 @@ export function createAuth({ db, config, logger }: AuthDeps) {
       enabled: true,
       autoSignIn: true,
     },
+    plugins: [
+      // Provides the Company, Membership, Team, and Invite tables and the
+      // session's active Company. Its HTTP endpoints are not mounted: every
+      // tenancy rule lives in the domain module instead (see createApp).
+      organization({
+        schema: {
+          session: { fields: { activeOrganizationId: "activeCompanyId" } },
+          member: { fields: { organizationId: "companyId" } },
+          invitation: { fields: { organizationId: "companyId" } },
+        },
+      }),
+    ],
     user: {
       validateUserInfo: async ({ user, source }) => {
         if (source.action !== "create-user") return;

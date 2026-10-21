@@ -15,6 +15,13 @@
       "when": 1792597688833,
       "tag": "0001_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792598032587,
+      "tag": "0002_companies",
+      "breakpoints": true
     }
   ]
 }

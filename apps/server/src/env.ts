@@ -1,3 +1,4 @@
+import type { CompanyContext, UserContext } from "@clankerboard/domain";
 import type { RequestIdVariables } from "hono/request-id";
 import type { Auth } from "./auth";
 import type { Logger } from "./logger";
@@ -9,5 +10,9 @@ export type AppEnv = {
     log: Logger;
     user: AuthSession["user"] | null;
     session: AuthSession["session"] | null;
+    /** Set by requireUser. */
+    actor: UserContext;
+    /** Set by requireCompany. */
+    company: CompanyContext;
   };
 };

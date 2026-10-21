@@ -1,4 +1,5 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { companyRoles } from "@clankerboard/shared";
+import { boolean, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 // Better Auth owns these tables (ADR-0005). Property names follow Better Auth's
 // field names so its Drizzle adapter can read and write them.
@@ -28,6 +29,9 @@ export const sessions = pgTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // The Company this session is working in. Better Auth's organization
+    // plugin calls it activeOrganizationId; we rename it in the auth config.
+    activeCompanyId: text().references(() => companies.id, { onDelete: "set null" }),
     ...timestamps,
   },
   (t) => [index().on(t.userId)],
@@ -64,6 +68,53 @@ export const verifications = pgTable(
     ...timestamps,
   },
   (t) => [index().on(t.identifier)],
+);
+
+// A Company is a Better Auth organization.
+export const companies = pgTable("companies", {
+  id: text().primaryKey(),
+  name: text().notNull(),
+  slug: text().notNull().unique(),
+  logo: text(),
+  metadata: text(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+// A User's Membership in a Company: Better Auth's organization member.
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text({ enum: companyRoles }).notNull().default("member"),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.companyId, t.userId), index().on(t.userId)],
+);
+
+// A pending offer to join a Company: Better Auth's organization invitation.
+export const invites = pgTable(
+  "invites",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    email: text().notNull(),
+    role: text({ enum: companyRoles }).notNull().default("member"),
+    status: text().notNull().default("pending"),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    inviterId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.companyId), index().on(t.email)],
 );
 
 // Instance-wide values the app generates for itself, such as the auth secret

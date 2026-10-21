@@ -1,5 +1,7 @@
-import type { Database } from "@clankerboard/db";
+import { randomUUID } from "node:crypto";
+import { type Database, schema } from "@clankerboard/db";
 import type { Clock, Mailer, MailMessage } from "@clankerboard/domain";
+import type { CompanyRole } from "@clankerboard/shared";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
 import { createLogger } from "../src/logger";
 
@@ -115,4 +117,51 @@ export function buildTestApp(
   }
 
   return { app, clock, mailer, config, request, requestAs, signUp, signIn };
+}
+
+export type CompanyFixture = {
+  company: { id: string; name: string; slug: string };
+  owner: SignedInUser;
+  members: SignedInUser[];
+};
+
+let fixtureCount = 0;
+
+/**
+ * Creates a Company through the API, owned by `owner` (or a fresh User), and
+ * adds the given members with their Roles. Each member's active Company is
+ * set to it.
+ */
+export async function createCompany(
+  t: TestApp,
+  input: {
+    name: string;
+    slug?: string;
+    owner?: SignedInUser;
+    members?: { email: string; role: CompanyRole }[];
+  },
+): Promise<CompanyFixture> {
+  const owner = input.owner ?? (await t.signUp({ email: `owner-${++fixtureCount}@example.com` }));
+  const res = await owner.request("/api/companies", {
+    method: "POST",
+    body: JSON.stringify({ name: input.name, slug: input.slug }),
+  });
+  if (res.status !== 201) throw new Error(`createCompany failed: ${await res.text()}`);
+  const { company } = (await res.json()) as CompanyFixture;
+
+  const members: SignedInUser[] = [];
+  for (const member of input.members ?? []) {
+    const user = await t.signUp({ email: member.email });
+    // No API adds a Membership directly until Invites exist.
+    await testDatabase()
+      .db.insert(schema.memberships)
+      .values({ id: randomUUID(), companyId: company.id, userId: user.user.id, role: member.role });
+    const switched = await user.request("/api/active-company", {
+      method: "PUT",
+      body: JSON.stringify({ companyId: company.id }),
+    });
+    if (switched.status !== 200) throw new Error(`switch failed: ${await switched.text()}`);
+    members.push(user);
+  }
+  return { company, owner, members };
 }
