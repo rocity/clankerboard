@@ -385,7 +385,7 @@ export async function updateTicket(
     const { parentKey, ...fields } = input;
     const changes = diff(row, fields);
 
-    const currentParent = row.parentId ? await findTicketById(tx, row.parentId) : null;
+    const currentParent = row.parentId ? await findTicketById(tx, ctx, row.parentId) : null;
     const parent =
       parentKey === undefined
         ? currentParent
@@ -421,8 +421,11 @@ export async function updateTicket(
   });
 }
 
-export async function findTicketById(db: Db | Tx, id: string) {
-  const [row] = await selectTickets(db).where(eq(tickets.id, id));
+/** A Ticket in the caller's Company, by internal id. */
+async function findTicketById(db: Db | Tx, ctx: CompanyContext, id: string) {
+  const [row] = await selectTickets(db).where(
+    and(eq(tickets.id, id), eq(tickets.companyId, ctx.companyId)),
+  );
   if (!row) throw notFound();
   return row;
 }
@@ -580,7 +583,7 @@ export async function claimTicket(
       .returning(ticketColumns);
 
     if (!claimed) {
-      const current = await findTicketById(tx, row.id);
+      const current = await findTicketById(tx, ctx, row.id);
       if (current.archivedAt) throw conflict("Archived tickets can't be claimed.");
       const holder = await ticketView(tx, current);
       if (holder.assignee) {
