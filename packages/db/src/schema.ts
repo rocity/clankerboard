@@ -1,9 +1,19 @@
-import { companyRoles, teamRoles } from "@clankerboard/shared";
+import {
+  companyRoles,
+  teamRoles,
+  ticketPriorities,
+  ticketStatuses,
+  ticketTypes,
+} from "@clankerboard/shared";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
+  check,
   index,
   integer,
+  jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -184,9 +194,11 @@ export const agents = pgTable(
     companyId: text()
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
+    // Restrict, not cascade: an Agent stays the author of its past work, so
+    // deleting its owner must not erase it.
     ownerUserId: text()
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "restrict" }),
     name: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -237,6 +249,81 @@ export const projects = pgTable(
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique().on(t.companyId, t.key), index().on(t.teamId)],
+);
+
+export const ticketType = pgEnum("ticket_type", ticketTypes);
+export const ticketStatus = pgEnum("ticket_status", ticketStatuses);
+export const ticketPriority = pgEnum("ticket_priority", ticketPriorities);
+
+// An Actor reference is a pair of nullable columns, one for a User and one for
+// an Agent. Restrict on delete so history is never erased with its Actor.
+const actorUser = () => text().references(() => users.id, { onDelete: "restrict" });
+const actorAgent = () => text().references(() => agents.id, { onDelete: "restrict" });
+
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    projectId: text()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    number: integer().notNull(),
+    title: text().notNull(),
+    description: text().notNull().default(""),
+    type: ticketType().notNull(),
+    status: ticketStatus().notNull().default("backlog"),
+    priority: ticketPriority().notNull().default("medium"),
+    /** Fractional-index position within the Ticket's Status column. */
+    rank: text().notNull(),
+    assigneeUserId: actorUser(),
+    assigneeAgentId: actorAgent(),
+    createdByUserId: actorUser(),
+    createdByAgentId: actorAgent(),
+    archivedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique().on(t.projectId, t.number),
+    index().on(t.projectId, t.status, t.rank),
+    check(
+      "tickets_one_assignee",
+      sql`num_nonnulls(${t.assigneeUserId}, ${t.assigneeAgentId}) <= 1`,
+    ),
+    check(
+      "tickets_one_creator",
+      sql`num_nonnulls(${t.createdByUserId}, ${t.createdByAgentId}) = 1`,
+    ),
+  ],
+);
+
+// A recorded event on the board, credited to the Actor who caused it. The id
+// only ever increases; Spec 05 uses it as the SSE event id.
+export const activities = pgTable(
+  "activities",
+  {
+    id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    projectId: text()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    ticketId: text().references(() => tickets.id, { onDelete: "cascade" }),
+    actorUserId: actorUser(),
+    actorAgentId: actorAgent(),
+    kind: text().notNull(),
+    payload: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index().on(t.ticketId, t.id),
+    index().on(t.companyId, t.id),
+    check("activities_one_actor", sql`num_nonnulls(${t.actorUserId}, ${t.actorAgentId}) = 1`),
+  ],
 );
 
 // Instance-wide values the app generates for itself, such as the auth secret

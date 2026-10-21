@@ -1,6 +1,7 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { CompanyRole } from "@clankerboard/shared";
 import { and, eq } from "drizzle-orm";
+import type { EventBus } from "./activity";
 import type { Clock } from "./clock";
 import type { Mailer } from "./mailer";
 
@@ -31,6 +32,8 @@ export type DomainDeps = {
   mailer: Mailer;
   config: DomainConfig;
   hooks: DomainHooks;
+  /** Receives every Activity after its transaction commits. */
+  events: EventBus;
 };
 
 /** A signed-in User, before any Company is chosen. */

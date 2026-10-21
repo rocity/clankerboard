@@ -1,4 +1,6 @@
 export type { Db } from "@clankerboard/db";
+export * from "./activity";
+export * from "./actors";
 export * from "./agents";
 export * from "./clock";
 export * from "./companies";
@@ -11,3 +13,4 @@ export * from "./permissions";
 export * from "./projects";
 export * from "./sign-up";
 export * from "./teams";
+export * from "./tickets";

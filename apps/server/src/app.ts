@@ -3,7 +3,9 @@ import {
   type Clock,
   type DomainDeps,
   type DomainHooks,
+  type EventBus,
   type Mailer,
+  noopEventBus,
   noopMailer,
   revokeAgentsOfRemovedMember,
 } from "@clankerboard/domain";
@@ -26,6 +28,7 @@ import { meRoutes } from "./routes/me";
 import { memberRoutes } from "./routes/members";
 import { projectRoutes } from "./routes/projects";
 import { teamRoutes } from "./routes/teams";
+import { ticketRoutes } from "./routes/tickets";
 import { webRoutes } from "./routes/web";
 
 export type { AppConfig };
@@ -36,6 +39,8 @@ export type AppDeps = {
   mailer: Mailer;
   config: AppConfig;
   logger: Logger;
+  /** Receives every Activity after commit. Defaults to one that drops it. */
+  events?: EventBus;
   /** Extra domain hooks, run after the built-in ones (such as revoking a removed member's Agents). */
   hooks?: Partial<DomainHooks>;
 };
@@ -52,6 +57,7 @@ export function createApp(deps: AppDeps) {
       inviteTtlMs: config.inviteTtlMs,
       openSignup: config.openSignup,
     },
+    events: deps.events ?? noopEventBus,
     hooks: {
       memberRemoved: [
         revokeAgentsOfRemovedMember(deps.clock),
@@ -70,7 +76,8 @@ export function createApp(deps: AppDeps) {
     .route("/", inviteRoutes(domain))
     .route("/", teamRoutes(domain))
     .route("/", agentRoutes(domain))
-    .route("/", projectRoutes(domain));
+    .route("/", projectRoutes(domain))
+    .route("/", ticketRoutes(domain));
 
   const app = new Hono<AppEnv>()
     .use(requestId())

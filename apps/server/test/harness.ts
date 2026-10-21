@@ -1,6 +1,14 @@
-import type { Database } from "@clankerboard/db";
-import type { Clock, Mailer, MailMessage } from "@clankerboard/domain";
+import { type Database, schema } from "@clankerboard/db";
+import type {
+  ActivityEvent,
+  Clock,
+  EventBus,
+  Mailer,
+  MailMessage,
+  TicketView,
+} from "@clankerboard/domain";
 import type { CompanyRole } from "@clankerboard/shared";
+import { eq } from "drizzle-orm";
 import { pino } from "pino";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
 import { createLogger } from "../src/logger";
@@ -36,6 +44,28 @@ export class CapturingMailer implements Mailer {
   async send(message: MailMessage) {
     this.sent.push(message);
     return true;
+  }
+}
+
+/** Captures published Activity, and checks each was already committed when published. */
+export class CapturingEventBus implements EventBus {
+  readonly published: ActivityEvent[] = [];
+  private readonly checks: Promise<boolean>[] = [];
+
+  publish(event: ActivityEvent) {
+    this.published.push(event);
+    // A separate connection only sees the row once its transaction committed.
+    this.checks.push(
+      testDatabase()
+        .db.select({ id: schema.activities.id })
+        .from(schema.activities)
+        .where(eq(schema.activities.id, event.id))
+        .then((rows) => rows.length === 1),
+    );
+  }
+
+  visibility() {
+    return Promise.all(this.checks);
   }
 }
 
@@ -236,4 +266,33 @@ export async function createApiKey(
     secret: string;
   };
   return { key, secret, bearer: t.bearer(secret) };
+}
+
+/** Creates a Project as any caller, session or bearer. */
+export async function createProject(
+  as: Fetch,
+  input: { name: string; key: string; teamId?: string },
+) {
+  const res = await as("/api/projects", { method: "POST", body: JSON.stringify(input) });
+  if (res.status !== 201) throw new Error(`createProject failed: ${await res.text()}`);
+  return ((await res.json()) as { project: { id: string; key: string } }).project;
+}
+
+type TicketJson = Omit<TicketView, "createdAt" | "updatedAt" | "archivedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+};
+
+/** Creates a Ticket as any caller. The type defaults to task. */
+export async function createTicket(
+  as: Fetch,
+  input: { projectKey: string; title: string; type?: string } & Record<string, unknown>,
+): Promise<TicketJson> {
+  const res = await as("/api/tickets", {
+    method: "POST",
+    body: JSON.stringify({ type: "task", ...input }),
+  });
+  if (res.status !== 201) throw new Error(`createTicket failed: ${await res.text()}`);
+  return ((await res.json()) as { ticket: TicketJson }).ticket;
 }
