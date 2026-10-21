@@ -46,7 +46,7 @@ export type ServerEnv = Omit<AppConfig, "authSecret"> & {
 export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
   const databaseUrl = env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
-  const port = Number(env.PORT ?? 3000);
+  const port = numberFrom(env, "PORT", 3000, { min: 1, integer: true });
   return {
     port,
     databaseUrl,
@@ -54,15 +54,16 @@ export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
     logLevel: env.LOG_LEVEL ?? "info",
     authSecret: env.AUTH_SECRET || undefined,
     openSignup: env.OPEN_SIGNUP === "true",
-    inviteTtlMs: Number(env.INVITE_TTL_HOURS ?? 7 * 24) * 60 * 60 * 1000,
+    inviteTtlMs: numberFrom(env, "INVITE_TTL_HOURS", 7 * 24, { min: 1 }) * 60 * 60 * 1000,
     rateLimit: {
-      capacity: Number(env.RATE_LIMIT_CAPACITY ?? 120),
-      refillPerSecond: Number(env.RATE_LIMIT_REFILL_PER_SECOND ?? 2),
+      // Under 1 would turn every request away.
+      capacity: numberFrom(env, "RATE_LIMIT_CAPACITY", 120, { min: 1 }),
+      refillPerSecond: numberFrom(env, "RATE_LIMIT_REFILL_PER_SECOND", 2, { min: 0.001 }),
     },
     smtp: env.SMTP_HOST
       ? {
           host: env.SMTP_HOST,
-          port: Number(env.SMTP_PORT ?? 587),
+          port: numberFrom(env, "SMTP_PORT", 587, { min: 1, integer: true }),
           secure: env.SMTP_SECURE === "true",
           user: env.SMTP_USER || undefined,
           password: env.SMTP_PASSWORD || undefined,
@@ -78,6 +79,23 @@ export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
     webDistDir: env.WEB_DIST_DIR,
     migrationsDir: env.MIGRATIONS_DIR,
   };
+}
+
+/** Reads a numeric env var, failing at startup on a value the app can't run with. */
+function numberFrom(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  fallback: number,
+  rule: { min: number; integer?: boolean },
+) {
+  const raw = env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < rule.min || (rule.integer && !Number.isInteger(value))) {
+    const kind = rule.integer ? "a whole number" : "a number";
+    throw new Error(`${name} must be ${kind} of at least ${rule.min}, got "${raw}"`);
+  }
+  return value;
 }
 
 function credentials(clientId?: string, clientSecret?: string): OAuthCredentials | undefined {

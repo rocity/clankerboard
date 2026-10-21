@@ -34,6 +34,22 @@ describe("API Key rate limit", () => {
     expect((await second.bearer("/api/whoami")).status).toBe(200);
   });
 
+  it("turns a limited request away before it reaches the key lookup", async () => {
+    const t = buildTestApp({ config: { rateLimit: { capacity: 1, refillPerSecond: 0.001 } } });
+    const { owner } = await createCompany(t, { name: "Acme" });
+    const agent = await createAgent(owner, "Looper");
+    const { bearer } = await createApiKey(t, owner, agent.id);
+    const start = t.clock.now().toISOString();
+    expect((await bearer("/api/whoami")).status).toBe(200);
+
+    t.clock.advance(61_000);
+    expect((await bearer("/api/whoami")).status).toBe(429);
+
+    // The lookup would have refreshed last-used, since a minute has passed.
+    const res = await owner.request(`/api/agents/${agent.id}/keys`);
+    expect(await res.json()).toMatchObject({ keys: [{ lastUsedAt: start }] });
+  });
+
   it("does not limit session-authenticated humans", async () => {
     const t = buildTestApp({ config: { rateLimit: { capacity: 1, refillPerSecond: 1 } } });
     const { owner } = await createCompany(t, { name: "Acme" });

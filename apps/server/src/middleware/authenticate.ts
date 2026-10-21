@@ -1,6 +1,7 @@
 import {
   authenticateApiKey,
   type DomainDeps,
+  hashApiKey,
   resolveCompanyContext,
   type UserContext,
   unauthorized,
@@ -9,14 +10,15 @@ import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Auth } from "../auth";
 import type { AppEnv } from "../env";
-import type { RateLimiter } from "../rate-limit";
+import { type RateLimiter, tooManyRequests } from "../rate-limit";
 
 /**
  * The one auth layer: a bearer API Key acts as its Agent, otherwise a session
  * cookie acts as its User. A request with an Authorization header never falls
- * back to the cookie.
+ * back to the cookie. Bearer requests spend from their key's rate-limit bucket
+ * before any database work, so a looping Agent can't reach the database.
  */
-export function authenticate(auth: Auth, deps: DomainDeps) {
+export function authenticate(auth: Auth, deps: DomainDeps, limiter: RateLimiter) {
   return createMiddleware<AppEnv>(async (c, next) => {
     c.set("user", null);
     c.set("sessionUser", null);
@@ -27,7 +29,15 @@ export function authenticate(auth: Auth, deps: DomainDeps) {
     if (authorization !== undefined) {
       const secret = /^Bearer\s+(\S+)$/i.exec(authorization.trim())?.[1];
       if (!secret) throw unauthorized("That API key is not valid.");
-      c.set("agent", await authenticateApiKey(deps, secret));
+      const bucket = hashApiKey(secret);
+      const limit = limiter.take(bucket);
+      if (!limit.allowed) return tooManyRequests(c, limit.retryAfterSeconds);
+      try {
+        c.set("agent", await authenticateApiKey(deps, secret));
+      } catch (error) {
+        limiter.forget(bucket);
+        throw error;
+      }
       return next();
     }
 
@@ -71,21 +81,4 @@ export function requireCompany(deps: Pick<DomainDeps, "db">) {
 export function signedIn(c: Context<AppEnv>): UserContext {
   if (!c.var.sessionUser) throw unauthorized("Sign in first.");
   return c.var.sessionUser;
-}
-
-/** Spends one token of the API Key's budget. Session requests pass untouched. */
-export function rateLimitApiKeys(limiter: RateLimiter) {
-  return createMiddleware<AppEnv>(async (c, next) => {
-    if (!c.var.agent) return next();
-    const result = limiter.take(c.var.agent.keyId);
-    if (!result.allowed) {
-      const seconds = result.retryAfterSeconds;
-      c.header("Retry-After", String(seconds));
-      return c.json(
-        { error: `Too many requests. Try again in ${seconds} second${seconds === 1 ? "" : "s"}.` },
-        429,
-      );
-    }
-    await next();
-  });
 }

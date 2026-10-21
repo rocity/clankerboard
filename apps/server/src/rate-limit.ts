@@ -1,4 +1,5 @@
 import type { Clock } from "@clankerboard/domain";
+import type { Context } from "hono";
 
 export type RateLimitConfig = {
   /** Requests a key may make in a burst. */
@@ -39,4 +40,15 @@ export class RateLimiter {
     }
     return { allowed: false, retryAfterSeconds: Math.ceil((1 - bucket.tokens) / refillPerSecond) };
   }
+
+  /** Drops a bucket, so keys that turn out invalid can't grow memory. */
+  forget(key: string) {
+    this.buckets.delete(key);
+  }
+}
+
+export function tooManyRequests(c: Context, retryAfterSeconds: number) {
+  c.header("Retry-After", String(retryAfterSeconds));
+  const unit = retryAfterSeconds === 1 ? "second" : "seconds";
+  return c.json({ error: `Too many requests. Try again in ${retryAfterSeconds} ${unit}.` }, 429);
 }

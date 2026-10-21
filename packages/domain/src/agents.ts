@@ -263,8 +263,10 @@ export type AgentAuthentication = {
 const lastUsedResolutionMs = 60_000;
 
 /** Records use of a key, writing at most once per minute so not every request writes. */
-async function touchApiKey(db: Db, keyId: string, now: Date) {
+async function touchApiKey(db: Db, keyId: string, lastUsedAt: Date | null, now: Date) {
   const staleBefore = new Date(now.getTime() - lastUsedResolutionMs);
+  if (lastUsedAt && lastUsedAt > staleBefore) return;
+  // The WHERE repeats the check so concurrent requests write once.
   await db
     .update(apiKeys)
     .set({ lastUsedAt: now })
@@ -291,6 +293,7 @@ export async function authenticateApiKey(
     .select({
       keyId: apiKeys.id,
       keyRevokedAt: apiKeys.revokedAt,
+      lastUsedAt: apiKeys.lastUsedAt,
       agentId: agents.id,
       agentName: agents.name,
       agentRevokedAt: agents.revokedAt,
@@ -309,7 +312,7 @@ export async function authenticateApiKey(
   // A missing owner Membership means the Agent should already be revoked.
   if (row.agentRevokedAt || !row.role) throw unauthorized("This agent was revoked.");
   if (row.keyRevokedAt) throw unauthorized("This API key was revoked.");
-  await touchApiKey(db, row.keyId, clock.now());
+  await touchApiKey(db, row.keyId, row.lastUsedAt, clock.now());
 
   return {
     ctx: {
