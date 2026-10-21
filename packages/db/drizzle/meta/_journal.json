@@ -43,6 +43,13 @@
       "when": 1792621384756,
       "tag": "0005_agents",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792625613566,
+      "tag": "0006_projects",
+      "breakpoints": true
     }
   ]
 }

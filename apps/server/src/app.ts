@@ -24,6 +24,7 @@ import { healthRoutes } from "./routes/health";
 import { inviteRoutes } from "./routes/invites";
 import { meRoutes } from "./routes/me";
 import { memberRoutes } from "./routes/members";
+import { projectRoutes } from "./routes/projects";
 import { teamRoutes } from "./routes/teams";
 import { webRoutes } from "./routes/web";
 
@@ -68,7 +69,8 @@ export function createApp(deps: AppDeps) {
     .route("/", memberRoutes(domain))
     .route("/", inviteRoutes(domain))
     .route("/", teamRoutes(domain))
-    .route("/", agentRoutes(domain));
+    .route("/", agentRoutes(domain))
+    .route("/", projectRoutes(domain));
 
   const app = new Hono<AppEnv>()
     .use(requestId())

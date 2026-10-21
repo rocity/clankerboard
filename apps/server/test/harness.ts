@@ -44,7 +44,7 @@ export function plainCopy(text: string) {
   return !text.includes("—") && !/\p{Extended_Pictographic}/u.test(text);
 }
 
-type Fetch = (path: string, init?: RequestInit) => Promise<Response>;
+export type Fetch = (path: string, init?: RequestInit) => Promise<Response>;
 
 export type SignedInUser = {
   user: { id: string; email: string; name: string };

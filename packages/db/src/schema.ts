@@ -217,6 +217,28 @@ export const apiKeys = pgTable(
   (t) => [index().on(t.agentId)],
 );
 
+// Board tables (Spec 03).
+
+// A container of Tickets. Its key is fixed once created, since Ticket Keys
+// like CB-42 end up in commits and transcripts.
+export const projects = pgTable(
+  "projects",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    teamId: text().references(() => teams.id, { onDelete: "set null" }),
+    name: text().notNull(),
+    key: text().notNull(),
+    /** The number the next Ticket gets. Never goes back, so numbers are never reused. */
+    nextTicketNumber: integer().notNull().default(1),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.companyId, t.key), index().on(t.teamId)],
+);
+
 // Instance-wide values the app generates for itself, such as the auth secret
 // when the operator does not set one.
 export const instanceSettings = pgTable("instance_settings", {

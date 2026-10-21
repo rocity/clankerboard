@@ -66,6 +66,11 @@ export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
   return ownsAgent || isAdmin(actor);
 }
 
+/** Hard-deleting Projects and Tickets is for owners and admins. */
+export function canDeleteBoardContent(actor: CompanyRole) {
+  return isAdmin(actor);
+}
+
 /**
  * The deletion guard. Every service that hard-deletes anything calls this
  * first: deletion is a human-only action, whatever the owner's Role (ADR-0003).

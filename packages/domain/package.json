@@ -12,6 +12,7 @@
     "@clankerboard/db": "workspace:^",
     "@clankerboard/shared": "workspace:^",
     "drizzle-orm": "^0.45.4",
+    "fractional-indexing": "^4.0.0",
     "kysely": "0.29.7"
   },
   "devDependencies": {
