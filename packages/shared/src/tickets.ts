@@ -49,3 +49,20 @@ export const updateTicketInput = z.object({
   parentKey: ticketKey.nullable().optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
+
+/**
+ * Moves a Ticket to a Status column (its current one if omitted) and a place in
+ * it: right after `after`, right before `before`, between both, or at a
+ * zero-based `position`. With no place given, it goes to the bottom.
+ */
+export const moveTicketInput = z.object({
+  status: ticketStatus.optional(),
+  after: ticketKey.optional(),
+  before: ticketKey.optional(),
+  position: z
+    .number({ error: "Positions are whole numbers from 0." })
+    .int({ error: "Positions are whole numbers from 0." })
+    .min(0, { error: "Positions are whole numbers from 0." })
+    .optional(),
+});
+export type MoveTicketInput = z.infer<typeof moveTicketInput>;

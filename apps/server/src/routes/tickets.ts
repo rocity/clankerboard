@@ -4,18 +4,34 @@ import {
   getTicket,
   listChildren,
   listTicketActivity,
+  listTickets,
+  moveTicket,
   updateTicket,
 } from "@clankerboard/domain";
-import { createTicketInput, updateTicketInput } from "@clankerboard/shared";
+import {
+  createTicketInput,
+  moveTicketInput,
+  ticketStatus,
+  updateTicketInput,
+} from "@clankerboard/shared";
 import { Hono } from "hono";
+import { z } from "zod";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";
-import { json } from "../validate";
+import { json, query } from "../validate";
+
+const listQuery = z.object({
+  projectKey: z.string().optional(),
+  status: ticketStatus.optional(),
+});
 
 export function ticketRoutes(deps: DomainDeps) {
   return new Hono<AppEnv>()
     .use("/tickets", requireCompany(deps))
     .use("/tickets/*", requireCompany(deps))
+    .get("/tickets", query(listQuery), async (c) => {
+      return c.json({ tickets: await listTickets(deps, c.var.company, c.req.valid("query")) });
+    })
     .post("/tickets", json(createTicketInput), async (c) => {
       return c.json({ ticket: await createTicket(deps, c.var.company, c.req.valid("json")) }, 201);
     })
@@ -29,6 +45,10 @@ export function ticketRoutes(deps: DomainDeps) {
         c.req.param("key"),
         c.req.valid("json"),
       );
+      return c.json({ ticket });
+    })
+    .post("/tickets/:key/move", json(moveTicketInput), async (c) => {
+      const ticket = await moveTicket(deps, c.var.company, c.req.param("key"), c.req.valid("json"));
       return c.json({ ticket });
     })
     .get("/tickets/:key/children", async (c) => {

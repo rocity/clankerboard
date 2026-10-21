@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type {
   CreateTicketInput,
+  MoveTicketInput,
   TicketPriority,
   TicketStatus,
   TicketType,
@@ -19,9 +20,10 @@ import {
   resolveActors,
 } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
-import { notFound } from "./errors";
+import { conflict, invalid, notFound } from "./errors";
 import { assertChildrenAccept, assertPlacement } from "./hierarchy";
 import { findProject } from "./projects";
+import { rankAt } from "./rank";
 
 export type TicketView = {
   id: string;
@@ -133,6 +135,91 @@ export async function bottomRank(tx: Db | Tx, projectId: string, status: TicketS
     .orderBy(desc(tickets.rank))
     .limit(1);
   return generateKeyBetween(last?.rank ?? null, null);
+}
+
+/** A Status column of a Project, in board order, leaving out one Ticket. */
+async function columnOf(tx: Db | Tx, projectId: string, status: TicketStatus, without: string) {
+  const rows = await selectTickets(tx)
+    .where(
+      and(eq(tickets.projectId, projectId), eq(tickets.status, status), isNull(tickets.archivedAt)),
+    )
+    .orderBy(asc(tickets.rank), asc(tickets.number));
+  return rows.filter((row) => row.id !== without).map((row) => ({ ...row, key: ticketKeyOf(row) }));
+}
+
+/** Where in `column` the moved Ticket goes, from its neighbours or a position. */
+function placeIn(column: { key: string }[], status: TicketStatus, input: MoveTicketInput) {
+  const indexOf = (key: string) => {
+    const index = column.findIndex((row) => row.key === key.toUpperCase());
+    if (index === -1) throw invalid(`${key.toUpperCase()} isn't in the ${status} column.`);
+    return index;
+  };
+  if (input.after) {
+    const index = indexOf(input.after) + 1;
+    if (input.before && column[index]?.key !== input.before.toUpperCase()) {
+      throw conflict("The column changed. Refresh and try again.");
+    }
+    return index;
+  }
+  if (input.before) return indexOf(input.before);
+  return Math.min(input.position ?? column.length, column.length);
+}
+
+/** Moves a Ticket to a Status and a place in that column, updating that one row only. */
+export async function moveTicket(
+  deps: DomainDeps,
+  ctx: CompanyContext,
+  key: string,
+  input: MoveTicketInput,
+): Promise<TicketView> {
+  return withActivity(deps, ctx, async (tx, record) => {
+    const row = await findTicket(tx, ctx, key, true);
+    const status = input.status ?? row.status;
+    const column = await columnOf(tx, row.projectId, status, row.id);
+    const rank = rankAt(
+      column.map((r) => r.rank),
+      placeIn(column, status, input),
+    );
+
+    const [updated] = await tx
+      .update(tickets)
+      .set({ status, rank, updatedAt: deps.clock.now() })
+      .where(eq(tickets.id, row.id))
+      .returning();
+    if (!updated) throw notFound();
+    await record({
+      projectId: row.projectId,
+      ticketId: row.id,
+      ticketKey: ticketKeyOf(row),
+      kind: "ticket.moved",
+      payload: { from: { status: row.status, rank: row.rank }, to: { status, rank } },
+    });
+    return ticketView(tx, { ...updated, projectKey: row.projectKey });
+  });
+}
+
+export type TicketFilter = {
+  projectKey?: string;
+  status?: TicketStatus;
+};
+
+/** Tickets in board order: by Status column, then rank within it. Archived ones are left out. */
+export async function listTickets(
+  { db }: DomainDeps,
+  ctx: CompanyContext,
+  filter: TicketFilter,
+): Promise<TicketView[]> {
+  const rows = await selectTickets(db)
+    .where(
+      and(
+        eq(tickets.companyId, ctx.companyId),
+        isNull(tickets.archivedAt),
+        filter.projectKey ? eq(projects.key, filter.projectKey) : undefined,
+        filter.status ? eq(tickets.status, filter.status) : undefined,
+      ),
+    )
+    .orderBy(asc(tickets.status), asc(tickets.rank), asc(tickets.number));
+  return ticketViews(db, rows);
 }
 
 export async function createTicket(
