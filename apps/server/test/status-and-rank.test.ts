@@ -96,6 +96,17 @@ describe("Status and rank", () => {
     expect(keys(await column(owner.request, "todo"))).toEqual(["CB-1", "CB-3"]);
   });
 
+  it("keeps a long column in order under a natural-language collation", async () => {
+    const t = buildTestApp();
+    const { owner } = await setup(t, 40);
+
+    const order = keys(await column(owner.request, "backlog"));
+    await move(owner.request, "CB-1", { position: 40 });
+
+    expect(order).toEqual(Array.from({ length: 40 }, (_, i) => `CB-${i + 1}`));
+    expect(keys(await column(owner.request, "backlog")).at(-1)).toBe("CB-1");
+  });
+
   it("updates only the moved Ticket", async () => {
     const t = buildTestApp();
     const { owner } = await setup(t, 4);

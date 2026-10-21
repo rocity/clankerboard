@@ -60,6 +60,9 @@ services:
       POSTGRES_USER: clankerboard
       POSTGRES_PASSWORD: clankerboard
       POSTGRES_DB: postgres
+      # A natural-language collation, as on glibc hosts and managed Postgres,
+      # so ordering bugs that byte order would hide show up in tests.
+      POSTGRES_INITDB_ARGS: --locale-provider=icu --icu-locale=en-US
     ports:
       - "55432:5432"
     tmpfs:

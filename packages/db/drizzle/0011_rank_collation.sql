@@ -1,0 +1,1 @@
+ALTER TABLE "tickets" ALTER COLUMN "rank" SET DATA TYPE text COLLATE "C";

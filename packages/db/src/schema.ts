@@ -262,6 +262,12 @@ export const ticketPriority = pgEnum("ticket_priority", ticketPriorities);
 const actorUser = () => text().references(() => users.id, { onDelete: "restrict" });
 const actorAgent = () => text().references(() => agents.id, { onDelete: "restrict" });
 
+/**
+ * Fractional-index keys compare by byte ("aZ" before "aa"). Without the C
+ * collation, Postgres on most hosts sorts them by language rules instead.
+ */
+const rankText = customType<{ data: string }>({ dataType: () => 'text COLLATE "C"' });
+
 /** Postgres full-text search vector. */
 const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
 
@@ -284,7 +290,7 @@ export const tickets = pgTable(
     status: ticketStatus().notNull().default("backlog"),
     priority: ticketPriority().notNull().default("medium"),
     /** Fractional-index position within the Ticket's Status column. */
-    rank: text().notNull(),
+    rank: rankText().notNull(),
     assigneeUserId: actorUser(),
     assigneeAgentId: actorAgent(),
     createdByUserId: actorUser(),
