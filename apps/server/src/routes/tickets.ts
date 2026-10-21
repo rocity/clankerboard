@@ -1,4 +1,6 @@
 import {
+  assignTicket,
+  claimTicket,
   createTicket,
   type DomainDeps,
   getTicket,
@@ -9,6 +11,7 @@ import {
   updateTicket,
 } from "@clankerboard/domain";
 import {
+  assignTicketInput,
   createTicketInput,
   moveTicketInput,
   ticketStatus,
@@ -50,6 +53,18 @@ export function ticketRoutes(deps: DomainDeps) {
     .post("/tickets/:key/move", json(moveTicketInput), async (c) => {
       const ticket = await moveTicket(deps, c.var.company, c.req.param("key"), c.req.valid("json"));
       return c.json({ ticket });
+    })
+    .post("/tickets/:key/assign", json(assignTicketInput), async (c) => {
+      const ticket = await assignTicket(
+        deps,
+        c.var.company,
+        c.req.param("key"),
+        c.req.valid("json"),
+      );
+      return c.json({ ticket });
+    })
+    .post("/tickets/:key/claim", async (c) => {
+      return c.json({ ticket: await claimTicket(deps, c.var.company, c.req.param("key")) });
     })
     .get("/tickets/:key/children", async (c) => {
       return c.json({ children: await listChildren(deps, c.var.company, c.req.param("key")) });

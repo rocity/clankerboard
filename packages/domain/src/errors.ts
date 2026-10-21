@@ -14,6 +14,8 @@ export class DomainError extends Error {
   constructor(
     readonly kind: DomainErrorKind,
     message: string,
+    /** Extra fields for the response body, such as who holds a claimed Ticket. */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "DomainError";
@@ -25,7 +27,8 @@ export class DomainError extends Error {
 export const notFound = () => new DomainError("not_found", "Not found.");
 export const forbidden = (message = "You don't have permission to do that.") =>
   new DomainError("forbidden", message);
-export const conflict = (message: string) => new DomainError("conflict", message);
+export const conflict = (message: string, details?: Record<string, unknown>) =>
+  new DomainError("conflict", message, details);
 export const invalid = (message: string) => new DomainError("invalid", message);
 export const gone = (message: string) => new DomainError("gone", message);
 export const unauthorized = (message: string) => new DomainError("unauthorized", message);

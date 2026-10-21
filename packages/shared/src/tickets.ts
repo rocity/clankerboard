@@ -66,3 +66,15 @@ export const moveTicketInput = z.object({
     .optional(),
 });
 export type MoveTicketInput = z.infer<typeof moveTicketInput>;
+
+export const actorRefInput = z.object(
+  {
+    type: z.enum(["user", "agent"], { error: "Assignees are a user or an agent." }),
+    id: z.string().min(1),
+  },
+  { error: "Assignees are a user or an agent." },
+);
+
+/** Null clears the Assignee. */
+export const assignTicketInput = z.object({ assignee: actorRefInput.nullable() });
+export type AssignTicketInput = z.infer<typeof assignTicketInput>;
