@@ -2,6 +2,7 @@ export type { Db } from "@clankerboard/db";
 export * from "./activity";
 export * from "./actors";
 export * from "./agents";
+export * from "./archive";
 export * from "./clock";
 export * from "./comments";
 export * from "./companies";

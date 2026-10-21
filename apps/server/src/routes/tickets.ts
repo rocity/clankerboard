@@ -1,9 +1,11 @@
 import {
   addComment,
+  archiveTicket,
   assignTicket,
   claimTicket,
   createTicket,
   type DomainDeps,
+  deleteTicket,
   getHistory,
   getTicket,
   listChildren,
@@ -11,6 +13,7 @@ import {
   listTicketActivity,
   listTickets,
   moveTicket,
+  restoreTicket,
   updateTicket,
 } from "@clankerboard/domain";
 import {
@@ -66,6 +69,16 @@ export function ticketRoutes(deps: DomainDeps) {
         c.req.valid("json"),
       );
       return c.json({ ticket });
+    })
+    .delete("/tickets/:key", async (c) => {
+      await deleteTicket(deps, c.var.company, c.req.param("key"));
+      return c.body(null, 204);
+    })
+    .post("/tickets/:key/archive", async (c) => {
+      return c.json({ ticket: await archiveTicket(deps, c.var.company, c.req.param("key")) });
+    })
+    .post("/tickets/:key/restore", async (c) => {
+      return c.json({ ticket: await restoreTicket(deps, c.var.company, c.req.param("key")) });
     })
     .post("/tickets/:key/claim", async (c) => {
       return c.json({ ticket: await claimTicket(deps, c.var.company, c.req.param("key")) });

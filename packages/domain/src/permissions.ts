@@ -71,6 +71,11 @@ export function canDeleteBoardContent(actor: CompanyRole) {
   return isAdmin(actor);
 }
 
+/** Archiving and restoring are for Users, so every Agent change stays visible on the board. */
+export function assertMayArchive(ctx: CompanyContext) {
+  if (ctx.actor.type !== "user") throw forbidden("Agents can't archive or restore tickets.");
+}
+
 /**
  * The deletion guard. Every service that hard-deletes anything calls this
  * first: deletion is a human-only action, whatever the owner's Role (ADR-0003).

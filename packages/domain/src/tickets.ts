@@ -175,6 +175,7 @@ export async function moveTicket(
 ): Promise<TicketView> {
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
+    if (row.archivedAt) throw conflict("Archived tickets can't be moved.");
     const status = input.status ?? row.status;
     const column = await columnOf(tx, row.projectId, status, row.id);
     const rank = rankAt(
@@ -231,7 +232,7 @@ export async function createTicket(
   const now = deps.clock.now();
   return withActivity(deps, ctx, async (tx, record) => {
     const project = await findProject(tx, ctx, input.projectKey);
-    const parent = input.parentKey ? await findTicket(tx, ctx, input.parentKey) : null;
+    const parent = input.parentKey ? await findParent(tx, ctx, input.parentKey) : null;
     assertPlacement({ type: input.type, projectId: project.id }, parent);
     // Taking the number locks the Project row, so concurrent creates queue
     // here and each sees the previous one's rank.
@@ -316,7 +317,7 @@ export async function updateTicket(
         ? currentParent
         : parentKey === null
           ? null
-          : await findTicket(tx, ctx, parentKey);
+          : await findParent(tx, ctx, parentKey);
     if ((parent?.id ?? null) !== row.parentId) {
       changes.parent = {
         from: currentParent ? ticketKeyOf(currentParent) : null,
@@ -346,7 +347,7 @@ export async function updateTicket(
   });
 }
 
-async function findTicketById(db: Db | Tx, id: string) {
+export async function findTicketById(db: Db | Tx, id: string) {
   const [row] = await selectTickets(db).where(eq(tickets.id, id));
   if (!row) throw notFound();
   return row;
@@ -394,6 +395,15 @@ export async function listTicketActivity(
   }));
 }
 
+/** A Parent to set, by key: in this Company and not archived. */
+async function findParent(tx: Db | Tx, ctx: CompanyContext, key: string) {
+  const parent = await findTicket(tx, ctx, key);
+  if (parent.archivedAt) {
+    throw invalid(`Restore ${ticketKeyOf(parent)} before adding tickets under it.`);
+  }
+  return parent;
+}
+
 /** Throws unless `ref` is an Actor who can hold work in this Company right now. */
 async function assertAssignable(tx: Db | Tx, ctx: CompanyContext, ref: ActorRef) {
   const { memberships, agents } = schema;
@@ -425,6 +435,7 @@ export async function assignTicket(
 ): Promise<TicketView> {
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
+    if (row.archivedAt) throw conflict("Archived tickets can't be assigned.");
     const to = input.assignee;
     if (to) await assertAssignable(tx, ctx, to);
     const from = refFromColumns(row.assigneeUserId, row.assigneeAgentId);
