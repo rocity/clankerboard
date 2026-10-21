@@ -1,5 +1,5 @@
 import type { Db } from "@clankerboard/db";
-import type { Clock, Mailer } from "@clankerboard/domain";
+import type { Clock, DomainDeps, DomainHooks, Mailer } from "@clankerboard/domain";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import { createAuth } from "./auth";
@@ -13,6 +13,7 @@ import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
+import { memberRoutes } from "./routes/members";
 import { webRoutes } from "./routes/web";
 
 export type { AppConfig };
@@ -23,16 +24,25 @@ export type AppDeps = {
   mailer: Mailer;
   config: AppConfig;
   logger: Logger;
+  /** Domain extension points, such as revoking Agents when a member is removed. */
+  hooks?: Partial<DomainHooks>;
 };
 
 export function createApp(deps: AppDeps) {
   const auth = createAuth(deps);
+  const domain: DomainDeps = {
+    db: deps.db,
+    clock: deps.clock,
+    mailer: deps.mailer,
+    hooks: { memberRemoved: [], ...deps.hooks },
+  };
 
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
     .use(loadSession(auth))
     .route("/", meRoutes())
-    .route("/", companyRoutes(deps));
+    .route("/", companyRoutes(domain))
+    .route("/", memberRoutes(domain));
 
   const app = new Hono<AppEnv>()
     .use(requestId())

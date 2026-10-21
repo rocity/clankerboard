@@ -4,6 +4,7 @@ import * as schema from "./schema";
 
 export type Schema = typeof schema;
 export type Db = NodePgDatabase<Schema>;
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 export type Database = {
   db: Db;

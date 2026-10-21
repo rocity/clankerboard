@@ -8,3 +8,19 @@ const isAdmin = (role: CompanyRole) => role === "owner" || role === "admin";
 export function canUpdateCompany(role: CompanyRole) {
   return isAdmin(role);
 }
+
+export function canListMembers(_role: CompanyRole) {
+  return true;
+}
+
+/** Whether `actor` may move a member from `from` to `to`. Owner changes are owner-only. */
+export function canChangeRole(actor: CompanyRole, from: CompanyRole, to: CompanyRole) {
+  if (actor === "owner") return true;
+  return actor === "admin" && from !== "owner" && to !== "owner";
+}
+
+/** Whether `actor` may remove someone else holding `target`. Anyone may leave. */
+export function canRemoveMember(actor: CompanyRole, target: CompanyRole) {
+  if (actor === "owner") return true;
+  return actor === "admin" && target !== "owner";
+}
