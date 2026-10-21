@@ -1,6 +1,6 @@
 import { schema, type Tx } from "@clankerboard/db";
 import type { CompanyRole } from "@clankerboard/shared";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, notFound } from "./errors";
 import { canChangeRole, canListMembers, canRemoveMember } from "./permissions";
@@ -14,7 +14,7 @@ export type MemberView = {
   joinedAt: Date;
 };
 
-const { memberships, users, sessions } = schema;
+const { memberships, users, sessions, teams, teamMemberships } = schema;
 
 const memberColumns = {
   userId: users.id,
@@ -102,6 +102,17 @@ export async function removeMember(
     await tx
       .delete(memberships)
       .where(and(eq(memberships.companyId, ctx.companyId), eq(memberships.userId, userId)));
+    await tx
+      .delete(teamMemberships)
+      .where(
+        and(
+          eq(teamMemberships.userId, userId),
+          inArray(
+            teamMemberships.teamId,
+            tx.select({ id: teams.id }).from(teams).where(eq(teams.companyId, ctx.companyId)),
+          ),
+        ),
+      );
     await tx
       .update(sessions)
       .set({ activeCompanyId: null })

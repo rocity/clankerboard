@@ -8,3 +8,4 @@ export * from "./mailer";
 export * from "./members";
 export * from "./permissions";
 export * from "./sign-up";
+export * from "./teams";

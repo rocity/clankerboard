@@ -54,6 +54,8 @@ export function createAuth({ domain, config, logger }: AuthDeps) {
         organization: schema.companies,
         member: schema.memberships,
         invitation: schema.invites,
+        team: schema.teams,
+        teamMember: schema.teamMemberships,
       },
     }),
     advanced: {
@@ -69,8 +71,12 @@ export function createAuth({ domain, config, logger }: AuthDeps) {
       // session's active Company. Its HTTP endpoints are not mounted: every
       // tenancy rule lives in the domain module instead (see createApp).
       organization({
+        teams: { enabled: true },
         schema: {
           session: { fields: { activeOrganizationId: "activeCompanyId" } },
+          // team_memberships.role (lead or member) is ours. Better Auth can't
+          // declare extra team member fields, so the column has a default.
+          team: { fields: { organizationId: "companyId" } },
           member: { fields: { organizationId: "companyId" } },
           invitation: {
             fields: { organizationId: "companyId" },

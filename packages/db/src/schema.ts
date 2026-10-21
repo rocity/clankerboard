@@ -1,5 +1,15 @@
-import { companyRoles } from "@clankerboard/shared";
-import { boolean, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { companyRoles, teamRoles } from "@clankerboard/shared";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 // Better Auth owns these tables (ADR-0005). Property names follow Better Auth's
 // field names so its Drizzle adapter can read and write them.
@@ -32,6 +42,8 @@ export const sessions = pgTable(
     // The Company this session is working in. Better Auth's organization
     // plugin calls it activeOrganizationId; we rename it in the auth config.
     activeCompanyId: text().references(() => companies.id, { onDelete: "set null" }),
+    // Required by Better Auth's team support. Unused: nothing sets an active Team.
+    activeTeamId: text(),
     ...timestamps,
   },
   (t) => [index().on(t.userId)],
@@ -113,6 +125,8 @@ export const invites = pgTable(
     status: text({ enum: inviteStatuses }).notNull().default("pending"),
     /** SHA-256 of the link token. The token itself is never stored. */
     tokenHash: text().notNull().unique(),
+    /** Set for a Team Invite. */
+    teamId: text().references(() => teams.id, { onDelete: "cascade" }),
     expiresAt: timestamp({ withTimezone: true }).notNull(),
     acceptedAt: timestamp({ withTimezone: true }),
     inviterId: text()
@@ -121,6 +135,42 @@ export const invites = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.companyId), index().on(t.email)],
+);
+
+// A Team is a Better Auth organization team.
+export const teams = pgTable(
+  "teams",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    // Better Auth's own team endpoints maintain this; they are not mounted, so
+    // it stays at its default. Count team_memberships instead.
+    memberCount: integer().notNull().default(0),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [uniqueIndex("teams_company_id_name_unique").on(t.companyId, sql`lower(${t.name})`)],
+);
+
+// Better Auth's team member, extended with a Team Role.
+export const teamMemberships = pgTable(
+  "team_memberships",
+  {
+    id: text().primaryKey(),
+    teamId: text()
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text({ enum: teamRoles }).notNull().default("member"),
+    membershipKey: text().unique(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow(),
+  },
+  (t) => [unique().on(t.teamId, t.userId), index().on(t.userId)],
 );
 
 // Instance-wide values the app generates for itself, such as the auth secret

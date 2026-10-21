@@ -34,3 +34,16 @@ export function canInvite(actor: CompanyRole, role: CompanyRole) {
 export function canListInvites(actor: CompanyRole) {
   return isAdmin(actor);
 }
+
+export function canManageTeams(actor: CompanyRole) {
+  return isAdmin(actor);
+}
+
+/** Owners, admins, and a Team's own leads manage who is on that Team. */
+export function canManageTeamMembers(actor: CompanyRole, isLeadOfTeam: boolean) {
+  return isAdmin(actor) || isLeadOfTeam;
+}
+
+export function canSetTeamRole(actor: CompanyRole) {
+  return isAdmin(actor);
+}
