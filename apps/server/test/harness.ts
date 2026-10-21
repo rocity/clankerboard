@@ -1,4 +1,4 @@
-import { type Database, schema } from "@clankerboard/db";
+import type { Database } from "@clankerboard/db";
 import type {
   ActivityEvent,
   Clock,
@@ -8,7 +8,6 @@ import type {
   TicketView,
 } from "@clankerboard/domain";
 import type { CompanyRole } from "@clankerboard/shared";
-import { eq } from "drizzle-orm";
 import { pino } from "pino";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
 import { createLogger } from "../src/logger";
@@ -47,25 +46,22 @@ export class CapturingMailer implements Mailer {
   }
 }
 
-/** Captures published Activity, and checks each was already committed when published. */
+/**
+ * Captures published Activity. Set `probe` to run a check at the moment each
+ * event is published, such as asking the API whether the change is visible yet.
+ */
 export class CapturingEventBus implements EventBus {
   readonly published: ActivityEvent[] = [];
-  private readonly checks: Promise<boolean>[] = [];
+  probe?: (event: ActivityEvent) => Promise<boolean>;
+  private readonly results: Promise<boolean>[] = [];
 
   publish(event: ActivityEvent) {
     this.published.push(event);
-    // A separate connection only sees the row once its transaction committed.
-    this.checks.push(
-      testDatabase()
-        .db.select({ id: schema.activities.id })
-        .from(schema.activities)
-        .where(eq(schema.activities.id, event.id))
-        .then((rows) => rows.length === 1),
-    );
+    if (this.probe) this.results.push(this.probe(event));
   }
 
-  visibility() {
-    return Promise.all(this.checks);
+  probeResults() {
+    return Promise.all(this.results);
   }
 }
 

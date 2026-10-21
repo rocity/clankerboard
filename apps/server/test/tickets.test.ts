@@ -158,6 +158,11 @@ describe("Tickets", () => {
     const events = new CapturingEventBus();
     const t = buildTestApp({ deps: { events } });
     const { owner } = await setup(t);
+    // Another request sees the change only once its transaction committed.
+    events.probe = async (event) => {
+      const stored = await activityOf(owner.request, event.ticketKey ?? "");
+      return stored.some((activity) => activity.id === event.id);
+    };
     await createTicket(owner.request, { projectKey: "CB", title: "One" });
     await owner.request("/api/tickets/CB-1", {
       method: "PATCH",
@@ -167,7 +172,7 @@ describe("Tickets", () => {
     const stored = await activityOf(owner.request, "CB-1");
 
     expect(events.published.map((a) => [a.id, a.kind])).toEqual(stored.map((a) => [a.id, a.kind]));
-    expect(await events.visibility()).toEqual([true, true]);
+    expect(await events.probeResults()).toEqual([true, true]);
   });
 
   it("validates input with plain messages", async () => {
