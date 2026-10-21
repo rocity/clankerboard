@@ -1,4 +1,4 @@
-export type DomainErrorKind = "not_found" | "forbidden" | "conflict" | "invalid";
+export type DomainErrorKind = "not_found" | "forbidden" | "conflict" | "invalid" | "gone";
 
 /**
  * A rule the caller broke. The message is user-facing copy: short and plain.
@@ -21,3 +21,4 @@ export const forbidden = (message = "You don't have permission to do that.") =>
   new DomainError("forbidden", message);
 export const conflict = (message: string) => new DomainError("conflict", message);
 export const invalid = (message: string) => new DomainError("invalid", message);
+export const gone = (message: string) => new DomainError("gone", message);

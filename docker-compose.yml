@@ -10,6 +10,14 @@ services:
       # Leave unset to let the app generate one and keep it in the database.
       AUTH_SECRET: ${AUTH_SECRET:-}
       OPEN_SIGNUP: ${OPEN_SIGNUP:-false}
+      INVITE_TTL_HOURS: ${INVITE_TTL_HOURS:-168}
+      # Invite emails go out only when SMTP_HOST is set. Links are always copyable.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       # GitHub and Google sign-in turn on only when both values are set.
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}

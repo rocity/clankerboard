@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { resetDatabase } from "./database";
+
+test.beforeEach(resetDatabase);
 
 test("the first User signs up, sees their profile, and signs out", async ({ page }) => {
   await page.goto("/");

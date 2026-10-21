@@ -1,5 +1,11 @@
 import type { Db } from "@clankerboard/db";
-import type { Clock, DomainDeps, DomainHooks, Mailer } from "@clankerboard/domain";
+import {
+  type Clock,
+  type DomainDeps,
+  type DomainHooks,
+  type Mailer,
+  noopMailer,
+} from "@clankerboard/domain";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import { createAuth } from "./auth";
@@ -12,6 +18,7 @@ import { loadSession } from "./middleware/session";
 import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
 import { healthRoutes } from "./routes/health";
+import { inviteRoutes } from "./routes/invites";
 import { meRoutes } from "./routes/me";
 import { memberRoutes } from "./routes/members";
 import { webRoutes } from "./routes/web";
@@ -29,20 +36,28 @@ export type AppDeps = {
 };
 
 export function createApp(deps: AppDeps) {
-  const auth = createAuth(deps);
+  const { config } = deps;
   const domain: DomainDeps = {
     db: deps.db,
     clock: deps.clock,
-    mailer: deps.mailer,
+    // Email goes out only when the operator configured SMTP.
+    mailer: config.smtp ? deps.mailer : noopMailer,
+    config: {
+      baseUrl: config.baseUrl,
+      inviteTtlMs: config.inviteTtlMs,
+      openSignup: config.openSignup,
+    },
     hooks: { memberRemoved: [], ...deps.hooks },
   };
+  const auth = createAuth({ domain, config, logger: deps.logger });
 
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
     .use(loadSession(auth))
     .route("/", meRoutes())
     .route("/", companyRoutes(domain))
-    .route("/", memberRoutes(domain));
+    .route("/", memberRoutes(domain))
+    .route("/", inviteRoutes(domain));
 
   const app = new Hono<AppEnv>()
     .use(requestId())

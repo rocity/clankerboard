@@ -24,3 +24,13 @@ export function canRemoveMember(actor: CompanyRole, target: CompanyRole) {
   if (actor === "owner") return true;
   return actor === "admin" && target !== "owner";
 }
+
+/** Whether `actor` may invite someone as `role`, or resend and revoke such an Invite. */
+export function canInvite(actor: CompanyRole, role: CompanyRole) {
+  if (actor === "owner") return true;
+  return actor === "admin" && role !== "owner";
+}
+
+export function canListInvites(actor: CompanyRole) {
+  return isAdmin(actor);
+}

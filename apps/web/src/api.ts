@@ -17,3 +17,15 @@ export function errorMessage(error: unknown) {
 }
 
 export type Me = { user: { id: string; name: string; email: string; image: string | null } };
+
+export type Role = "owner" | "admin" | "member";
+export type Company = { id: string; name: string; slug: string; role: Role };
+export type Companies = { companies: Company[]; activeCompanyId: string | null };
+export type IssuedInvite = {
+  invite: { id: string; email: string; role: Role };
+  link: string;
+  emailed: boolean;
+};
+export type InvitePreview = {
+  invite: { companyName: string; email: string; role: Role; inviterName: string };
+};

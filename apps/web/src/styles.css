@@ -29,3 +29,13 @@ button {
 .error {
   color: #b00020;
 }
+
+.link {
+  background: none;
+  border: none;
+  color: #0b57d0;
+  text-decoration: underline;
+  cursor: pointer;
+  justify-self: start;
+  padding: 0;
+}

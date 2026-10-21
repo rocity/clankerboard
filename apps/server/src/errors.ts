@@ -8,6 +8,7 @@ const statusByKind: Record<DomainError["kind"], ContentfulStatusCode> = {
   forbidden: 403,
   conflict: 409,
   invalid: 400,
+  gone: 410,
 };
 
 export const handleError: ErrorHandler<AppEnv> = (error, c) => {

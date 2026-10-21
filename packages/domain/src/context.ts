@@ -15,10 +15,21 @@ export type DomainHooks = {
   memberRemoved: ((tx: Tx, event: MemberRemovedEvent) => Promise<void>)[];
 };
 
+export type DomainConfig = {
+  /** Public URL of the instance, for links in Invites. */
+  baseUrl: string;
+  /** How long an Invite link stays valid. */
+  inviteTtlMs: number;
+  /** When true, anyone who can reach the instance may sign up. */
+  openSignup: boolean;
+};
+
 export type DomainDeps = {
   db: Db;
   clock: Clock;
+  /** Sends nothing unless the operator configured email. */
   mailer: Mailer;
+  config: DomainConfig;
   hooks: DomainHooks;
 };
 

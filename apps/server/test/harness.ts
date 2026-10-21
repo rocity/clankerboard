@@ -1,5 +1,4 @@
-import { randomUUID } from "node:crypto";
-import { type Database, schema } from "@clankerboard/db";
+import type { Database } from "@clankerboard/db";
 import type { Clock, Mailer, MailMessage } from "@clankerboard/domain";
 import type { CompanyRole } from "@clankerboard/shared";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
@@ -28,6 +27,7 @@ export class CapturingMailer implements Mailer {
   readonly sent: MailMessage[] = [];
   async send(message: MailMessage) {
     this.sent.push(message);
+    return true;
   }
 }
 
@@ -56,6 +56,7 @@ export function buildTestApp(
     logLevel: "silent",
     authSecret: "test-secret-test-secret-test-secret",
     openSignup: true,
+    inviteTtlMs: 7 * 24 * 60 * 60 * 1000,
     ...overrides.config,
   };
   const app = createApp({
@@ -151,17 +152,37 @@ export async function createCompany(
 
   const members: SignedInUser[] = [];
   for (const member of input.members ?? []) {
-    const user = await t.signUp({ email: member.email });
-    // No API adds a Membership directly until Invites exist.
-    await testDatabase()
-      .db.insert(schema.memberships)
-      .values({ id: randomUUID(), companyId: company.id, userId: user.user.id, role: member.role });
-    const switched = await user.request("/api/active-company", {
-      method: "PUT",
-      body: JSON.stringify({ companyId: company.id }),
-    });
-    if (switched.status !== 200) throw new Error(`switch failed: ${await switched.text()}`);
-    members.push(user);
+    members.push(await joinCompany(t, owner, member));
   }
   return { company, owner, members };
+}
+
+/** The token part of an Invite link. */
+export function tokenFrom(link: string) {
+  return new URL(link).hash.slice(1);
+}
+
+/**
+ * Brings a new User into the inviter's active Company through an Invite, and
+ * leaves that Company active for them.
+ */
+export async function joinCompany(
+  t: TestApp,
+  inviter: SignedInUser,
+  input: { email: string; role: CompanyRole },
+): Promise<SignedInUser> {
+  const res = await inviter.request("/api/invites", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  if (res.status !== 201) throw new Error(`invite failed: ${await res.text()}`);
+  const { link } = (await res.json()) as { link: string };
+  const token = tokenFrom(link);
+  const user = await t.signUp({ email: input.email }, { headers: { "x-invite-token": token } });
+  const accepted = await user.request("/api/invite-links/accept", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  if (accepted.status !== 200) throw new Error(`accept failed: ${await accepted.text()}`);
+  return user;
 }

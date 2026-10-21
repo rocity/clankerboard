@@ -97,7 +97,10 @@ export const memberships = pgTable(
   (t) => [unique().on(t.companyId, t.userId), index().on(t.userId)],
 );
 
-// A pending offer to join a Company: Better Auth's organization invitation.
+export const inviteStatuses = ["pending", "accepted", "revoked"] as const;
+
+// An offer to join a Company: Better Auth's organization invitation, extended
+// with a hashed single-use token. "Expired" is a pending Invite past expiresAt.
 export const invites = pgTable(
   "invites",
   {
@@ -107,8 +110,11 @@ export const invites = pgTable(
       .references(() => companies.id, { onDelete: "cascade" }),
     email: text().notNull(),
     role: text({ enum: companyRoles }).notNull().default("member"),
-    status: text().notNull().default("pending"),
+    status: text({ enum: inviteStatuses }).notNull().default("pending"),
+    /** SHA-256 of the link token. The token itself is never stored. */
+    tokenHash: text().notNull().unique(),
     expiresAt: timestamp({ withTimezone: true }).notNull(),
+    acceptedAt: timestamp({ withTimezone: true }),
     inviterId: text()
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

@@ -3,6 +3,7 @@ export * from "./clock";
 export * from "./companies";
 export * from "./context";
 export * from "./errors";
+export * from "./invites";
 export * from "./mailer";
 export * from "./members";
 export * from "./permissions";

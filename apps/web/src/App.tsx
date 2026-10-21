@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { AuthForm } from "./AuthForm";
 import { api, type Me } from "./api";
+import { CompanyHome } from "./CompanyHome";
+import { InvitePage } from "./InvitePage";
 import { OAuthButtons } from "./OAuthButtons";
 import { navigate, usePath } from "./router";
 
@@ -22,6 +24,14 @@ export function App() {
     refresh();
     navigate("/");
   };
+
+  if (path === "/invite") {
+    return (
+      <Page title="Join a company">
+        <InvitePage me={me} onJoined={signedIn} />
+      </Page>
+    );
+  }
 
   if (path === "/sign-up") {
     return (
@@ -61,6 +71,7 @@ export function App() {
       >
         Sign out
       </button>
+      <CompanyHome />
     </Page>
   );
 }

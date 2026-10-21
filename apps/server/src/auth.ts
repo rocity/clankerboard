@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { type Db, schema } from "@clankerboard/db";
-import { isSignUpAllowed } from "@clankerboard/domain";
+import { schema } from "@clankerboard/db";
+import { type DomainDeps, isSignUpAllowed } from "@clankerboard/domain";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
@@ -8,12 +8,29 @@ import { type AppConfig, enabledOAuthProviders } from "./config";
 import type { Logger } from "./logger";
 
 export type AuthDeps = {
-  db: Db;
+  domain: DomainDeps;
   config: AppConfig;
   logger: Logger;
 };
 
-export function createAuth({ db, config, logger }: AuthDeps) {
+/** Invite links carry their token here so sign-up can check it. */
+export const inviteTokenHeader = "x-invite-token";
+export const inviteTokenCookie = "cb_invite";
+
+function inviteTokenFrom(headers: Headers | undefined) {
+  const header = headers?.get(inviteTokenHeader);
+  if (header) return header;
+  // OAuth sign-ups arrive on a redirect, so the web app leaves the token in a cookie.
+  const cookie = headers
+    ?.get("cookie")
+    ?.split(";")
+    .map((part) => part.trim().split("="))
+    .find(([name]) => name === inviteTokenCookie);
+  return cookie?.[1] ? decodeURIComponent(cookie[1]) : undefined;
+}
+
+export function createAuth({ domain, config, logger }: AuthDeps) {
+  const { db } = domain;
   const socialProviders = Object.fromEntries(
     enabledOAuthProviders(config).map((provider) => [provider, config.oauth?.[provider]]),
   );
@@ -55,14 +72,23 @@ export function createAuth({ db, config, logger }: AuthDeps) {
         schema: {
           session: { fields: { activeOrganizationId: "activeCompanyId" } },
           member: { fields: { organizationId: "companyId" } },
-          invitation: { fields: { organizationId: "companyId" } },
+          invitation: {
+            fields: { organizationId: "companyId" },
+            additionalFields: {
+              tokenHash: { type: "string", required: true, input: false, returned: false },
+              acceptedAt: { type: "date", required: false, input: false },
+            },
+          },
         },
       }),
     ],
     user: {
-      validateUserInfo: async ({ user, source }) => {
+      validateUserInfo: async ({ user, source }, ctx) => {
         if (source.action !== "create-user") return;
-        const allowed = await isSignUpAllowed(db, config, { email: String(user.email ?? "") });
+        const allowed = await isSignUpAllowed(domain, {
+          email: String(user.email ?? ""),
+          inviteToken: inviteTokenFrom(ctx?.headers),
+        });
         if (!allowed) {
           return { error: "SIGN_UP_NEEDS_INVITE", errorDescription: "Sign-up needs an invite." };
         }

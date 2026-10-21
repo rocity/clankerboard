@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
 import { createLogger } from "./logger";
+import { createSmtpMailer } from "./mailer";
 
 const env = loadConfig(process.env);
 const logger = createLogger(env.logLevel);
@@ -18,7 +19,7 @@ const authSecret = env.authSecret ?? (await ensureAuthSecret(database.db));
 const app = createApp({
   db: database.db,
   clock: systemClock,
-  mailer: noopMailer,
+  mailer: env.smtp ? createSmtpMailer(env.smtp, logger) : noopMailer,
   config: { ...env, authSecret },
   logger,
 });
