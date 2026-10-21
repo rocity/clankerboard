@@ -421,21 +421,28 @@ export async function findTicketById(db: Db | Tx, id: string) {
   return row;
 }
 
-/** Live (not archived) children, oldest first. */
-async function childrenOf(db: Db | Tx, ticketId: string) {
+/**
+ * Children, oldest first. Archived ones count for the hierarchy rules, since
+ * an archived child keeps its Parent and can be restored under it.
+ */
+async function childrenOf(db: Db | Tx, ticketId: string, { includeArchived = true } = {}) {
   const rows = await selectTickets(db)
-    .where(and(eq(tickets.parentId, ticketId), isNull(tickets.archivedAt)))
+    .where(
+      and(eq(tickets.parentId, ticketId), includeArchived ? undefined : isNull(tickets.archivedAt)),
+    )
     .orderBy(asc(tickets.number));
   return rows.map((row) => ({ ...row, key: ticketKeyOf(row) }));
 }
 
+/** A Ticket's children. Archived ones are left out unless asked for. */
 export async function listChildren(
   { db }: DomainDeps,
   ctx: CompanyContext,
   key: string,
+  { includeArchived = false } = {},
 ): Promise<TicketView[]> {
   const ticket = await findTicket(db, ctx, key);
-  return ticketViews(db, await childrenOf(db, ticket.id));
+  return ticketViews(db, await childrenOf(db, ticket.id, { includeArchived }));
 }
 
 export async function listTicketActivity(

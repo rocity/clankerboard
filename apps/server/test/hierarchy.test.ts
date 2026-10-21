@@ -135,6 +135,46 @@ describe("Ticket hierarchy", () => {
     });
   });
 
+  it("counts archived children when checking a type change", async () => {
+    const t = buildTestApp();
+    const { owner } = await setup(t);
+    const epic = await createTicket(owner.request, { projectKey: "CB", title: "E", type: "epic" });
+    const story = await createTicket(owner.request, {
+      projectKey: "CB",
+      title: "S",
+      type: "story",
+      parentKey: epic.key,
+    });
+    await owner.request(`/api/tickets/${story.key}/archive`, { method: "POST" });
+
+    const res = await owner.request(`/api/tickets/${epic.key}`, {
+      method: "PATCH",
+      body: JSON.stringify({ type: "task" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("lists archived children on request", async () => {
+    const t = buildTestApp();
+    const { owner } = await setup(t);
+    const epic = await createTicket(owner.request, { projectKey: "CB", title: "E", type: "epic" });
+    const story = await createTicket(owner.request, {
+      projectKey: "CB",
+      title: "S",
+      type: "story",
+      parentKey: epic.key,
+    });
+    await owner.request(`/api/tickets/${story.key}/archive`, { method: "POST" });
+    const keysOf = async (query: string) => {
+      const res = await owner.request(`/api/tickets/${epic.key}/children${query}`);
+      return ((await res.json()) as { children: { key: string }[] }).children.map((c) => c.key);
+    };
+
+    expect(await keysOf("")).toEqual([]);
+    expect(await keysOf("?archived=include")).toEqual([story.key]);
+  });
+
   it("refuses a type change that would break the Ticket's own Parent", async () => {
     const t = buildTestApp();
     const { owner } = await setup(t);
