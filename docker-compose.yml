@@ -7,6 +7,9 @@ services:
       DATABASE_URL: postgres://clankerboard:clankerboard@db:5432/clankerboard
       BASE_URL: ${BASE_URL:-http://localhost:3000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Leave unset to let the app generate one and keep it in the database.
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      OPEN_SIGNUP: ${OPEN_SIGNUP:-false}
     depends_on:
       db:
         condition: service_healthy

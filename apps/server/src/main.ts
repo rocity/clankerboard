@@ -1,4 +1,4 @@
-import { createDatabase, runMigrations } from "@clankerboard/db";
+import { createDatabase, ensureAuthSecret, runMigrations } from "@clankerboard/db";
 import { noopMailer, systemClock } from "@clankerboard/domain";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
@@ -13,11 +13,13 @@ const database = createDatabase(env.databaseUrl);
 await runMigrations(database.db, env.migrationsDir);
 logger.info("migrations applied");
 
+const authSecret = env.authSecret ?? (await ensureAuthSecret(database.db));
+
 const app = createApp({
   db: database.db,
   clock: systemClock,
   mailer: noopMailer,
-  config: env,
+  config: { ...env, authSecret },
   logger,
 });
 

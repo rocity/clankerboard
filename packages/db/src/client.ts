@@ -15,6 +15,6 @@ export function createDatabase(url: string): Database {
   // An idle client losing its connection must not crash the process; the next
   // query reports the failure instead.
   pool.on("error", () => {});
-  const db = drizzle(pool, { schema });
+  const db = drizzle(pool, { schema, casing: "snake_case" });
   return { db, close: () => pool.end() };
 }
