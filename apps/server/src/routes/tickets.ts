@@ -1,16 +1,20 @@
 import {
+  addComment,
   assignTicket,
   claimTicket,
   createTicket,
   type DomainDeps,
+  getHistory,
   getTicket,
   listChildren,
+  listComments,
   listTicketActivity,
   listTickets,
   moveTicket,
   updateTicket,
 } from "@clankerboard/domain";
 import {
+  addCommentInput,
   assignTicketInput,
   createTicketInput,
   moveTicketInput,
@@ -65,6 +69,21 @@ export function ticketRoutes(deps: DomainDeps) {
     })
     .post("/tickets/:key/claim", async (c) => {
       return c.json({ ticket: await claimTicket(deps, c.var.company, c.req.param("key")) });
+    })
+    .get("/tickets/:key/comments", async (c) => {
+      return c.json({ comments: await listComments(deps, c.var.company, c.req.param("key")) });
+    })
+    .post("/tickets/:key/comments", json(addCommentInput), async (c) => {
+      const comment = await addComment(
+        deps,
+        c.var.company,
+        c.req.param("key"),
+        c.req.valid("json"),
+      );
+      return c.json({ comment }, 201);
+    })
+    .get("/tickets/:key/history", async (c) => {
+      return c.json({ history: await getHistory(deps, c.var.company, c.req.param("key")) });
     })
     .get("/tickets/:key/children", async (c) => {
       return c.json({ children: await listChildren(deps, c.var.company, c.req.param("key")) });

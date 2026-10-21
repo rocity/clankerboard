@@ -304,6 +304,28 @@ export const tickets = pgTable(
   ],
 );
 
+// Markdown an Actor writes on a Ticket. Append-only in v1.
+export const comments = pgTable(
+  "comments",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    ticketId: text()
+      .notNull()
+      .references(() => tickets.id, { onDelete: "cascade" }),
+    authorUserId: actorUser(),
+    authorAgentId: actorAgent(),
+    body: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index().on(t.ticketId),
+    check("comments_one_author", sql`num_nonnulls(${t.authorUserId}, ${t.authorAgentId}) = 1`),
+  ],
+);
+
 // A recorded event on the board, credited to the Actor who caused it. The id
 // only ever increases; Spec 05 uses it as the SSE event id.
 export const activities = pgTable(

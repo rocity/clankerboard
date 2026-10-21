@@ -78,3 +78,11 @@ export const actorRefInput = z.object(
 /** Null clears the Assignee. */
 export const assignTicketInput = z.object({ assignee: actorRefInput.nullable() });
 export type AssignTicketInput = z.infer<typeof assignTicketInput>;
+
+export const addCommentInput = z.object({
+  body: z
+    .string({ error: "Write a comment." })
+    .trim()
+    .min(1, { error: "Write a comment." })
+    .max(20_000, { error: "Comments can be up to 20,000 characters." }),
+});

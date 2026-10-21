@@ -3,6 +3,7 @@ export * from "./activity";
 export * from "./actors";
 export * from "./agents";
 export * from "./clock";
+export * from "./comments";
 export * from "./companies";
 export * from "./context";
 export * from "./errors";
