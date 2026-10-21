@@ -1,3 +1,5 @@
+import type { RateLimitConfig } from "./rate-limit";
+
 export type OAuthCredentials = { clientId: string; clientSecret: string };
 
 export const oauthProviders = ["github", "google"] as const;
@@ -25,6 +27,8 @@ export type AppConfig = {
   inviteTtlMs: number;
   /** Email is sent only when this is set. */
   smtp?: SmtpConfig;
+  /** Per-API-Key request budget. Session requests are not limited. */
+  rateLimit: RateLimitConfig;
   /** OAuth providers to offer. A provider is on only when its credentials are present. */
   oauth?: Partial<Record<OAuthProvider, OAuthCredentials>>;
   /** Directory holding the built web app. Unset means the server serves only the API. */
@@ -51,6 +55,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
     authSecret: env.AUTH_SECRET || undefined,
     openSignup: env.OPEN_SIGNUP === "true",
     inviteTtlMs: Number(env.INVITE_TTL_HOURS ?? 7 * 24) * 60 * 60 * 1000,
+    rateLimit: {
+      capacity: Number(env.RATE_LIMIT_CAPACITY ?? 120),
+      refillPerSecond: Number(env.RATE_LIMIT_REFILL_PER_SECOND ?? 2),
+    },
     smtp: env.SMTP_HOST
       ? {
           host: env.SMTP_HOST,

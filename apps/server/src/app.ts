@@ -14,8 +14,9 @@ import type { AppConfig } from "./config";
 import type { AppEnv } from "./env";
 import { handleError } from "./errors";
 import type { Logger } from "./logger";
-import { authenticate } from "./middleware/authenticate";
+import { authenticate, rateLimitApiKeys } from "./middleware/authenticate";
 import { requestLogger } from "./middleware/request-logger";
+import { RateLimiter } from "./rate-limit";
 import { agentRoutes } from "./routes/agents";
 import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
@@ -62,6 +63,7 @@ export function createApp(deps: AppDeps) {
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
     .use(authenticate(auth, domain))
+    .use(rateLimitApiKeys(new RateLimiter(config.rateLimit, deps.clock)))
     .route("/", meRoutes())
     .route("/", companyRoutes(domain))
     .route("/", memberRoutes(domain))

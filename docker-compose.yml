@@ -11,6 +11,9 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       OPEN_SIGNUP: ${OPEN_SIGNUP:-false}
       INVITE_TTL_HOURS: ${INVITE_TTL_HOURS:-168}
+      # Per-API-Key token bucket: burst size and requests earned back per second.
+      RATE_LIMIT_CAPACITY: ${RATE_LIMIT_CAPACITY:-120}
+      RATE_LIMIT_REFILL_PER_SECOND: ${RATE_LIMIT_REFILL_PER_SECOND:-2}
       # Invite emails go out only when SMTP_HOST is set. Links are always copyable.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

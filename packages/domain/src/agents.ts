@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { type Db, schema } from "@clankerboard/db";
-import { and, asc, eq, inArray, isNull, max, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, max, or, sql } from "drizzle-orm";
 import type { Clock } from "./clock";
 import type { CompanyContext, DomainDeps, DomainHooks } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound, unauthorized } from "./errors";
@@ -260,6 +260,22 @@ export type AgentAuthentication = {
   agent: { id: string; name: string };
 };
 
+const lastUsedResolutionMs = 60_000;
+
+/** Records use of a key, writing at most once per minute so not every request writes. */
+async function touchApiKey(db: Db, keyId: string, now: Date) {
+  const staleBefore = new Date(now.getTime() - lastUsedResolutionMs);
+  await db
+    .update(apiKeys)
+    .set({ lastUsedAt: now })
+    .where(
+      and(
+        eq(apiKeys.id, keyId),
+        or(isNull(apiKeys.lastUsedAt), lte(apiKeys.lastUsedAt, staleBefore)),
+      ),
+    );
+}
+
 const invalidKey = () => unauthorized("That API key is not valid.");
 
 /**
@@ -267,7 +283,7 @@ const invalidKey = () => unauthorized("That API key is not valid.");
  * Role is the owner's current one, read on every call and never cached.
  */
 export async function authenticateApiKey(
-  { db }: Pick<DomainDeps, "db">,
+  { db, clock }: Pick<DomainDeps, "db" | "clock">,
   secret: string,
 ): Promise<AgentAuthentication> {
   if (!apiKeyPattern.test(secret)) throw invalidKey();
@@ -293,6 +309,7 @@ export async function authenticateApiKey(
   // A missing owner Membership means the Agent should already be revoked.
   if (row.agentRevokedAt || !row.role) throw unauthorized("This agent was revoked.");
   if (row.keyRevokedAt) throw unauthorized("This API key was revoked.");
+  await touchApiKey(db, row.keyId, clock.now());
 
   return {
     ctx: {

@@ -9,6 +9,7 @@ import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Auth } from "../auth";
 import type { AppEnv } from "../env";
+import type { RateLimiter } from "../rate-limit";
 
 /**
  * The one auth layer: a bearer API Key acts as its Agent, otherwise a session
@@ -70,4 +71,21 @@ export function requireCompany(deps: Pick<DomainDeps, "db">) {
 export function signedIn(c: Context<AppEnv>): UserContext {
   if (!c.var.sessionUser) throw unauthorized("Sign in first.");
   return c.var.sessionUser;
+}
+
+/** Spends one token of the API Key's budget. Session requests pass untouched. */
+export function rateLimitApiKeys(limiter: RateLimiter) {
+  return createMiddleware<AppEnv>(async (c, next) => {
+    if (!c.var.agent) return next();
+    const result = limiter.take(c.var.agent.keyId);
+    if (!result.allowed) {
+      const seconds = result.retryAfterSeconds;
+      c.header("Retry-After", String(seconds));
+      return c.json(
+        { error: `Too many requests. Try again in ${seconds} second${seconds === 1 ? "" : "s"}.` },
+        429,
+      );
+    }
+    await next();
+  });
 }
