@@ -11,6 +11,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -261,6 +262,9 @@ export const ticketPriority = pgEnum("ticket_priority", ticketPriorities);
 const actorUser = () => text().references(() => users.id, { onDelete: "restrict" });
 const actorAgent = () => text().references(() => agents.id, { onDelete: "restrict" });
 
+/** Postgres full-text search vector. */
+const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
+
 export const tickets = pgTable(
   "tickets",
   {
@@ -288,9 +292,14 @@ export const tickets = pgTable(
     archivedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** Maintained by Postgres from title and description. Never select it. */
+    search: tsvector().generatedAlwaysAs(
+      sql`to_tsvector('english', "title" || ' ' || "description")`,
+    ),
   },
   (t) => [
     unique().on(t.projectId, t.number),
+    index("tickets_search_index").using("gin", t.search),
     index().on(t.projectId, t.status, t.rank),
     index().on(t.parentId),
     check(

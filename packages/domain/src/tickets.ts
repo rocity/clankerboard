@@ -3,13 +3,25 @@ import { type Db, schema, type Tx } from "@clankerboard/db";
 import type {
   AssignTicketInput,
   CreateTicketInput,
+  ListTicketsQuery,
   MoveTicketInput,
   TicketPriority,
   TicketStatus,
   TicketType,
   UpdateTicketInput,
 } from "@clankerboard/shared";
-import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  sql,
+} from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { type ActivityEvent, withActivity } from "./activity";
 import {
@@ -49,7 +61,10 @@ export type ActivityView = Omit<ActivityEvent, "actor" | "companyId"> & { actor:
 
 const { tickets, projects, activities } = schema;
 
-export type TicketRow = typeof tickets.$inferSelect & { projectKey: string };
+export type TicketRow = Omit<typeof tickets.$inferSelect, "search"> & { projectKey: string };
+
+// Every column but the search vector, which only Postgres reads.
+export const { search: _search, ...ticketColumns } = getTableColumns(tickets);
 
 export function ticketKeyOf(row: { projectKey: string; number: number }) {
   return `${row.projectKey}-${row.number}`;
@@ -63,7 +78,7 @@ function parseTicketKey(key: string) {
 
 export function selectTickets(db: Db | Tx) {
   return db
-    .select({ ...getTableColumns(tickets), projectKey: projects.key })
+    .select({ ...ticketColumns, projectKey: projects.key })
     .from(tickets)
     .innerJoin(projects, eq(projects.id, tickets.projectId));
 }
@@ -187,7 +202,7 @@ export async function moveTicket(
       .update(tickets)
       .set({ status, rank, updatedAt: deps.clock.now() })
       .where(eq(tickets.id, row.id))
-      .returning();
+      .returning(ticketColumns);
     if (!updated) throw notFound();
     await record({
       projectId: row.projectId,
@@ -200,28 +215,81 @@ export async function moveTicket(
   });
 }
 
-export type TicketFilter = {
-  projectKey?: string;
-  status?: TicketStatus;
-};
+type Cursor = { status: TicketStatus; rank: string; number: number; id: string };
 
-/** Tickets in board order: by Status column, then rank within it. Archived ones are left out. */
+function encodeCursor(row: TicketRow): string {
+  const cursor: Cursor = { status: row.status, rank: row.rank, number: row.number, id: row.id };
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
+function decodeCursor(cursor: string): Cursor {
+  try {
+    const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Cursor;
+    if (
+      typeof value.status === "string" &&
+      typeof value.rank === "string" &&
+      typeof value.number === "number" &&
+      typeof value.id === "string"
+    ) {
+      return value;
+    }
+  } catch {}
+  throw invalid("That page cursor is not valid.");
+}
+
+function assigneeCondition(filter: string) {
+  if (filter === "unassigned") {
+    return and(isNull(tickets.assigneeUserId), isNull(tickets.assigneeAgentId));
+  }
+  if (filter === "agents") return isNotNull(tickets.assigneeAgentId);
+  if (filter === "users") return isNotNull(tickets.assigneeUserId);
+  const id = filter.slice(filter.indexOf(":") + 1);
+  return filter.startsWith("user:")
+    ? eq(tickets.assigneeUserId, id)
+    : eq(tickets.assigneeAgentId, id);
+}
+
+/**
+ * Tickets matching every given filter, in board order (Status column, then
+ * rank), one page at a time. Archived Tickets are left out unless asked for.
+ */
 export async function listTickets(
   { db }: DomainDeps,
   ctx: CompanyContext,
-  filter: TicketFilter,
-): Promise<TicketView[]> {
+  filter: ListTicketsQuery,
+): Promise<{ tickets: TicketView[]; nextCursor: string | null }> {
+  const parent = filter.parentKey ? await findTicket(db, ctx, filter.parentKey) : null;
+  const after = filter.cursor ? decodeCursor(filter.cursor) : null;
   const rows = await selectTickets(db)
     .where(
       and(
         eq(tickets.companyId, ctx.companyId),
-        isNull(tickets.archivedAt),
+        filter.archived === "exclude" ? isNull(tickets.archivedAt) : undefined,
+        filter.archived === "only" ? isNotNull(tickets.archivedAt) : undefined,
         filter.projectKey ? eq(projects.key, filter.projectKey) : undefined,
         filter.status ? eq(tickets.status, filter.status) : undefined,
+        filter.type ? eq(tickets.type, filter.type) : undefined,
+        filter.priority ? eq(tickets.priority, filter.priority) : undefined,
+        filter.assignee ? assigneeCondition(filter.assignee) : undefined,
+        parent ? eq(tickets.parentId, parent.id) : undefined,
+        filter.teamId ? eq(projects.teamId, filter.teamId) : undefined,
+        filter.q
+          ? sql`${tickets.search} @@ websearch_to_tsquery('english', ${filter.q})`
+          : undefined,
+        after
+          ? sql`(${tickets.status}, ${tickets.rank}, ${tickets.number}, ${tickets.id}) > (${after.status}::ticket_status, ${after.rank}, ${after.number}, ${after.id})`
+          : undefined,
       ),
     )
-    .orderBy(asc(tickets.status), asc(tickets.rank), asc(tickets.number));
-  return ticketViews(db, rows);
+    .orderBy(asc(tickets.status), asc(tickets.rank), asc(tickets.number), asc(tickets.id))
+    .limit(filter.limit + 1);
+
+  const page = rows.slice(0, filter.limit);
+  const last = page.at(-1);
+  return {
+    tickets: await ticketViews(db, page),
+    nextCursor: rows.length > filter.limit && last ? encodeCursor(last) : null,
+  };
 }
 
 export async function createTicket(
@@ -264,7 +332,7 @@ export async function createTicket(
         createdAt: now,
         updatedAt: now,
       })
-      .returning();
+      .returning(ticketColumns);
     if (!row) throw new Error("ticket insert returned nothing");
     const ticket = { ...row, projectKey: project.key };
     await record({
@@ -334,7 +402,7 @@ export async function updateTicket(
       .update(tickets)
       .set({ ...fields, parentId: parent?.id ?? null, updatedAt: deps.clock.now() })
       .where(eq(tickets.id, row.id))
-      .returning();
+      .returning(ticketColumns);
     if (!updated) throw notFound();
     await record({
       projectId: row.projectId,
@@ -450,7 +518,7 @@ export async function assignTicket(
         updatedAt: deps.clock.now(),
       })
       .where(eq(tickets.id, row.id))
-      .returning();
+      .returning(ticketColumns);
     if (!updated) throw notFound();
     await record({
       projectId: row.projectId,
@@ -496,7 +564,7 @@ export async function claimTicket(
           ne(tickets.status, "done"),
         ),
       )
-      .returning();
+      .returning(ticketColumns);
 
     if (!claimed) {
       const current = await findTicketById(tx, row.id);

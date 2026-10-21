@@ -20,27 +20,21 @@ import {
   addCommentInput,
   assignTicketInput,
   createTicketInput,
+  listTicketsQuery,
   moveTicketInput,
-  ticketStatus,
   updateTicketInput,
 } from "@clankerboard/shared";
 import { Hono } from "hono";
-import { z } from "zod";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";
 import { json, query } from "../validate";
-
-const listQuery = z.object({
-  projectKey: z.string().optional(),
-  status: ticketStatus.optional(),
-});
 
 export function ticketRoutes(deps: DomainDeps) {
   return new Hono<AppEnv>()
     .use("/tickets", requireCompany(deps))
     .use("/tickets/*", requireCompany(deps))
-    .get("/tickets", query(listQuery), async (c) => {
-      return c.json({ tickets: await listTickets(deps, c.var.company, c.req.valid("query")) });
+    .get("/tickets", query(listTicketsQuery), async (c) => {
+      return c.json(await listTickets(deps, c.var.company, c.req.valid("query")));
     })
     .post("/tickets", json(createTicketInput), async (c) => {
       return c.json({ ticket: await createTicket(deps, c.var.company, c.req.valid("json")) }, 201);

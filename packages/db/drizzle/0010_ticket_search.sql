@@ -1,0 +1,2 @@
+ALTER TABLE "tickets" ADD COLUMN "search" "tsvector" GENERATED ALWAYS AS (to_tsvector('english', "title" || ' ' || "description")) STORED;--> statement-breakpoint
+CREATE INDEX "tickets_search_index" ON "tickets" USING gin ("search");

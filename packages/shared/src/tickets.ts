@@ -86,3 +86,31 @@ export const addCommentInput = z.object({
     .min(1, { error: "Write a comment." })
     .max(20_000, { error: "Comments can be up to 20,000 characters." }),
 });
+
+/** Who a list is narrowed to: nobody, any Agent, any User, or one Actor. */
+export const assigneeFilter = z.string().regex(/^(unassigned|agents|users|user:.+|agent:.+)$/, {
+  error: "Filter assignees by unassigned, agents, users, user:<id>, or agent:<id>.",
+});
+
+export const listTicketsQuery = z.object({
+  projectKey: projectKey.optional(),
+  status: ticketStatus.optional(),
+  type: ticketType.optional(),
+  priority: ticketPriority.optional(),
+  assignee: assigneeFilter.optional(),
+  parentKey: ticketKey.optional(),
+  teamId: z.string().min(1).optional(),
+  /** Free text over title and description. */
+  q: z.string().trim().max(200).optional(),
+  archived: z
+    .enum(["exclude", "include", "only"], { error: "Use archived=include or archived=only." })
+    .default("exclude"),
+  limit: z.coerce
+    .number({ error: "Limits are whole numbers from 1 to 200." })
+    .int({ error: "Limits are whole numbers from 1 to 200." })
+    .min(1, { error: "Limits are whole numbers from 1 to 200." })
+    .max(200, { error: "Limits are whole numbers from 1 to 200." })
+    .default(50),
+  cursor: z.string().optional(),
+});
+export type ListTicketsQuery = z.infer<typeof listTicketsQuery>;

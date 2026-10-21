@@ -4,7 +4,14 @@ import { type RecordActivity, withActivity } from "./activity";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, notFound } from "./errors";
 import { assertMayArchive, assertMayDelete, canDeleteBoardContent } from "./permissions";
-import { findTicket, type TicketRow, type TicketView, ticketKeyOf, ticketView } from "./tickets";
+import {
+  findTicket,
+  type TicketRow,
+  type TicketView,
+  ticketColumns,
+  ticketKeyOf,
+  ticketView,
+} from "./tickets";
 
 const { tickets } = schema;
 
@@ -14,7 +21,7 @@ async function detachChildren(tx: Tx, parent: TicketRow, record: RecordActivity)
     .update(tickets)
     .set({ parentId: null })
     .where(eq(tickets.parentId, parent.id))
-    .returning();
+    .returning(ticketColumns);
   const keys: string[] = [];
   for (const child of children.sort((a, b) => a.number - b.number)) {
     const key = ticketKeyOf({ projectKey: parent.projectKey, number: child.number });
@@ -46,7 +53,7 @@ export async function archiveTicket(
       .update(tickets)
       .set({ archivedAt: now, updatedAt: now })
       .where(eq(tickets.id, row.id))
-      .returning();
+      .returning(ticketColumns);
     if (!updated) throw notFound();
     await record({
       projectId: row.projectId,
@@ -73,7 +80,7 @@ export async function restoreTicket(
       .update(tickets)
       .set({ archivedAt: null, updatedAt: deps.clock.now() })
       .where(eq(tickets.id, row.id))
-      .returning();
+      .returning(ticketColumns);
     if (!updated) throw notFound();
     await record({
       projectId: row.projectId,
