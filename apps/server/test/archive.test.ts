@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTestApp,
+  CapturingEventBus,
   createAgent,
   createApiKey,
   createCompany,
@@ -154,6 +155,22 @@ describe("Hard delete", () => {
 
     expect(res.status).toBe(status);
     expect((await s.member.request("/api/tickets/CB-4")).status).toBe(status === 204 ? 404 : 200);
+  });
+
+  it("records the deletion without keeping any of the purged content", async () => {
+    const events = new CapturingEventBus();
+    const t = buildTestApp({ deps: { events } });
+    const { owner } = await setup(t);
+    await owner.request("/api/tickets/CB-4", {
+      method: "PATCH",
+      body: JSON.stringify({ title: "Leaked customer password", description: "hunter2" }),
+    });
+
+    await owner.request("/api/tickets/CB-4", { method: "DELETE" });
+
+    const deleted = events.published.at(-1);
+    expect(deleted).toMatchObject({ kind: "ticket.deleted", ticketId: null, ticketKey: "CB-4" });
+    expect(deleted?.payload).toEqual({ ticketKey: "CB-4" });
   });
 
   it("removes Comments and Activity, detaches children, and never reuses the number", async () => {

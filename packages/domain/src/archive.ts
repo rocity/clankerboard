@@ -107,7 +107,8 @@ export async function deleteTicket(deps: DomainDeps, ctx: CompanyContext, key: s
       projectId: row.projectId,
       ticketKey: ticketKeyOf(row),
       kind: "ticket.deleted",
-      payload: { ticketKey: ticketKeyOf(row), title: row.title },
+      // Only the key: the point of a hard delete is that the content is gone.
+      payload: { ticketKey: ticketKeyOf(row) },
     });
   });
 }
