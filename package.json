@@ -1,0 +1,29 @@
+{
+  "name": "clankerboard",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.8.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @clankerboard/server dev",
+    "build": "pnpm --filter @clankerboard/web build && pnpm --filter @clankerboard/server build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:generate": "pnpm --filter @clankerboard/db generate",
+    "db:test:up": "docker compose --profile test up -d --wait db-test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

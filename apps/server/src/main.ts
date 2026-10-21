@@ -1,0 +1,35 @@
+import { createDatabase, runMigrations } from "@clankerboard/db";
+import { noopMailer, systemClock } from "@clankerboard/domain";
+import { serve } from "@hono/node-server";
+import { createApp } from "./app";
+import { loadConfig } from "./config";
+import { createLogger } from "./logger";
+
+const env = loadConfig(process.env);
+const logger = createLogger(env.logLevel);
+const database = createDatabase(env.databaseUrl);
+
+// Migrations finish before the server accepts a single request.
+await runMigrations(database.db, env.migrationsDir);
+logger.info("migrations applied");
+
+const app = createApp({
+  db: database.db,
+  clock: systemClock,
+  mailer: noopMailer,
+  config: env,
+  logger,
+});
+
+const server = serve({ fetch: app.fetch, port: env.port }, (info) => {
+  logger.info({ port: info.port }, "listening");
+});
+
+function shutdown(signal: string) {
+  logger.info({ signal }, "shutting down");
+  server.close(() => {
+    database.close().finally(() => process.exit(0));
+  });
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

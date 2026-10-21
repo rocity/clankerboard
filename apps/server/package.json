@@ -1,0 +1,34 @@
+{
+  "name": "@clankerboard/server",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "node build.mjs",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@clankerboard/db": "workspace:^",
+    "@clankerboard/domain": "workspace:^",
+    "@clankerboard/shared": "workspace:^",
+    "@hono/node-server": "^2.1.5",
+    "@hono/zod-validator": "^0.9.1",
+    "better-auth": "^1.7.12",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13",
+    "kysely": "0.29.7",
+    "nodemailer": "^10.1.7",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "esbuild": "^0.28.2"
+  }
+}
