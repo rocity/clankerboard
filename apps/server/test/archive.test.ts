@@ -180,7 +180,7 @@ describe("Hard delete", () => {
 
     await owner.request("/api/tickets/CB-1", { method: "DELETE" });
 
-    expect((await member.request("/api/tickets/CB-1/history")).status).toBe(404);
+    expect((await member.request("/api/tickets/CB-1/timeline")).status).toBe(404);
     expect(await (await member.request("/api/tickets/CB-2")).json()).toMatchObject({
       ticket: { parent: null },
     });

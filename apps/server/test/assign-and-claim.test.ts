@@ -103,8 +103,8 @@ describe("Claim", () => {
     expect(await res.json()).toMatchObject({
       ticket: { status: "in_progress", assignee: { type: "agent", id: first.id } },
     });
-    const column = await owner.request("/api/tickets?projectKey=CB&status=in_progress");
-    const { tickets } = (await column.json()) as { tickets: { key: string }[] };
+    const inProgress = await owner.request("/api/tickets?projectKey=CB&status=in_progress");
+    const { tickets } = (await inProgress.json()) as { tickets: { key: string }[] };
     expect(tickets.map((ticket) => ticket.key)).toEqual(["CB-2", "CB-1"]);
   });
 

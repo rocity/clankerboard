@@ -13,6 +13,15 @@ export const ticketPriority = z.enum(ticketPriorities, {
   error: "Pick low, medium, high, or urgent.",
 });
 export type TicketType = z.infer<typeof ticketType>;
+
+/** How each Status reads in copy, matching GLOSSARY.md. */
+export const statusLabels = {
+  backlog: "Backlog",
+  todo: "To Do",
+  in_progress: "In Progress",
+  review: "Review",
+  done: "Done",
+} as const satisfies Record<(typeof ticketStatuses)[number], string>;
 export type TicketStatus = z.infer<typeof ticketStatus>;
 export type TicketPriority = z.infer<typeof ticketPriority>;
 
@@ -51,8 +60,8 @@ export const updateTicketInput = z.object({
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 
 /**
- * Moves a Ticket to a Status column (its current one if omitted) and a place in
- * it: right after `after`, right before `before`, between both, or at a
+ * Moves a Ticket to a Status (its current one if omitted) and a place among
+ * that Status's Tickets: right after `after`, right before `before`, between both, or at a
  * zero-based `position`. With no place given, it goes to the bottom.
  */
 export const moveTicketInput = z.object({

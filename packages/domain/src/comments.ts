@@ -13,7 +13,7 @@ export type CommentView = {
   createdAt: Date;
 };
 
-export type HistoryItem =
+export type TimelineItem =
   | ({ type: "comment"; activityId: number } & CommentView)
   | {
       type: "activity";
@@ -67,14 +67,14 @@ export async function addComment(
 }
 
 /**
- * A Ticket's whole story in one query: its Activity in id order, with each
+ * A Ticket's timeline in one query: its Activity in id order, with each
  * Comment standing in for the Activity that recorded it.
  */
-export async function getHistory(
+export async function getTimeline(
   { db }: DomainDeps,
   ctx: CompanyContext,
   key: string,
-): Promise<HistoryItem[]> {
+): Promise<TimelineItem[]> {
   const ticket = await findTicket(db, ctx, key);
   const rows = await db
     .select({
@@ -98,7 +98,7 @@ export async function getHistory(
       : refFromColumns(activity.actorUserId, activity.actorAgentId),
   );
   const actor = await resolveActors(db, refs);
-  return rows.map(({ activity, comment }, i): HistoryItem => {
+  return rows.map(({ activity, comment }, i): TimelineItem => {
     const who = actor(refs[i] ?? null) as ActorView;
     if (comment) {
       return {
@@ -127,8 +127,8 @@ export async function listComments(
   ctx: CompanyContext,
   key: string,
 ): Promise<CommentView[]> {
-  const history = await getHistory(deps, ctx, key);
-  return history.flatMap((item) =>
+  const timeline = await getTimeline(deps, ctx, key);
+  return timeline.flatMap((item) =>
     item.type === "comment"
       ? [{ id: item.id, author: item.author, body: item.body, createdAt: item.createdAt }]
       : [],

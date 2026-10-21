@@ -37,7 +37,7 @@ async function detachChildren(tx: Tx, parent: TicketRow, record: RecordActivity)
   return keys;
 }
 
-/** Hides a Ticket from the board, keeping its history. Its children stay live, without a Parent. */
+/** Hides a Ticket from the board, keeping its Comments and Activity. Its children stay live, without a Parent. */
 export async function archiveTicket(
   deps: DomainDeps,
   ctx: CompanyContext,

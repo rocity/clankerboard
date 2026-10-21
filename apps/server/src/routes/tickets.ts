@@ -6,8 +6,8 @@ import {
   createTicket,
   type DomainDeps,
   deleteTicket,
-  getHistory,
   getTicket,
+  getTimeline,
   listChildren,
   listComments,
   listTicketActivity,
@@ -94,8 +94,8 @@ export function ticketRoutes(deps: DomainDeps) {
       );
       return c.json({ comment }, 201);
     })
-    .get("/tickets/:key/history", async (c) => {
-      return c.json({ history: await getHistory(deps, c.var.company, c.req.param("key")) });
+    .get("/tickets/:key/timeline", async (c) => {
+      return c.json({ timeline: await getTimeline(deps, c.var.company, c.req.param("key")) });
     })
     .get("/tickets/:key/children", query(childrenQuery), async (c) => {
       const children = await listChildren(deps, c.var.company, c.req.param("key"), {

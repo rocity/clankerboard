@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { type Db, schema, type Tx } from "@clankerboard/db";
-import type {
-  AssignTicketInput,
-  CreateTicketInput,
-  ListTicketsQuery,
-  MoveTicketInput,
-  TicketPriority,
-  TicketStatus,
-  TicketType,
-  UpdateTicketInput,
+import {
+  type AssignTicketInput,
+  type CreateTicketInput,
+  type ListTicketsQuery,
+  type MoveTicketInput,
+  statusLabels,
+  type TicketPriority,
+  type TicketStatus,
+  type TicketType,
+  type UpdateTicketInput,
 } from "@clankerboard/shared";
 import {
   and,
@@ -142,7 +143,7 @@ export async function ticketView(db: Db | Tx, row: TicketRow): Promise<TicketVie
   return view;
 }
 
-/** A rank after the last Ticket in a Status column, so new arrivals land at the bottom. */
+/** A rank after the last Ticket in a Status, so new arrivals land at the bottom. */
 export async function bottomRank(tx: Db | Tx, projectId: string, status: TicketStatus) {
   const [last] = await tx
     .select({ rank: tickets.rank })
@@ -153,8 +154,13 @@ export async function bottomRank(tx: Db | Tx, projectId: string, status: TicketS
   return generateKeyBetween(last?.rank ?? null, null);
 }
 
-/** A Status column of a Project, in board order, leaving out one Ticket. */
-async function columnOf(tx: Db | Tx, projectId: string, status: TicketStatus, without: string) {
+/** A Project's Tickets in one Status, in rank order, leaving out one Ticket. */
+async function ticketsInStatus(
+  tx: Db | Tx,
+  projectId: string,
+  status: TicketStatus,
+  without: string,
+) {
   const rows = await selectTickets(tx)
     .where(
       and(eq(tickets.projectId, projectId), eq(tickets.status, status), isNull(tickets.archivedAt)),
@@ -163,25 +169,25 @@ async function columnOf(tx: Db | Tx, projectId: string, status: TicketStatus, wi
   return rows.filter((row) => row.id !== without).map((row) => ({ ...row, key: ticketKeyOf(row) }));
 }
 
-/** Where in `column` the moved Ticket goes, from its neighbours or a position. */
-function placeIn(column: { key: string }[], status: TicketStatus, input: MoveTicketInput) {
+/** Where among `siblings` the moved Ticket goes, from its neighbours or a position. */
+function placeIn(siblings: { key: string }[], status: TicketStatus, input: MoveTicketInput) {
   const indexOf = (key: string) => {
-    const index = column.findIndex((row) => row.key === key.toUpperCase());
-    if (index === -1) throw invalid(`${key.toUpperCase()} isn't in the ${status} column.`);
+    const index = siblings.findIndex((row) => row.key === key.toUpperCase());
+    if (index === -1) throw invalid(`${key.toUpperCase()} isn't in ${statusLabels[status]}.`);
     return index;
   };
   if (input.after) {
     const index = indexOf(input.after) + 1;
-    if (input.before && column[index]?.key !== input.before.toUpperCase()) {
-      throw conflict("The column changed. Refresh and try again.");
+    if (input.before && siblings[index]?.key !== input.before.toUpperCase()) {
+      throw conflict("Those tickets are no longer next to each other. Refresh and try again.");
     }
     return index;
   }
   if (input.before) return indexOf(input.before);
-  return Math.min(input.position ?? column.length, column.length);
+  return Math.min(input.position ?? siblings.length, siblings.length);
 }
 
-/** Moves a Ticket to a Status and a place in that column, updating that one row only. */
+/** Moves a Ticket to a Status and a place among its Tickets, updating that one row only. */
 export async function moveTicket(
   deps: DomainDeps,
   ctx: CompanyContext,
@@ -192,10 +198,10 @@ export async function moveTicket(
     const row = await findTicket(tx, ctx, key, true);
     if (row.archivedAt) throw conflict("Archived tickets can't be moved.");
     const status = input.status ?? row.status;
-    const column = await columnOf(tx, row.projectId, status, row.id);
+    const siblings = await ticketsInStatus(tx, row.projectId, status, row.id);
     const rank = rankAt(
-      column.map((r) => r.rank),
-      placeIn(column, status, input),
+      siblings.map((r) => r.rank),
+      placeIn(siblings, status, input),
     );
 
     const [updated] = await tx
@@ -250,7 +256,7 @@ function assigneeCondition(filter: string) {
 }
 
 /**
- * Tickets matching every given filter, in board order (Status column, then
+ * Tickets matching every given filter, in board order (by Status, then
  * rank), one page at a time. Archived Tickets are left out unless asked for.
  */
 export async function listTickets(

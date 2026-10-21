@@ -10,7 +10,7 @@ import {
   type TestApp,
 } from "./harness";
 
-type HistoryItem =
+type TimelineItem =
   | { type: "comment"; id: string; author: { type: string; id: string }; body: string }
   | { type: "activity"; kind: string; actor: { type: string; id: string } };
 
@@ -89,7 +89,7 @@ describe("Comments", () => {
   });
 });
 
-describe("Ticket history", () => {
+describe("Ticket timeline", () => {
   it("merges Comments and Activity in time order, each credited to its Actor", async () => {
     const t = buildTestApp();
     const { owner, agent, bearer } = await setup(t);
@@ -101,10 +101,10 @@ describe("Ticket history", () => {
     });
     await comment(owner.request, "CB-1", "Bumped priority.");
 
-    const res = await owner.request("/api/tickets/CB-1/history");
+    const res = await owner.request("/api/tickets/CB-1/timeline");
 
-    const { history } = (await res.json()) as { history: HistoryItem[] };
-    const summary = history.map((item) =>
+    const { timeline } = (await res.json()) as { timeline: TimelineItem[] };
+    const summary = timeline.map((item) =>
       item.type === "comment"
         ? ["comment", item.author.type, item.body]
         : ["activity", item.actor.type, item.kind],
@@ -116,7 +116,7 @@ describe("Ticket history", () => {
       ["activity", "user", "ticket.updated"],
       ["comment", "user", "Bumped priority."],
     ]);
-    const agentComment = history[2];
+    const agentComment = timeline[2];
     expect(agentComment?.type === "comment" && agentComment.author.id).toBe(agent.id);
   });
 
@@ -125,7 +125,7 @@ describe("Ticket history", () => {
     await setup(t);
     const globex = await createCompany(t, { name: "Globex" });
 
-    const read = await globex.owner.request("/api/tickets/CB-1/history");
+    const read = await globex.owner.request("/api/tickets/CB-1/timeline");
     const write = await comment(globex.owner.request, "CB-1", "Hi.");
 
     expect([read.status, write.status]).toEqual([404, 404]);
