@@ -1,4 +1,10 @@
-export type DomainErrorKind = "not_found" | "forbidden" | "conflict" | "invalid" | "gone";
+export type DomainErrorKind =
+  | "unauthorized"
+  | "not_found"
+  | "forbidden"
+  | "conflict"
+  | "invalid"
+  | "gone";
 
 /**
  * A rule the caller broke. The message is user-facing copy: short and plain.
@@ -22,3 +28,10 @@ export const forbidden = (message = "You don't have permission to do that.") =>
 export const conflict = (message: string) => new DomainError("conflict", message);
 export const invalid = (message: string) => new DomainError("invalid", message);
 export const gone = (message: string) => new DomainError("gone", message);
+export const unauthorized = (message: string) => new DomainError("unauthorized", message);
+
+/** Postgres unique_violation, whether Drizzle wrapped it or not. */
+export function isUniqueViolation(error: unknown) {
+  const code = (e: unknown) => (e as { code?: string } | undefined)?.code;
+  return code(error) === "23505" || code((error as { cause?: unknown })?.cause) === "23505";
+}

@@ -10,14 +10,14 @@ import {
 import { createInviteInput, inviteTokenInput } from "@clankerboard/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
-import { requireCompany, requireUser } from "../middleware/session";
+import { requireCompany, requireUser, signedIn } from "../middleware/authenticate";
 import { json } from "../validate";
 
 export function inviteRoutes(deps: DomainDeps) {
   return (
     new Hono<AppEnv>()
-      .use("/invites", requireCompany(deps.db))
-      .use("/invites/*", requireCompany(deps.db))
+      .use("/invites", requireCompany(deps))
+      .use("/invites/*", requireCompany(deps))
       .post("/invites", json(createInviteInput), async (c) => {
         return c.json(await createInvite(deps, c.var.company, c.req.valid("json")), 201);
       })
@@ -36,7 +36,7 @@ export function inviteRoutes(deps: DomainDeps) {
       })
       .post("/invite-links/accept", requireUser, json(inviteTokenInput), async (c) => {
         return c.json({
-          company: await acceptInvite(deps, c.var.actor, c.req.valid("json").token),
+          company: await acceptInvite(deps, signedIn(c), c.req.valid("json").token),
         });
       })
   );

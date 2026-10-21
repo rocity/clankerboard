@@ -3,7 +3,7 @@ import { type Db, schema } from "@clankerboard/db";
 import type { CompanyRole, CreateCompanyInput, UpdateCompanyInput } from "@clankerboard/shared";
 import { and, asc, eq } from "drizzle-orm";
 import type { CompanyContext, DomainDeps, UserContext } from "./context";
-import { conflict, forbidden, notFound } from "./errors";
+import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";
 import { canUpdateCompany } from "./permissions";
 
 export type CompanyView = {
@@ -51,10 +51,6 @@ async function freeSlug(db: Db, name: string) {
   }
 }
 
-const isUniqueViolation = (error: unknown) =>
-  (error as { cause?: { code?: string } })?.cause?.code === "23505" ||
-  (error as { code?: string })?.code === "23505";
-
 /** Creates a Company with the caller as its owner and makes it their active Company. */
 export async function createCompany(
   { db }: DomainDeps,
@@ -80,13 +76,20 @@ export async function createCompany(
   return { id, name: input.name, slug, role: "owner" };
 }
 
-export async function listCompanies({ db }: DomainDeps, user: UserContext): Promise<CompanyView[]> {
-  return db
+/** The User's Companies, and which of them is active (null if none or a stale one). */
+export async function listCompanies(
+  { db }: DomainDeps,
+  user: UserContext,
+  activeCompanyId: string | null,
+): Promise<{ companies: CompanyView[]; activeCompanyId: string | null }> {
+  const list = await db
     .select(companyColumns)
     .from(memberships)
     .innerJoin(companies, eq(companies.id, memberships.companyId))
     .where(eq(memberships.userId, user.userId))
     .orderBy(asc(companies.createdAt), asc(companies.name));
+  const active = list.find((company) => company.id === activeCompanyId);
+  return { companies: list, activeCompanyId: active?.id ?? null };
 }
 
 /** Makes a Company the session's active one. A Company the User isn't in is not found. */

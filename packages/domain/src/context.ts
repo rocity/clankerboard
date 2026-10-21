@@ -40,8 +40,18 @@ export type UserContext = {
   sessionId: string;
 };
 
-/** The acting User inside their active Company. Every Company-scoped service takes one. */
-export type CompanyContext = UserContext & {
+/** Anything that can act on the board: a User, or an Agent acting under its own name. */
+export type Actor = { type: "user"; userId: string } | { type: "agent"; agentId: string };
+
+/**
+ * Who is acting, in which Company, with which effective Role. Every
+ * Company-scoped service takes one. For an Agent, `userId` and `role` are its
+ * owner's, resolved fresh on every request.
+ */
+export type CompanyContext = {
+  actor: Actor;
+  /** The User whose permissions apply: the acting User, or the Agent's owner. */
+  userId: string;
   companyId: string;
   role: CompanyRole;
 };
@@ -66,5 +76,10 @@ export async function resolveCompanyContext(
       ),
     );
   if (!membership) return null;
-  return { ...user, companyId: activeCompanyId, role: membership.role };
+  return {
+    actor: { type: "user", userId: user.userId },
+    userId: user.userId,
+    companyId: activeCompanyId,
+    role: membership.role,
+  };
 }

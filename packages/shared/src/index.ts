@@ -1,3 +1,4 @@
+export * from "./agents";
 export * from "./companies";
 export * from "./invites";
 export * from "./members";

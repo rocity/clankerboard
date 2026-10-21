@@ -17,13 +17,13 @@ import {
 } from "@clankerboard/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
-import { requireCompany } from "../middleware/session";
+import { requireCompany } from "../middleware/authenticate";
 import { json } from "../validate";
 
 export function teamRoutes(deps: DomainDeps) {
   return new Hono<AppEnv>()
-    .use("/teams", requireCompany(deps.db))
-    .use("/teams/*", requireCompany(deps.db))
+    .use("/teams", requireCompany(deps))
+    .use("/teams/*", requireCompany(deps))
     .get("/teams", async (c) => {
       return c.json({ teams: await listTeams(deps, c.var.company) });
     })

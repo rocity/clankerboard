@@ -53,3 +53,13 @@ export function canManageTeamMembers(actor: CompanyRole, isLeadOfTeam: boolean) 
 export function canSetTeamRole(actor: CompanyRole) {
   return isAdmin(actor);
 }
+
+/** Owners and admins see every Agent in the Company; everyone else sees their own. */
+export function canSeeAllAgents(actor: CompanyRole) {
+  return isAdmin(actor);
+}
+
+/** The Agent's owner, or an owner or admin, may revoke it or its keys. */
+export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
+  return ownsAgent || isAdmin(actor);
+}

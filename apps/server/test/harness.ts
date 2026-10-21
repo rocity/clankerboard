@@ -117,7 +117,18 @@ export function buildTestApp(
     return session(res);
   }
 
-  return { app, clock, mailer, config, request, requestAs, signUp, signIn };
+  /** Requests made with `Authorization: Bearer <secret>`, as an Agent would. */
+  function bearer(secret: string): Fetch {
+    return (path, init = {}) => {
+      const headers = new Headers(init.headers);
+      headers.set("authorization", `Bearer ${secret}`);
+      if (init.body && !headers.has("content-type"))
+        headers.set("content-type", "application/json");
+      return Promise.resolve(app.request(new URL(path, baseUrl), { ...init, headers }));
+    };
+  }
+
+  return { app, clock, mailer, config, request, requestAs, bearer, signUp, signIn };
 }
 
 export type CompanyFixture = {
@@ -185,4 +196,35 @@ export async function joinCompany(
   });
   if (accepted.status !== 200) throw new Error(`accept failed: ${await accepted.text()}`);
   return user;
+}
+
+export type AgentFixture = { id: string; name: string };
+
+/** Creates an Agent owned by `owner` in their active Company. */
+export async function createAgent(owner: SignedInUser, name: string): Promise<AgentFixture> {
+  const res = await owner.request("/api/agents", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  if (res.status !== 201) throw new Error(`createAgent failed: ${await res.text()}`);
+  return ((await res.json()) as { agent: AgentFixture }).agent;
+}
+
+/** Creates an API Key for the owner's Agent and a client that uses it. */
+export async function createApiKey(
+  t: TestApp,
+  owner: SignedInUser,
+  agentId: string,
+  label = "test",
+) {
+  const res = await owner.request(`/api/agents/${agentId}/keys`, {
+    method: "POST",
+    body: JSON.stringify({ label }),
+  });
+  if (res.status !== 201) throw new Error(`createApiKey failed: ${await res.text()}`);
+  const { key, secret } = (await res.json()) as {
+    key: { id: string; prefix: string };
+    secret: string;
+  };
+  return { key, secret, bearer: t.bearer(secret) };
 }

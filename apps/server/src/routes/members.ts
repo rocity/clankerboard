@@ -2,13 +2,13 @@ import { changeMemberRole, type DomainDeps, listMembers, removeMember } from "@c
 import { changeRoleInput } from "@clankerboard/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
-import { requireCompany } from "../middleware/session";
+import { requireCompany } from "../middleware/authenticate";
 import { json } from "../validate";
 
 export function memberRoutes(deps: DomainDeps) {
   return new Hono<AppEnv>()
-    .use("/members", requireCompany(deps.db))
-    .use("/members/*", requireCompany(deps.db))
+    .use("/members", requireCompany(deps))
+    .use("/members/*", requireCompany(deps))
     .get("/members", async (c) => {
       return c.json({ members: await listMembers(deps, c.var.company) });
     })

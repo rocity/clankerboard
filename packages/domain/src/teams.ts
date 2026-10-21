@@ -3,7 +3,7 @@ import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { TeamRole } from "@clankerboard/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, forbidden, notFound } from "./errors";
+import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";
 import { canManageTeamMembers, canManageTeams, canSetTeamRole } from "./permissions";
 
 export type TeamView = {
@@ -24,9 +24,6 @@ export type TeamMemberView = {
 };
 
 const { teams, teamMemberships, memberships, users } = schema;
-
-const isUniqueViolation = (error: unknown) =>
-  (error as { cause?: { code?: string } })?.cause?.code === "23505";
 
 /** A Team in the caller's Company. Anywhere else, it doesn't exist. */
 export async function findTeam(db: Db | Tx, ctx: CompanyContext, teamId: string) {

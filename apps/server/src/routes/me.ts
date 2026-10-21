@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
-import { requireUser } from "../middleware/session";
+import { requireUser } from "../middleware/authenticate";
 
 export function meRoutes() {
   return new Hono<AppEnv>().get("/me", requireUser, (c) => {

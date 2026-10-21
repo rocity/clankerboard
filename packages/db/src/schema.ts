@@ -173,6 +173,49 @@ export const teamMemberships = pgTable(
   (t) => [unique().on(t.teamId, t.userId), index().on(t.userId)],
 );
 
+// Our own tables from here on, not Better Auth's (ADR-0003, ADR-0005).
+
+// A non-human Actor owned by a User within one Company.
+export const agents = pgTable(
+  "agents",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    ownerUserId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("agents_company_id_name_unique").on(t.companyId, sql`lower(${t.name})`),
+    index().on(t.ownerUserId),
+  ],
+);
+
+// A secret credential belonging to an Agent. Only its SHA-256 hash is stored.
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text().primaryKey(),
+    agentId: text()
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    label: text().notNull(),
+    /** The start of the key, safe to show, such as `cb_Ab12Cd34`. */
+    prefix: text().notNull(),
+    keyHash: text().notNull().unique(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp({ withTimezone: true }),
+    revokedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index().on(t.agentId)],
+);
+
 // Instance-wide values the app generates for itself, such as the auth secret
 // when the operator does not set one.
 export const instanceSettings = pgTable("instance_settings", {

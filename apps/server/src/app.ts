@@ -13,8 +13,9 @@ import type { AppConfig } from "./config";
 import type { AppEnv } from "./env";
 import { handleError } from "./errors";
 import type { Logger } from "./logger";
+import { authenticate } from "./middleware/authenticate";
 import { requestLogger } from "./middleware/request-logger";
-import { loadSession } from "./middleware/session";
+import { agentRoutes } from "./routes/agents";
 import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
 import { healthRoutes } from "./routes/health";
@@ -54,12 +55,13 @@ export function createApp(deps: AppDeps) {
 
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
-    .use(loadSession(auth))
+    .use(authenticate(auth, domain))
     .route("/", meRoutes())
     .route("/", companyRoutes(domain))
     .route("/", memberRoutes(domain))
     .route("/", inviteRoutes(domain))
-    .route("/", teamRoutes(domain));
+    .route("/", teamRoutes(domain))
+    .route("/", agentRoutes(domain));
 
   const app = new Hono<AppEnv>()
     .use(requestId())

@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "./env";
 
 const statusByKind: Record<DomainError["kind"], ContentfulStatusCode> = {
+  unauthorized: 401,
   not_found: 404,
   forbidden: 403,
   conflict: 409,

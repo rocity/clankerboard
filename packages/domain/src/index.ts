@@ -1,4 +1,5 @@
 export type { Db } from "@clankerboard/db";
+export * from "./agents";
 export * from "./clock";
 export * from "./companies";
 export * from "./context";
