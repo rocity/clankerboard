@@ -1,0 +1,3 @@
+# Better Auth for humans, custom API Keys for Agents
+
+Human authentication, Companies, Teams, Memberships, Roles and Invites use Better Auth with its `organization` plugin (a Company is a Better Auth organization). Email+password is always on, and GitHub/Google OAuth turn on only when configured. Invites always produce a copyable link, and email is sent only when SMTP is configured. Agent API Keys deliberately do **not** use Better Auth's api-key plugin, because that plugin attaches keys to users and ours belong to Agents (see ADR-0003). They live in our own tables: prefixed `cb_`, hashed at rest, shown once, revocable.
