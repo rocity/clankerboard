@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { CreateProjectInput, UpdateProjectInput } from "@clankerboard/shared";
 import { and, asc, eq } from "drizzle-orm";
+import { withActivity } from "./activity";
+import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";
 import { assertMayDelete, canDeleteBoardContent } from "./permissions";
@@ -49,27 +51,36 @@ export async function findProject(db: Db | Tx, ctx: CompanyContext, key: string)
 }
 
 export async function createProject(
-  { db, clock }: DomainDeps,
+  deps: DomainDeps,
   ctx: CompanyContext,
   input: CreateProjectInput,
 ): Promise<ProjectView> {
-  if (input.teamId) await findTeam(db, ctx, input.teamId);
-  const now = clock.now();
+  if (input.teamId) await findTeam(deps.db, ctx, input.teamId);
+  const now = deps.clock.now();
+  const teamId = input.teamId ?? null;
   try {
-    await db.insert(projects).values({
-      id: randomUUID(),
-      companyId: ctx.companyId,
-      teamId: input.teamId ?? null,
-      name: input.name,
-      key: input.key,
-      createdAt: now,
-      updatedAt: now,
+    return await withActivity(deps, ctx, async (tx, record) => {
+      const id = randomUUID();
+      await tx.insert(projects).values({
+        id,
+        companyId: ctx.companyId,
+        teamId,
+        name: input.name,
+        key: input.key,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await record({
+        projectId: id,
+        kind: "project.created",
+        payload: { key: input.key, name: input.name, teamId },
+      });
+      return findProject(tx, ctx, input.key);
     });
   } catch (error) {
     if (isUniqueViolation(error)) throw conflict("That project key is taken.");
     throw error;
   }
-  return findProject(db, ctx, input.key);
 }
 
 export async function listProjects(
@@ -89,24 +100,38 @@ export async function listProjects(
 }
 
 export async function updateProject(
-  { db, clock }: DomainDeps,
+  deps: DomainDeps,
   ctx: CompanyContext,
   key: string,
   input: UpdateProjectInput,
 ): Promise<ProjectView> {
-  const project = await findProject(db, ctx, key);
-  if (input.teamId) await findTeam(db, ctx, input.teamId);
-  const changes: Partial<typeof projects.$inferInsert> = { updatedAt: clock.now() };
-  if (input.name !== undefined) changes.name = input.name;
-  if (input.teamId !== undefined) changes.teamId = input.teamId;
-  await db.update(projects).set(changes).where(eq(projects.id, project.id));
-  return findProject(db, ctx, key);
+  return withActivity(deps, ctx, async (tx, record) => {
+    const project = await findProject(tx, ctx, key);
+    if (input.teamId) await findTeam(tx, ctx, input.teamId);
+    const fields = { name: input.name, teamId: input.teamId };
+    const changes = changedFields({ name: project.name, teamId: project.team?.id ?? null }, fields);
+    if (Object.keys(changes).length === 0) return project;
+
+    await tx
+      .update(projects)
+      .set({ ...fields, updatedAt: deps.clock.now() })
+      .where(eq(projects.id, project.id));
+    await record({ projectId: project.id, kind: "project.updated", payload: { changes } });
+    return findProject(tx, ctx, key);
+  });
 }
 
-/** Hard-deletes a Project with every Ticket, Comment, and Activity in it. */
-export async function deleteProject({ db }: DomainDeps, ctx: CompanyContext, key: string) {
+/**
+ * Hard-deletes a Project with every Ticket, Comment, and Activity in it. The
+ * deletion is still published to the event bus, though its own Activity row
+ * goes with the Project.
+ */
+export async function deleteProject(deps: DomainDeps, ctx: CompanyContext, key: string) {
   assertMayDelete(ctx);
-  const project = await findProject(db, ctx, key);
   if (!canDeleteBoardContent(ctx.role)) throw forbidden();
-  await db.delete(projects).where(eq(projects.id, project.id));
+  await withActivity(deps, ctx, async (tx, record) => {
+    const project = await findProject(tx, ctx, key);
+    await record({ projectId: project.id, kind: "project.deleted", payload: { key } });
+    await tx.delete(projects).where(eq(projects.id, project.id));
+  });
 }

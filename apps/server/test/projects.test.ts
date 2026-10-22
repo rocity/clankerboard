@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTestApp,
+  CapturingEventBus,
   createAgent,
   createApiKey,
   createCompany,
@@ -153,6 +154,25 @@ describe("Projects", () => {
       body: JSON.stringify({ name: "Mine" }),
     });
     expect(patch.status).toBe(404);
+  });
+
+  it("records creating, changing, and deleting a Project as Activity", async () => {
+    const events = new CapturingEventBus();
+    const t = buildTestApp({ deps: { events } });
+    const { owner, bearer } = await setup(t);
+
+    await createProject(bearer, { name: "One", key: "CB" });
+    await owner.request("/api/projects/CB", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Board" }),
+    });
+    await owner.request("/api/projects/CB", { method: "DELETE" });
+
+    expect(events.published.map((e) => [e.kind, e.actor.type, e.payload])).toEqual([
+      ["project.created", "agent", { key: "CB", name: "One", teamId: null }],
+      ["project.updated", "user", { changes: { name: { from: "One", to: "Board" } } }],
+      ["project.deleted", "user", { key: "CB" }],
+    ]);
   });
 
   it.each([

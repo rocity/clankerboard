@@ -171,7 +171,8 @@ describe("Tickets", () => {
 
     const stored = await activityOf(owner.request, "CB-1");
 
-    expect(events.published.map((a) => [a.id, a.kind])).toEqual(stored.map((a) => [a.id, a.kind]));
+    const published = events.published.filter((a) => a.ticketKey === "CB-1");
+    expect(published.map((a) => [a.id, a.kind])).toEqual(stored.map((a) => [a.id, a.kind]));
     expect(await events.probeResults()).toEqual([true, true]);
   });
 

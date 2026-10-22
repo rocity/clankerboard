@@ -33,6 +33,7 @@ import {
   refOf,
   resolveActors,
 } from "./actors";
+import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, invalid, notFound } from "./errors";
 import { assertChildrenAccept, assertPlacement } from "./hierarchy";
@@ -362,18 +363,6 @@ export async function getTicket({ db }: DomainDeps, ctx: CompanyContext, key: st
   return ticketView(db, await findTicket(db, ctx, key));
 }
 
-type Changes = Record<string, { from: unknown; to: unknown }>;
-
-/** The fields of `input` that differ from `row`, as from/to pairs. */
-export function diff<T extends object>(row: T, input: Partial<T>): Changes {
-  const changes: Changes = {};
-  for (const [field, to] of Object.entries(input)) {
-    const from = row[field as keyof T];
-    if (to !== undefined && to !== from) changes[field] = { from, to };
-  }
-  return changes;
-}
-
 export async function updateTicket(
   deps: DomainDeps,
   ctx: CompanyContext,
@@ -383,7 +372,7 @@ export async function updateTicket(
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
     const { parentKey, ...fields } = input;
-    const changes = diff(row, fields);
+    const changes = changedFields(row, fields);
 
     const currentParent = row.parentId ? await findTicketById(tx, ctx, row.parentId) : null;
     const parent =
