@@ -15,6 +15,7 @@ import { Route as InviteRouteImport } from './routes/invite'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as CompanySlugIndexRouteImport } from './routes/$companySlug/index'
+import { Route as CompanySlugAgentsRouteImport } from './routes/$companySlug/agents'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const CompanySlugIndexRoute = CompanySlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CompanySlugRouteRoute,
 } as any)
+const CompanySlugAgentsRoute = CompanySlugAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug': typeof CompanySlugIndexRoute
 }
 export interface FileRoutesById {
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -79,9 +88,16 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/agents'
     | '/$companySlug/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/invite' | '/sign-in' | '/sign-up' | '/$companySlug'
+  to:
+    | '/'
+    | '/invite'
+    | '/sign-in'
+    | '/sign-up'
+    | '/$companySlug/agents'
+    | '/$companySlug'
   id:
     | '__root__'
     | '/'
@@ -89,6 +105,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/agents'
     | '/$companySlug/'
   fileRoutesById: FileRoutesById
 }
@@ -144,14 +161,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugIndexRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/agents': {
+      id: '/$companySlug/agents'
+      path: '/agents'
+      fullPath: '/$companySlug/agents'
+      preLoaderRoute: typeof CompanySlugAgentsRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
   }
 }
 
 interface CompanySlugRouteRouteChildren {
+  CompanySlugAgentsRoute: typeof CompanySlugAgentsRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
 }
 
 const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
+  CompanySlugAgentsRoute: CompanySlugAgentsRoute,
   CompanySlugIndexRoute: CompanySlugIndexRoute,
 }
 
