@@ -123,5 +123,9 @@ export async function removeMember(
     }
   });
   // After commit, so a removal that rolls back closes nothing.
-  events.publishRevocation({ companyId: ctx.companyId, actor: { type: "user", userId } });
+  events.publishRevocation({
+    kind: "access-lost",
+    companyId: ctx.companyId,
+    actor: { type: "user", userId },
+  });
 }

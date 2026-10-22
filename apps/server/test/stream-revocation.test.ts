@@ -8,6 +8,7 @@ import {
   createCompany,
   createProject,
   createTicket,
+  nextTicketTitle,
   type OpenStream,
   openStream,
   testDatabase,
@@ -32,7 +33,7 @@ async function opened(stream: Promise<OpenStream>) {
 }
 
 describe("Live stream revocation", () => {
-  it("closes a removed member's stream for the Company", async () => {
+  it("closes a removed User's stream for the Company", async () => {
     const t = buildTestApp();
     const { owner, members } = await createCompany(t, {
       name: "Acme",
@@ -107,7 +108,7 @@ describe("Live stream revocation", () => {
     if (!mia) throw new Error("no member");
     await createProject(owner.request, { name: "Board", key: "CB" });
     const ownersAgent = await createAgent(owner, "Claude-1");
-    const miasAgent = await createAgent(mia, "Mia-bot");
+    const miasAgent = await createAgent(mia, "Claude-2");
     const ownersKey = await createApiKey(t, owner, ownersAgent.id);
     const miasKey = await createApiKey(t, mia, miasAgent.id);
     // A second session of Mia's, working in a Company of her own.
@@ -126,9 +127,9 @@ describe("Live stream revocation", () => {
     const ended = await Promise.all([miaTab.next(), miasAgentStream.next()]);
     await createTicket(owner.request, { projectKey: "CB", title: "Ours" });
     await createTicket(miaElsewhere.request, { projectKey: "GX", title: "Hers" });
-    const titleOf = async (stream: OpenStream) =>
-      JSON.parse((await stream.nextEvent()).data).ticket.title;
-    const received = await Promise.all([ownerTab, ownersAgentStream, miaGlobexTab].map(titleOf));
+    const received = await Promise.all(
+      [ownerTab, ownersAgentStream, miaGlobexTab].map(nextTicketTitle),
+    );
     await Promise.all([ownerTab.close(), ownersAgentStream.close(), miaGlobexTab.close()]);
 
     expect(ended).toEqual([null, null]);

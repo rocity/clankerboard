@@ -1,8 +1,8 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { CompanyRole } from "@clankerboard/shared";
 import { and, eq } from "drizzle-orm";
-import type { EventBus } from "./activity";
 import type { Clock } from "./clock";
+import type { EventBus } from "./event-bus";
 import type { Mailer } from "./mailer";
 
 export type MemberRemovedEvent = { companyId: string; userId: string };

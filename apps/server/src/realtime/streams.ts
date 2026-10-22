@@ -4,7 +4,9 @@ import {
   type CompanyContext,
   type DomainDeps,
   isSessionLive,
-  type Revocation,
+  type ResumePoint,
+  revokes,
+  type StreamSubscriber,
   streamedActivity,
 } from "@clankerboard/domain";
 import type { Logger } from "../logger";
@@ -26,6 +28,18 @@ export type StreamSink = {
 };
 
 /**
+ * One stream to open: whose access it streams with (`ctx`, and `sessionId`
+ * for a session, whose stream ends once the session expires), where it
+ * writes, and, for a reconnect, where the client left off.
+ */
+export type StreamOptions = StreamSubscriber & {
+  sink: StreamSink;
+  log: Logger;
+  /** The stream first sends the Activity after it, or a `resync`. */
+  resumeFrom?: ResumePoint;
+};
+
+/**
  * Every open live stream in this process. Each stream subscribes to its
  * Company on the event bus and sends what its Actor may see, in order.
  */
@@ -36,24 +50,17 @@ export class StreamManager {
     private readonly deps: DomainDeps,
     private readonly options: { backlogLimit: number },
   ) {
-    deps.events.subscribeRevocations((revocation) => this.revoke(revocation));
+    deps.events.subscribeRevocations((revocation) => {
+      for (const stream of [...this.streams]) {
+        if (revokes(revocation, stream)) stream.close();
+      }
+    });
   }
 
-  /**
-   * Starts pushing the Company's Activity to `sink`, as `ctx` may see it. A
-   * stream opened with a session (`sessionId`) ends once the session expires.
-   * With `lastEventId`, it first sends what came after it.
-   */
-  open(
-    ctx: CompanyContext,
-    sink: StreamSink,
-    log: Logger,
-    { sessionId, lastEventId }: { sessionId?: string; lastEventId?: string } = {},
-  ): LiveStream {
-    const stream = new LiveStream(this.deps, ctx, sink, log, sessionId, () =>
-      this.streams.delete(stream),
-    );
-    if (lastEventId) stream.catchUp(lastEventId, this.options.backlogLimit);
+  /** Starts pushing the Company's Activity to the stream's sink, as its `ctx` may see it. */
+  open(options: StreamOptions): LiveStream {
+    const stream = new LiveStream(this.deps, options, () => this.streams.delete(stream));
+    if (options.resumeFrom) stream.catchUp(options.resumeFrom, this.options.backlogLimit);
     this.streams.add(stream);
     return stream;
   }
@@ -62,25 +69,11 @@ export class StreamManager {
   closeAll() {
     for (const stream of [...this.streams]) stream.close();
   }
-
-  /**
-   * Ends the streams that lost access. A removed User's streams end along with
-   * those of their Agents, which act with the User's permissions.
-   */
-  private revoke({ companyId, actor }: Revocation) {
-    for (const stream of [...this.streams]) {
-      const { ctx } = stream;
-      if (ctx.companyId !== companyId) continue;
-      const revoked =
-        actor.type === "user"
-          ? ctx.userId === actor.userId
-          : ctx.actor.type === "agent" && ctx.actor.agentId === actor.agentId;
-      if (revoked) stream.close();
-    }
-  }
 }
 
-export class LiveStream {
+export class LiveStream implements StreamSubscriber {
+  readonly ctx: CompanyContext;
+  readonly sessionId: string | undefined;
   /** Resolves once the stream is closed, from either end. */
   readonly closed: Promise<void>;
   private resolveClosed: () => void = () => {};
@@ -88,6 +81,8 @@ export class LiveStream {
   // Every write goes through this chain, so events leave in publish order even
   // though each one is read from the database first.
   private queue: Promise<void> = Promise.resolve();
+  private readonly sink: StreamSink;
+  private readonly log: Logger;
   private readonly unsubscribe: () => void;
   private readonly stopTicking: () => void;
   // The last id the catch-up sent. Live events up to it are duplicates.
@@ -95,12 +90,13 @@ export class LiveStream {
 
   constructor(
     private readonly deps: DomainDeps,
-    readonly ctx: CompanyContext,
-    private readonly sink: StreamSink,
-    private readonly log: Logger,
-    private readonly sessionId: string | undefined,
+    { ctx, sessionId, sink, log }: StreamOptions,
     private readonly onClose: () => void,
   ) {
+    this.ctx = ctx;
+    this.sessionId = sessionId;
+    this.sink = sink;
+    this.log = log;
     this.closed = new Promise((resolve) => {
       this.resolveClosed = resolve;
     });
@@ -120,17 +116,15 @@ export class LiveStream {
   }
 
   /**
-   * Sends the Activity after `lastEventId` from the database, ahead of every
-   * live event queued behind it, or a single `resync` event when there is too
-   * much of it. Called right after subscribing, so nothing published in
-   * between is missed.
+   * Sends the Activity after `from` from the database, ahead of every live
+   * event queued behind it, or a single `resync` event when there is too much
+   * of it. Called right after subscribing, so nothing published in between is
+   * missed.
    */
-  catchUp(lastEventId: string, backlogLimit: number) {
-    // Anything but an Activity id leaves the client's position unknown.
-    const afterId = /^\d{1,15}$/.test(lastEventId) ? Number(lastEventId) : null;
+  catchUp(from: ResumePoint, backlogLimit: number) {
     this.enqueue(async () => {
-      const backlog = await activityBacklog(this.deps, this.ctx, afterId, backlogLimit);
-      if (backlog.kind === "refetch") {
+      const backlog = await activityBacklog(this.deps, this.ctx, from, backlogLimit);
+      if (backlog.kind === "resync") {
         // The client refetches everything up to here, so the id is where its
         // next reconnect resumes, and live events up to it are covered.
         await this.sink.event({ id: String(backlog.latestId), event: "resync", data: "{}" });

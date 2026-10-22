@@ -42,7 +42,7 @@ export type AppDeps = {
   mailer: Mailer;
   config: AppConfig;
   logger: Logger;
-  /** Carries every Activity after commit to the live stream. Defaults to an in-process bus. */
+  /** Carries Activity and Revocations to the live streams after commit. Defaults to an in-process bus. */
   events?: EventBus;
   /** Extra domain hooks, run after the built-in ones (such as revoking a removed member's Agents). */
   hooks?: Partial<DomainHooks>;

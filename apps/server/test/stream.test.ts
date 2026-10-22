@@ -7,18 +7,18 @@ import {
   createCompany,
   createProject,
   createTicket,
-  type OpenStream,
+  nextTicketTitle,
   openStream,
   type TestApp,
 } from "./harness";
 
 /** Acme with Project CB and Agent Claude-1. */
 async function setup(t: TestApp) {
-  const { owner } = await createCompany(t, { name: "Acme" });
+  const { company, owner } = await createCompany(t, { name: "Acme" });
   const agent = await createAgent(owner, "Claude-1");
   const { secret, bearer } = await createApiKey(t, owner, agent.id);
   await createProject(owner.request, { name: "Board", key: "CB" });
-  return { owner, agent, secret, bearer };
+  return { company, owner, agent, secret, bearer };
 }
 
 describe("Live stream", () => {
@@ -98,13 +98,11 @@ describe("Live stream", () => {
     await createTicket(globex.owner.request, { projectKey: "GX", title: "Theirs first" });
     await createTicket(owner.request, { projectKey: "CB", title: "Ours" });
     await createTicket(globex.owner.request, { projectKey: "GX", title: "Theirs second" });
-    const titleOf = async (stream: OpenStream) =>
-      JSON.parse((await stream.nextEvent()).data).ticket.title;
     const received = [
-      await titleOf(ownerTab),
-      await titleOf(agentStream),
-      await titleOf(globexTab),
-      await titleOf(globexTab),
+      await nextTicketTitle(ownerTab),
+      await nextTicketTitle(agentStream),
+      await nextTicketTitle(globexTab),
+      await nextTicketTitle(globexTab),
     ];
     // A keepalive queues behind every event already published, so an Acme
     // stream reaching it next means no Globex event was coming.
@@ -183,5 +181,49 @@ describe("Live stream", () => {
     expect(beforeDue?.event).toBe("ticket.created");
     expect(firstKeepalive).toEqual({ comment: "keepalive" });
     expect(secondKeepalive).toEqual({ comment: "keepalive" });
+  });
+
+  it("ends a session's stream when it switches Company, so the reconnect streams the new one", async () => {
+    const t = buildTestApp();
+    const { company: acme, owner, bearer } = await setup(t);
+    const globex = await createCompany(t, { name: "Globex", owner });
+    await createProject(owner.request, { name: "Globex board", key: "GX" });
+    const otherSession = await t.signIn({ email: owner.user.email });
+    for (const session of [owner, otherSession]) {
+      await session.request("/api/active-company", {
+        method: "PUT",
+        body: JSON.stringify({ companyId: acme.id }),
+      });
+    }
+    const tab = await openStream(owner.request);
+    const otherTab = await openStream(otherSession.request);
+    const agentStream = await openStream(bearer);
+    await Promise.all([tab.next(), otherTab.next(), agentStream.next()]);
+
+    const switched = await owner.request("/api/active-company", {
+      method: "PUT",
+      body: JSON.stringify({ companyId: globex.company.id }),
+    });
+    const ended = await tab.next();
+    const reconnected = await openStream(owner.request);
+    await createTicket(otherSession.request, { projectKey: "CB", title: "Acme work" });
+    await createTicket(owner.request, { projectKey: "GX", title: "Globex work" });
+    const received = await Promise.all([otherTab, agentStream, reconnected].map(nextTicketTitle));
+    await Promise.all([otherTab.close(), agentStream.close(), reconnected.close()]);
+
+    expect(switched.status).toBe(200);
+    expect(ended).toBeNull();
+    expect(received).toEqual(["Acme work", "Acme work", "Globex work"]);
+  });
+
+  it("ends a session's stream when it creates a Company, which becomes its active one", async () => {
+    const t = buildTestApp();
+    const { owner } = await setup(t);
+    const tab = await openStream(owner.request);
+    await tab.next();
+
+    await createCompany(t, { name: "Globex", owner });
+
+    expect(await tab.next()).toBeNull();
   });
 });

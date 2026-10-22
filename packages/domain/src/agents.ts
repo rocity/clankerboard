@@ -146,7 +146,11 @@ export async function revokeAgent(
       .set({ revokedAt: now })
       .where(and(eq(apiKeys.agentId, agentId), isNull(apiKeys.revokedAt)));
   });
-  events.publishRevocation({ companyId: ctx.companyId, actor: { type: "agent", agentId } });
+  events.publishRevocation({
+    kind: "access-lost",
+    companyId: ctx.companyId,
+    actor: { type: "agent", agentId },
+  });
   return findVisibleAgent(db, ctx, agentId);
 }
 
@@ -218,7 +222,11 @@ export async function revokeApiKey(
     .where(and(eq(apiKeys.id, keyId), eq(apiKeys.agentId, agentId)))
     .returning(keyColumns);
   if (!key) throw notFound();
-  events.publishRevocation({ companyId: ctx.companyId, actor: { type: "agent", agentId } });
+  events.publishRevocation({
+    kind: "access-lost",
+    companyId: ctx.companyId,
+    actor: { type: "agent", agentId },
+  });
   return key;
 }
 

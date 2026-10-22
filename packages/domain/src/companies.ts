@@ -51,9 +51,12 @@ async function freeSlug(db: Db, name: string) {
   }
 }
 
-/** Creates a Company with the caller as its owner and makes it their active Company. */
+/**
+ * Creates a Company with the caller as its owner and makes it their active
+ * Company, ending the session's live streams of other Companies.
+ */
 export async function createCompany(
-  { db }: DomainDeps,
+  { db, events }: DomainDeps,
   user: UserContext,
   input: CreateCompanyInput,
 ): Promise<CompanyView> {
@@ -73,6 +76,7 @@ export async function createCompany(
     if (isUniqueViolation(error)) throw conflict("That slug is taken.");
     throw error;
   }
+  events.publishRevocation({ kind: "company-switched", sessionId: user.sessionId, companyId: id });
   return { id, name: input.name, slug, role: "owner" };
 }
 
@@ -92,9 +96,13 @@ export async function listCompanies(
   return { companies: list, activeCompanyId: active?.id ?? null };
 }
 
-/** Makes a Company the session's active one. A Company the User isn't in is not found. */
+/**
+ * Makes a Company the session's active one, ending the session's live streams
+ * of other Companies so they reconnect onto it. A Company the User isn't in
+ * is not found.
+ */
 export async function switchCompany(
-  { db }: DomainDeps,
+  { db, events }: DomainDeps,
   user: UserContext,
   companyId: string,
 ): Promise<CompanyView> {
@@ -108,6 +116,7 @@ export async function switchCompany(
     .update(sessions)
     .set({ activeCompanyId: companyId })
     .where(eq(sessions.id, user.sessionId));
+  events.publishRevocation({ kind: "company-switched", sessionId: user.sessionId, companyId });
   return company;
 }
 

@@ -3,7 +3,7 @@ import type { ActivityEvent } from "./activity";
 import { type ActorView, resolveActors } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
 import { DomainError } from "./errors";
-import { canSeeActivity } from "./permissions";
+import { canSeeProject } from "./permissions";
 import { findTicketById, ticketView } from "./ticket-store";
 
 export type { StreamedActivity };
@@ -18,11 +18,12 @@ export async function streamedActivity(
   ctx: CompanyContext,
   event: ActivityEvent,
 ): Promise<StreamedActivity | null> {
-  if (!canSeeActivity(ctx, event)) return null;
+  // The Project check REST reads make. An Activity is always in its Project's Company.
+  if (!canSeeProject(ctx, { companyId: event.companyId })) return null;
   let ticket: StreamedActivity["ticket"] = null;
   if (event.ticketId) {
     try {
-      // The Company-scoped read REST uses, so both answer who may see a Ticket alike.
+      // The read REST uses, which asks the same question of the Ticket's Project.
       ticket = await ticketView(db, await findTicketById(db, ctx, event.ticketId));
     } catch (error) {
       if (error instanceof DomainError && error.kind === "not_found") return null;

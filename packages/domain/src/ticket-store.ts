@@ -9,6 +9,7 @@ import type { RecordActivity } from "./activity";
 import { type ActorView, refFromColumns, resolveActors } from "./actors";
 import type { CompanyContext } from "./context";
 import { invalid, notFound } from "./errors";
+import { canSeeProject } from "./permissions";
 
 export type { TicketView };
 
@@ -36,7 +37,10 @@ export function selectTickets(db: Db | Tx) {
     .innerJoin(projects, eq(projects.id, tickets.projectId));
 }
 
-/** A Ticket in the caller's Company, by Ticket Key. Pass `lock` inside a transaction to hold it. */
+/**
+ * A Ticket the caller may see, by Ticket Key: one whose Project they may see.
+ * Pass `lock` inside a transaction to hold it.
+ */
 export async function findTicket(
   db: Db | Tx,
   ctx: CompanyContext,
@@ -52,16 +56,16 @@ export async function findTicket(
     ),
   );
   const [row] = lock ? await query.for("update", { of: tickets }) : await query;
-  if (!row) throw notFound();
+  if (!row || !canSeeProject(ctx, row)) throw notFound();
   return row;
 }
 
-/** A Ticket in the caller's Company, by internal id. */
+/** A Ticket the caller may see, by internal id. */
 export async function findTicketById(db: Db | Tx, ctx: CompanyContext, id: string) {
   const [row] = await selectTickets(db).where(
     and(eq(tickets.id, id), eq(tickets.companyId, ctx.companyId)),
   );
-  if (!row) throw notFound();
+  if (!row || !canSeeProject(ctx, row)) throw notFound();
   return row;
 }
 

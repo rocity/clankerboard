@@ -6,7 +6,7 @@ import { withActivity } from "./activity";
 import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, isUniqueViolation, notFound } from "./errors";
-import { assertMayHardDelete } from "./permissions";
+import { assertMayHardDelete, canSeeProject } from "./permissions";
 import { findTeam } from "./teams";
 
 export type { ProjectView };
@@ -17,6 +17,7 @@ function selectProjects(db: Db | Tx) {
   return db
     .select({
       id: projects.id,
+      companyId: projects.companyId,
       key: projects.key,
       name: projects.name,
       teamId: teams.id,
@@ -30,7 +31,7 @@ function selectProjects(db: Db | Tx) {
 
 type ProjectRow = Awaited<ReturnType<ReturnType<typeof selectProjects>["execute"]>>[number];
 
-function view({ teamId, teamName, ...row }: ProjectRow): ProjectView {
+function view({ teamId, teamName, companyId: _companyId, ...row }: ProjectRow): ProjectView {
   return { ...row, team: teamId && teamName ? { id: teamId, name: teamName } : null };
 }
 
@@ -38,12 +39,15 @@ export async function getProject({ db }: DomainDeps, ctx: CompanyContext, key: s
   return findProject(db, ctx, key);
 }
 
-/** A Project in the caller's Company, by its Project Key. Anywhere else, it doesn't exist. */
+/**
+ * A Project the caller may see, by its Project Key. Anywhere else, it doesn't
+ * exist.
+ */
 export async function findProject(db: Db | Tx, ctx: CompanyContext, key: string) {
   const [row] = await selectProjects(db).where(
     and(eq(projects.companyId, ctx.companyId), eq(projects.key, key)),
   );
-  if (!row) throw notFound();
+  if (!row || !canSeeProject(ctx, row)) throw notFound();
   return view(row);
 }
 
@@ -93,7 +97,7 @@ export async function listProjects(
       ),
     )
     .orderBy(asc(projects.key));
-  return rows.map(view);
+  return rows.filter((row) => canSeeProject(ctx, row)).map(view);
 }
 
 export async function updateProject(

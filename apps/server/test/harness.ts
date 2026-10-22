@@ -160,6 +160,11 @@ export async function openStream(as: Fetch, init: RequestInit = {}): Promise<Ope
   return { response, next, nextEvent, close: async () => reader?.cancel() };
 }
 
+/** The title in the Ticket snapshot of the stream's next event. */
+export async function nextTicketTitle(stream: OpenStream): Promise<string> {
+  return JSON.parse((await stream.nextEvent()).data).ticket.title;
+}
+
 /** True when text follows the user-facing copy rule's mechanical parts. */
 export function plainCopy(text: string) {
   return !text.includes("—") && !/\p{Extended_Pictographic}/u.test(text);

@@ -7,6 +7,7 @@ import type {
 import { and, asc, desc, eq, gte, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { invalid } from "./errors";
+import { canSeeProject } from "./permissions";
 import {
   findTicket,
   projects,
@@ -152,7 +153,11 @@ export async function listTickets(
   const page = rows.slice(0, filter.limit);
   const last = page.at(-1);
   return {
-    tickets: await ticketViews(db, page),
+    // Filtered after the cursor is taken, so a page with hidden rows still continues past them.
+    tickets: await ticketViews(
+      db,
+      page.filter((row) => canSeeProject(ctx, row)),
+    ),
     nextCursor: rows.length > filter.limit && last ? encodeCursor(order, last) : null,
   };
 }

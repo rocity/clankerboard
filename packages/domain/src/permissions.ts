@@ -67,12 +67,13 @@ export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
 }
 
 /**
- * Whether the caller may see an Activity. Every member sees every Project
- * (Spec 03), so this is the Company, the same answer REST reads give by
- * scoping their queries to it.
+ * Whether the caller may see a Project, and so its Tickets and Activity. REST
+ * reads and the live stream both ask this, so a narrower rule added here
+ * applies to both. Every User in a Company sees all its Projects (Spec 03),
+ * so for now it is the Company check the reads' queries already make.
  */
-export function canSeeActivity(ctx: CompanyContext, activity: { companyId: string }) {
-  return activity.companyId === ctx.companyId;
+export function canSeeProject(ctx: CompanyContext, project: { companyId: string }) {
+  return project.companyId === ctx.companyId;
 }
 
 /** Hard-deleting a Project or Ticket is for owner and admin Users only. */
