@@ -2,12 +2,13 @@ import { type CompanyRole, canHardDelete } from "@clankerboard/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, Hand, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { TypeIcon } from "@/components/ticket-summary";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { errorMessage } from "@/lib/api";
+import { ApiError, errorMessage } from "@/lib/api";
 import { ticketQuery, useTicketMutations } from "@/lib/ticket-detail";
 import { Children } from "./children";
 import { CommentComposer } from "./comment-composer";
@@ -29,18 +30,32 @@ type Props = {
  */
 export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props) {
   const navigate = useNavigate();
-  const { data: ticket } = useQuery({ ...ticketQuery(ticketKey), refetchOnMount: false });
+  const { data: ticket, error: loadError } = useQuery({
+    ...ticketQuery(ticketKey),
+    refetchOnMount: false,
+  });
   const mutations = useTicketMutations(ticketKey, projectKey);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // The board's filters are search params the panel inherits, so going back keeps them.
-  const toBoard = () =>
-    navigate({
-      to: "/$companySlug/projects/$projectKey",
-      params: { companySlug, projectKey },
-      search: (prev) => prev,
-    });
+  const toBoard = useCallback(
+    () =>
+      navigate({
+        to: "/$companySlug/projects/$projectKey",
+        params: { companySlug, projectKey },
+        search: (prev) => prev,
+      }),
+    [navigate, companySlug, projectKey],
+  );
+
+  // Someone deleted the Ticket while it was open (the live stream refetched it and it is gone).
+  const gone = loadError instanceof ApiError && loadError.status === 404;
+  useEffect(() => {
+    if (!gone) return;
+    toast.info(`${ticketKey} no longer exists.`);
+    void toBoard();
+  }, [gone, ticketKey, toBoard]);
 
   /** Runs one change. A refusal shows as a message and never throws, so a field can reset itself. */
   async function run(change: () => Promise<unknown>) {

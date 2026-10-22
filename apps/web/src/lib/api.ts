@@ -20,6 +20,11 @@ export function onUnauthorized(handler: () => void) {
   handleUnauthorized = handler;
 }
 
+/** For the live stream, which learns of an expired session from an event, not from a call. */
+export function sessionExpired() {
+  handleUnauthorized();
+}
+
 // `hc` types every route under /api from the server's own route definitions.
 const client = hc<AppType>("/", {
   fetch: async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -8,6 +8,7 @@ import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/clo
 import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/types";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { TicketData } from "@/lib/board";
+import { useHighlight } from "@/lib/live-highlight";
 import { cn } from "@/lib/utils";
 
 /** What a Ticket carries while it is dragged, and what it answers as a drop target. */
@@ -28,6 +29,7 @@ export function DraggableTicket({ ticket, children }: { ticket: TicketData; chil
   const [dragging, setDragging] = useState(false);
   const [edge, setEdge] = useState<Edge | null>(null);
   const archived = Boolean(ticket.archivedAt);
+  const changed = useHighlight(ticket.key);
 
   useEffect(() => {
     const element = ref.current;
@@ -71,6 +73,16 @@ export function DraggableTicket({ ticket, children }: { ticket: TicketData; chil
       )}
     >
       {children}
+      {changed !== undefined && (
+        // Someone else just changed this Ticket. The mark fades out (or, with reduced
+        // motion, stays still) until the store clears it. A new change remounts it.
+        <span
+          key={changed}
+          aria-hidden
+          data-testid="live-change"
+          className="pointer-events-none absolute inset-x-0 inset-y-1 rounded-lg bg-primary/10 ring-2 ring-primary/60 animate-live-change motion-reduce:animate-none"
+        />
+      )}
       {edge && (
         <span
           aria-hidden

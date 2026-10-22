@@ -1,17 +1,24 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AppHeader } from "@/components/app-header";
 import { AuthLayout } from "@/components/auth-layout";
+import { StreamNotice } from "@/components/stream-notice";
 import { Button } from "@/components/ui/button";
 import { activateCompany } from "@/lib/companies";
+import { ensureStream, stopStream } from "@/lib/live-stream";
 import { requireSession } from "@/lib/redirect";
 
 // Every route under a Company slug. The server reads the active Company from the
 // session, so entering one makes it the active Company before anything loads.
 export const Route = createFileRoute("/$companySlug")({
-  beforeLoad: async ({ context, location, params }) => {
+  beforeLoad: async ({ context, location, params, preload }) => {
     await requireSession(context.queryClient, location);
     const company = await activateCompany(context.queryClient, params.companySlug);
     if (!company) throw notFound();
+    // The live stream opens before any loader fetches, so a change made in
+    // between reaches the board. A hover preload must not open one.
+    if (!preload) await ensureStream(context.queryClient, company.id);
     return { company };
   },
   component: CompanyLayout,
@@ -20,6 +27,15 @@ export const Route = createFileRoute("/$companySlug")({
 
 function CompanyLayout() {
   const { companySlug } = Route.useParams();
+  const { company } = Route.useRouteContext();
+  const queryClient = useQueryClient();
+
+  // One stream per tab, for as long as a Company page is open. `ensureStream`
+  // already ran in `beforeLoad`; this repeats it for a remount (StrictMode).
+  useEffect(() => {
+    void ensureStream(queryClient, company.id);
+    return () => stopStream(company.id);
+  }, [queryClient, company.id]);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -27,6 +43,7 @@ function CompanyLayout() {
       <main className="flex-1 px-4 py-6 md:px-6">
         <Outlet />
       </main>
+      <StreamNotice />
     </div>
   );
 }

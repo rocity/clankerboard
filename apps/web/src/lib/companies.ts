@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
+import { stopStream } from "./live-stream";
 import { clearCompanyData, companiesQuery } from "./queries";
 
 const lastCompanyKey = "clankerboard-last-company";
@@ -59,4 +60,5 @@ export async function activateCompany(queryClient: QueryClient, slug: string) {
 /** Forget which Company was active, for sign-out and session expiry. */
 export function resetActiveCompany() {
   activeSlug = null;
+  stopStream();
 }

@@ -1,3 +1,4 @@
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import {
   type APIRequestContext,
   type Browser,
@@ -239,4 +240,29 @@ export function actAsAgent(secret: string): Promise<APIRequestContext> {
 /** Adds a Comment as the signed-in User. */
 export async function addComment(page: Page, key: string, body: string) {
   return post<{ comment: { id: string } }>(page, `/api/tickets/${key}/comments`, { body });
+}
+
+/**
+ * An MCP client for the Agent holding `secret`, over real HTTP like Claude Code
+ * would use it. Call `tool` to run a tool, and `close` when done.
+ */
+export async function connectMcp(secret: string) {
+  const baseURL = test.info().project.use.baseURL;
+  const client = new Client(
+    { name: "clankerboard-e2e", version: "0.0.0" },
+    { versionNegotiation: { mode: "legacy" } },
+  );
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL("/mcp", baseURL), {
+      requestInit: { headers: { authorization: `Bearer ${secret}` } },
+    }),
+  );
+  return {
+    async tool(name: string, args: Record<string, unknown>) {
+      const result = await client.callTool({ name, arguments: args });
+      expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+      return result;
+    },
+    close: () => client.close(),
+  };
 }

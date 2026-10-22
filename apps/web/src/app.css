@@ -76,6 +76,19 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: ui-sans-serif, system-ui, sans-serif;
+  /* A Ticket that someone else just changed: a ring that fades over the time the store keeps the mark. */
+  --animate-live-change: live-change 2.4s ease-out forwards;
+  @keyframes live-change {
+    0% {
+      opacity: 1;
+    }
+    60% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
 }
 
 @layer base {
