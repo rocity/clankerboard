@@ -8,6 +8,7 @@ import type {
   TicketView,
 } from "@clankerboard/domain";
 import type { CompanyRole } from "@clankerboard/shared";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { pino } from "pino";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
 import { createLogger } from "../src/logger";
@@ -163,7 +164,25 @@ export function buildTestApp(
     };
   }
 
-  return { app, clock, mailer, config, request, requestAs, bearer, signUp, signIn };
+  /**
+   * A real MCP SDK client connected to `/mcp` with the given API Key, over a
+   * transport whose fetch is the in-process app. `modern` speaks the
+   * 2026-07-28 revision; the default is the 2025 handshake most clients use.
+   */
+  async function mcpClient(secret: string, { modern = false } = {}) {
+    const client = new Client(
+      { name: "clankerboard-test", version: "0.0.0" },
+      { versionNegotiation: { mode: modern ? "auto" : "legacy" } },
+    );
+    const transport = new StreamableHTTPClientTransport(new URL("/mcp", baseUrl), {
+      fetch: (url, init) => Promise.resolve(app.request(new Request(url, init))),
+      requestInit: { headers: { authorization: `Bearer ${secret}` } },
+    });
+    await client.connect(transport);
+    return client;
+  }
+
+  return { app, clock, mailer, config, request, requestAs, bearer, signUp, signIn, mcpClient };
 }
 
 export type CompanyFixture = {

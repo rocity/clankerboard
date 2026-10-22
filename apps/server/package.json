@@ -1,5 +1,6 @@
 {
   "name": "@clankerboard/server",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -17,6 +18,7 @@
     "@clankerboard/shared": "workspace:^",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "better-auth": "^1.7.12",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
@@ -27,6 +29,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "esbuild": "^0.28.2"

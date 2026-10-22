@@ -16,6 +16,7 @@ import type { AppConfig } from "./config";
 import type { AppEnv } from "./env";
 import { handleError } from "./errors";
 import type { Logger } from "./logger";
+import { mcpRoutes } from "./mcp/routes";
 import { authenticate } from "./middleware/authenticate";
 import { requestLogger } from "./middleware/request-logger";
 import { RateLimiter } from "./rate-limit";
@@ -66,10 +67,12 @@ export function createApp(deps: AppDeps) {
     },
   };
   const auth = createAuth({ domain, config, logger: deps.logger });
+  // One instance, so `/api` and `/mcp` spend from the same per-key bucket.
+  const authenticated = authenticate(auth, domain, new RateLimiter(config.rateLimit, deps.clock));
 
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
-    .use(authenticate(auth, domain, new RateLimiter(config.rateLimit, deps.clock)))
+    .use(authenticated)
     .route("/", meRoutes())
     .route("/", companyRoutes(domain))
     .route("/", memberRoutes(domain))
@@ -87,7 +90,8 @@ export function createApp(deps: AppDeps) {
     // rules, so they are never exposed.
     .all("/api/auth/organization/*", (c) => c.json({ error: "Not found." }, 404))
     .on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-    .route("/api", api);
+    .route("/api", api)
+    .route("/", mcpRoutes(domain, authenticated));
 
   app.all("/api/*", (c) => c.json({ error: "Not found." }, 404));
   if (deps.config.webDistDir) app.route("/", webRoutes(deps.config.webDistDir));
