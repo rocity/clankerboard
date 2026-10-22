@@ -1,4 +1,4 @@
-import { type DomainDeps, listActors } from "@clankerboard/domain";
+import { type DomainDeps, listActors } from "@agentkanban/domain";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";

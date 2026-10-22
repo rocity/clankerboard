@@ -1,4 +1,4 @@
-import type { Clock } from "@clankerboard/domain";
+import type { Clock } from "@agentkanban/domain";
 import type { Context } from "hono";
 
 export type RateLimitConfig = {

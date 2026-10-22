@@ -1,4 +1,4 @@
-import type { AgentAuthentication, CompanyContext, UserContext } from "@clankerboard/domain";
+import type { AgentAuthentication, CompanyContext, UserContext } from "@agentkanban/domain";
 import type { RequestIdVariables } from "hono/request-id";
 import type { Auth } from "./auth";
 import type { Logger } from "./logger";

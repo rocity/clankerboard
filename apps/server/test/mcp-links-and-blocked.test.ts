@@ -16,7 +16,7 @@ async function setup(t: TestApp) {
   const { owner } = await createCompany(t, { name: "Acme" });
   const agent = await createAgent(owner, "Claude-1");
   const { secret } = await createApiKey(t, owner, agent.id);
-  await createProject(owner.request, { name: "Clankerboard", key: "CB" });
+  await createProject(owner.request, { name: "Agent Kanban", key: "CB" });
   const client = await t.mcpClient(secret);
   return { owner, agent, client };
 }
@@ -263,7 +263,7 @@ describe("Blocked over MCP", () => {
     const { owner, client } = await setup(t);
     await seed(owner.request);
 
-    const result = await client.readResource({ uri: "clankerboard://projects/CB/board" });
+    const result = await client.readResource({ uri: "agentkanban://projects/CB/board" });
 
     const text = (result.contents[0] as { text: string }).text;
     expect(text).toContain("- **CB-3** [task, medium, blocked] Task 3 (unassigned)");

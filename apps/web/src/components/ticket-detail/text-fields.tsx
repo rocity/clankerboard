@@ -1,4 +1,4 @@
-import { updateTicketInput } from "@clankerboard/shared";
+import { updateTicketInput } from "@agentkanban/shared";
 import { Pencil } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Markdown } from "@/components/markdown";

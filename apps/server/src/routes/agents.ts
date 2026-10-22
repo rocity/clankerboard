@@ -8,8 +8,8 @@ import {
   revokeAgent,
   revokeApiKey,
   whoami,
-} from "@clankerboard/domain";
-import { createAgentInput, createApiKeyInput, renameAgentInput } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import { createAgentInput, createApiKeyInput, renameAgentInput } from "@agentkanban/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";

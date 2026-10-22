@@ -1,3 +1,4 @@
+import { ticketStatuses } from "@agentkanban/shared";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
@@ -5,7 +6,6 @@ import {
   autoScrollWindowForElements,
 } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/extract-closest-edge";
-import { ticketStatuses } from "@clankerboard/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isTicketData } from "@/components/draggable-ticket";

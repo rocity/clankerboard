@@ -1,4 +1,4 @@
-import { schema } from "@clankerboard/db";
+import { schema } from "@agentkanban/db";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {

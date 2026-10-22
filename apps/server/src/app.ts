@@ -1,4 +1,4 @@
-import type { Db } from "@clankerboard/db";
+import type { Db } from "@agentkanban/db";
 import {
   type Clock,
   type DomainDeps,
@@ -8,7 +8,7 @@ import {
   type Mailer,
   noopMailer,
   revokeAgentsOfRemovedMember,
-} from "@clankerboard/domain";
+} from "@agentkanban/domain";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import { createAuth } from "./auth";

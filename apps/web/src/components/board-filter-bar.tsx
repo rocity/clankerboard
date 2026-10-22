@@ -1,4 +1,4 @@
-import { ticketPriorities, ticketTypes } from "@clankerboard/shared";
+import { ticketPriorities, ticketTypes } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { type ReactNode, useEffect, useOptimistic, useRef, useState, useTransition } from "react";

@@ -1,5 +1,5 @@
 {
-  "name": "@clankerboard/server",
+  "name": "@agentkanban/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,9 +13,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@clankerboard/db": "workspace:^",
-    "@clankerboard/domain": "workspace:^",
-    "@clankerboard/shared": "workspace:^",
+    "@agentkanban/db": "workspace:^",
+    "@agentkanban/domain": "workspace:^",
+    "@agentkanban/shared": "workspace:^",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
     "@modelcontextprotocol/server": "^2.3.1",

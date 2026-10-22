@@ -6,7 +6,7 @@ import { e2eDatabaseName, e2ePort } from "./config.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const adminUrl =
-  process.env.TEST_DATABASE_URL ?? "postgres://clankerboard:clankerboard@localhost:55432/postgres";
+  process.env.TEST_DATABASE_URL ?? "postgres://agentkanban:agentkanban@localhost:55432/postgres";
 const databaseUrl = new URL(adminUrl);
 databaseUrl.pathname = `/${e2eDatabaseName}`;
 

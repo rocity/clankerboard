@@ -1,4 +1,4 @@
-import type { DomainDeps, ResumePoint } from "@clankerboard/domain";
+import type { DomainDeps, ResumePoint } from "@agentkanban/domain";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { AppEnv } from "../env";

@@ -1,10 +1,10 @@
-import { findAssignee, listTickets, refOf } from "@clankerboard/domain";
+import { findAssignee, listTickets, refOf } from "@agentkanban/domain";
 import {
   type AssigneeFilter,
   assigneeFilter,
   listTicketsQuery,
   ticketPage,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { z } from "zod";
 import { bulletList, ticketLine } from "../markdown";
 import { defineTool, type ToolEnv } from "../tool";

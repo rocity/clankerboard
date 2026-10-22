@@ -5,8 +5,8 @@ import {
   listTickets,
   notFound,
   type TicketView,
-} from "@clankerboard/domain";
-import { projectKey, statusLabels, ticketStatuses } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import { projectKey, statusLabels, ticketStatuses } from "@agentkanban/shared";
 import {
   type McpServer,
   ProtocolError,
@@ -25,10 +25,10 @@ export type BoardConfig = {
 
 const day = 24 * 60 * 60 * 1000;
 const pageSize = 200;
-const uriOf = (key: string) => `clankerboard://projects/${key}/board`;
+const uriOf = (key: string) => `agentkanban://projects/${key}/board`;
 
 /**
- * `clankerboard://projects/{key}/board`: one Markdown section per Status, most
+ * `agentkanban://projects/{key}/board`: one Markdown section per Status, most
  * urgent first. Archived Tickets and Done Tickets past the window are left out.
  */
 export function registerBoardResource(server: McpServer, env: ToolEnv, config: BoardConfig) {

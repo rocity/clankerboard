@@ -1,4 +1,4 @@
-import type { Database } from "@clankerboard/db";
+import type { Database } from "@agentkanban/db";
 import {
   type ActivityEvent,
   type Clock,
@@ -6,8 +6,8 @@ import {
   type Mailer,
   type MailMessage,
   type TicketView,
-} from "@clankerboard/domain";
-import type { CompanyRole } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import type { CompanyRole } from "@agentkanban/shared";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { pino } from "pino";
 import { type AppConfig, type AppDeps, createApp } from "../src/index";
@@ -272,7 +272,7 @@ export function buildTestApp(
    */
   async function mcpClient(secret: string, { modern = false } = {}) {
     const client = new Client(
-      { name: "clankerboard-test", version: "0.0.0" },
+      { name: "agentkanban-test", version: "0.0.0" },
       { versionNegotiation: { mode: modern ? "auto" : "legacy" } },
     );
     const transport = new StreamableHTTPClientTransport(new URL("/mcp", baseUrl), {

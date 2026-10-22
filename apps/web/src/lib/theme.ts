@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
  * The inline script in index.html reads the same key before first paint, and
  * .claude/skills/redesign/SKILL.md records it, so keep all three in step.
  */
-export const themeStorageKey = "clankerboard-theme";
+export const themeStorageKey = "agentkanban-theme";
 
 export type ThemePreference = "light" | "dark" | "system";
 

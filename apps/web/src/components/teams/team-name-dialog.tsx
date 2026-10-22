@@ -1,4 +1,4 @@
-import { teamName } from "@clankerboard/shared";
+import { teamName } from "@agentkanban/shared";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {

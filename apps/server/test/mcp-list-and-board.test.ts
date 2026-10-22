@@ -14,7 +14,7 @@ async function setup(t: TestApp) {
   const { owner } = await createCompany(t, { name: "Acme" });
   const agent = await createAgent(owner, "Claude-1");
   const { secret, bearer } = await createApiKey(t, owner, agent.id);
-  await createProject(owner.request, { name: "Clankerboard", key: "CB" });
+  await createProject(owner.request, { name: "Agent Kanban", key: "CB" });
   const client = await t.mcpClient(secret);
   return { owner, agent, secret, bearer, client };
 }
@@ -241,16 +241,16 @@ describe("board resource", () => {
     await assign(as, "CB-3", { type: "user", id: owner.user.id });
     await as("/api/tickets/CB-4/archive", { method: "POST" });
 
-    const result = await client.readResource({ uri: "clankerboard://projects/CB/board" });
+    const result = await client.readResource({ uri: "agentkanban://projects/CB/board" });
 
     const [content] = result.contents;
     expect(content).toMatchObject({
-      uri: "clankerboard://projects/CB/board",
+      uri: "agentkanban://projects/CB/board",
       mimeType: "text/markdown",
     });
     expect((content as { text: string }).text).toBe(
       [
-        "# CB board: Clankerboard",
+        "# CB board: Agent Kanban",
         "",
         "## Backlog",
         "",
@@ -285,7 +285,7 @@ describe("board resource", () => {
     t.clock.advance(8 * day);
     await move(owner.request, "CB-2", "done");
 
-    const result = await client.readResource({ uri: "clankerboard://projects/CB/board" });
+    const result = await client.readResource({ uri: "agentkanban://projects/CB/board" });
 
     const text = (result.contents[0] as { text: string }).text;
     expect(text).toContain("- **CB-2** [task, medium] Fresh (unassigned)");
@@ -301,8 +301,8 @@ describe("board resource", () => {
     const { resources } = await client.listResources();
 
     expect(resources.map((r) => r.uri).sort()).toEqual([
-      "clankerboard://projects/CB/board",
-      "clankerboard://projects/OT/board",
+      "agentkanban://projects/CB/board",
+      "agentkanban://projects/OT/board",
     ]);
   });
 
@@ -313,7 +313,7 @@ describe("board resource", () => {
     await createProject(stranger.request, { name: "Theirs", key: "TH" });
 
     const read = (key: string) =>
-      client.readResource({ uri: `clankerboard://projects/${key}/board` });
+      client.readResource({ uri: `agentkanban://projects/${key}/board` });
 
     await expect(read("NOPE")).rejects.toThrow("Not found.");
     await expect(read("TH")).rejects.toThrow("Not found.");

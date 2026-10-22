@@ -1,4 +1,4 @@
-import { unlinkTickets } from "@clankerboard/domain";
+import { unlinkTickets } from "@agentkanban/domain";
 import { z } from "zod";
 import { linksMarkdown } from "../markdown";
 import { targetKeyParam, ticketKeyParam } from "../params";

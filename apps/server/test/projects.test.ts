@@ -43,12 +43,12 @@ describe("Projects", () => {
     const { member, bearer } = await setup(t);
 
     const { res, body } = await createProject(caller === "session" ? member.request : bearer, {
-      name: "Clankerboard",
+      name: "Agent Kanban",
       key: "CB",
     });
 
     expect(res.status).toBe(201);
-    expect(body.project).toMatchObject({ key: "CB", name: "Clankerboard", team: null });
+    expect(body.project).toMatchObject({ key: "CB", name: "Agent Kanban", team: null });
   });
 
   it.each(["cb", "C", "TOOLONGKEYXX", "C1", "C-B"])("rejects the Project Key %s", async (key) => {

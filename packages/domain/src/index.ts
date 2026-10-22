@@ -1,4 +1,4 @@
-export type { Db } from "@clankerboard/db";
+export type { Db } from "@agentkanban/db";
 export * from "./activity";
 export * from "./activity-backlog";
 export * from "./actors";

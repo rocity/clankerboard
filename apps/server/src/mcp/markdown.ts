@@ -1,4 +1,4 @@
-import { statusLabels, type TicketLinkViewKind, ticketLinkViewKinds } from "@clankerboard/shared";
+import { statusLabels, type TicketLinkViewKind, ticketLinkViewKinds } from "@agentkanban/shared";
 import type {
   McpActorView,
   McpCommentView,

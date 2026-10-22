@@ -1,4 +1,4 @@
-import { type TicketStatus, type TicketWire, ticketStatuses } from "@clankerboard/shared";
+import { type TicketStatus, type TicketWire, ticketStatuses } from "@agentkanban/shared";
 
 /**
  * A Ticket as the API sends it: timestamps are ISO strings. Everything on the

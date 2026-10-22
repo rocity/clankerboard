@@ -1,6 +1,6 @@
 # A fixed project name, so every git worktree shares one db-test container
 # instead of each trying to start its own on the same port.
-name: clankerboard
+name: agentkanban
 
 services:
   app:
@@ -8,7 +8,7 @@ services:
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgres://clankerboard:clankerboard@db:5432/clankerboard
+      DATABASE_URL: postgres://agentkanban:agentkanban@db:5432/agentkanban
       BASE_URL: ${BASE_URL:-http://localhost:3000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # Leave unset to let the app generate one and keep it in the database.
@@ -48,13 +48,13 @@ services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: clankerboard
-      POSTGRES_PASSWORD: clankerboard
-      POSTGRES_DB: clankerboard
+      POSTGRES_USER: agentkanban
+      POSTGRES_PASSWORD: agentkanban
+      POSTGRES_DB: agentkanban
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U clankerboard -d clankerboard"]
+      test: ["CMD-SHELL", "pg_isready -U agentkanban -d agentkanban"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -65,8 +65,8 @@ services:
     profiles: ["test"]
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: clankerboard
-      POSTGRES_PASSWORD: clankerboard
+      POSTGRES_USER: agentkanban
+      POSTGRES_PASSWORD: agentkanban
       POSTGRES_DB: postgres
       # A natural-language collation, as on glibc hosts and managed Postgres,
       # so ordering bugs that byte order would hide show up in tests.
@@ -76,7 +76,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U clankerboard"]
+      test: ["CMD-SHELL", "pg_isready -U agentkanban"]
       interval: 2s
       timeout: 3s
       retries: 15

@@ -1,5 +1,5 @@
-import { addComment } from "@clankerboard/domain";
-import { addCommentInput } from "@clankerboard/shared";
+import { addComment } from "@agentkanban/domain";
+import { addCommentInput } from "@agentkanban/shared";
 import { z } from "zod";
 import { actorLabel } from "../markdown";
 import { ticketKeyParam } from "../params";

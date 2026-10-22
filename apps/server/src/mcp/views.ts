@@ -5,8 +5,8 @@ import {
   memberEmails,
   type TicketLinkView,
   type TicketView,
-} from "@clankerboard/domain";
-import { actorView, commentView, ticketLinkView, ticketView } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import { actorView, commentView, ticketLinkView, ticketView } from "@agentkanban/shared";
 import { z } from "zod";
 import type { ToolEnv } from "./tool";
 

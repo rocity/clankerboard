@@ -1,4 +1,4 @@
-import { productName } from "@clankerboard/shared";
+import { productName } from "@agentkanban/shared";
 import { Link } from "@tanstack/react-router";
 import { SquareKanban } from "lucide-react";
 import { Brand } from "@/components/brand";

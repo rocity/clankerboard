@@ -1,4 +1,4 @@
-import { schema } from "@clankerboard/db";
+import { schema } from "@agentkanban/db";
 import type { DomainDeps } from "./context";
 import { hasUsableInvite } from "./invites";
 

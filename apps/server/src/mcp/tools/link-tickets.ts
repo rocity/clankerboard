@@ -1,5 +1,5 @@
-import { linkTickets } from "@clankerboard/domain";
-import { linkTicketsInput, type TicketLinkViewKind } from "@clankerboard/shared";
+import { linkTickets } from "@agentkanban/domain";
+import { linkTicketsInput, type TicketLinkViewKind } from "@agentkanban/shared";
 import { z } from "zod";
 import { linksMarkdown } from "../markdown";
 import { targetKeyParam, ticketKeyParam } from "../params";

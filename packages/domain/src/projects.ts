@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { CreateProjectInput, ProjectView, UpdateProjectInput } from "@clankerboard/shared";
+import { type Db, schema, type Tx } from "@agentkanban/db";
+import type { CreateProjectInput, ProjectView, UpdateProjectInput } from "@agentkanban/shared";
 import { and, asc, eq } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { changedFields } from "./changes";

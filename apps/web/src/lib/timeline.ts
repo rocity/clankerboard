@@ -1,4 +1,4 @@
-import { statusLabels, type TicketStatus } from "@clankerboard/shared";
+import { statusLabels, type TicketStatus } from "@agentkanban/shared";
 
 export const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 

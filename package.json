@@ -1,5 +1,5 @@
 {
-  "name": "clankerboard",
+  "name": "agentkanban",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -8,14 +8,14 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "dev": "pnpm --filter @clankerboard/server dev",
-    "build": "pnpm --filter @clankerboard/web build && pnpm --filter @clankerboard/server build",
+    "dev": "pnpm --filter @agentkanban/server dev",
+    "build": "pnpm --filter @agentkanban/web build && pnpm --filter @agentkanban/server build",
     "typecheck": "pnpm -r typecheck",
     "lint": "biome check . && node scripts/check-copy.mjs",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "db:generate": "pnpm --filter @clankerboard/db generate",
+    "db:generate": "pnpm --filter @agentkanban/db generate",
     "db:test:up": "docker compose --profile test up -d --wait db-test",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "prepare": "simple-git-hooks"

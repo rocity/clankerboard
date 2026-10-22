@@ -1,4 +1,4 @@
-import { type CompanyRole, canInvite, canInviteToTeam } from "@clankerboard/shared";
+import { type CompanyRole, canInvite, canInviteToTeam } from "@agentkanban/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RotateCw, X } from "lucide-react";
 import type { IssuedInvite } from "@/components/invite-link-panel";

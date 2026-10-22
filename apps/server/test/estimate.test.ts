@@ -218,7 +218,7 @@ describe("Estimate over MCP", () => {
 
     const got = await client.callTool({ name: "get_ticket", arguments: { key: "CB-1" } });
     const listed = await client.callTool({ name: "list_tickets", arguments: {} });
-    const board = await client.readResource({ uri: "clankerboard://projects/CB/board" });
+    const board = await client.readResource({ uri: "agentkanban://projects/CB/board" });
 
     expect(got.structuredContent).toMatchObject({
       ticket: { estimate: 13 },

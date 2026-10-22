@@ -1,5 +1,5 @@
-import { listProjects } from "@clankerboard/domain";
-import { projectView } from "@clankerboard/shared";
+import { listProjects } from "@agentkanban/domain";
+import { projectView } from "@agentkanban/shared";
 import { z } from "zod";
 import { bulletList } from "../markdown";
 import { defineTool } from "../tool";

@@ -1,4 +1,4 @@
-import { type ActivityEvent, InProcessEventBus } from "@clankerboard/domain";
+import { type ActivityEvent, InProcessEventBus } from "@agentkanban/domain";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {

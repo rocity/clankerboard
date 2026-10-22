@@ -3,7 +3,7 @@ import type {
   ListTicketsQuery,
   TicketPriority,
   TicketStatus,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import {
   and,
   asc,

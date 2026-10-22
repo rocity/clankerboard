@@ -7,7 +7,7 @@ import {
   ticketPriorities,
   ticketStatuses,
   ticketTypes,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useRef, useState } from "react";
 import { EstimateInput } from "@/components/estimate-input";

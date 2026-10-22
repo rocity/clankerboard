@@ -1,5 +1,5 @@
-import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { CompanyRole } from "@clankerboard/shared";
+import { type Db, schema, type Tx } from "@agentkanban/db";
+import type { CompanyRole } from "@agentkanban/shared";
 import { and, eq } from "drizzle-orm";
 import type { Clock } from "./clock";
 import type { EventBus } from "./event-bus";

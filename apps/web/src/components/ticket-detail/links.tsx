@@ -1,4 +1,4 @@
-import { statusLabels, type TicketLinkViewKind } from "@clankerboard/shared";
+import { statusLabels, type TicketLinkViewKind } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Lock, Plus, X } from "lucide-react";

@@ -1,4 +1,4 @@
-import type { TeamRole } from "@clankerboard/shared";
+import type { TeamRole } from "@agentkanban/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 

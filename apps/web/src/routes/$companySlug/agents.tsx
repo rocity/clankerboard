@@ -1,4 +1,4 @@
-import { canSeeAllAgents } from "@clankerboard/shared";
+import { canSeeAllAgents } from "@agentkanban/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";

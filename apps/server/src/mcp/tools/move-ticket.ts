@@ -1,5 +1,5 @@
-import { moveTicket } from "@clankerboard/domain";
-import { ticketStatus } from "@clankerboard/shared";
+import { moveTicket } from "@agentkanban/domain";
+import { ticketStatus } from "@agentkanban/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { ticketKeyParam } from "../params";

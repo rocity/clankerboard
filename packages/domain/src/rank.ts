@@ -1,1 +1,1 @@
-export { rankAt } from "@clankerboard/shared";
+export { rankAt } from "@agentkanban/shared";

@@ -12,19 +12,19 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: clankerboard
-          POSTGRES_PASSWORD: clankerboard
+          POSTGRES_USER: agentkanban
+          POSTGRES_PASSWORD: agentkanban
           POSTGRES_DB: postgres
           POSTGRES_INITDB_ARGS: --locale-provider=icu --icu-locale=en-US
         ports:
           - 55432:5432
         options: >-
-          --health-cmd "pg_isready -U clankerboard"
+          --health-cmd "pg_isready -U agentkanban"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 15
     env:
-      TEST_DATABASE_URL: postgres://clankerboard:clankerboard@localhost:55432/postgres
+      TEST_DATABASE_URL: postgres://agentkanban:agentkanban@localhost:55432/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

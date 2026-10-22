@@ -1,4 +1,4 @@
-import { createProjectInput } from "@clankerboard/shared";
+import { createProjectInput } from "@agentkanban/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";

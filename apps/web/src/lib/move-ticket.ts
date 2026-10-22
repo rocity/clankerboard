@@ -1,4 +1,4 @@
-import { rankAt, type TicketStatus } from "@clankerboard/shared";
+import { rankAt, type TicketStatus } from "@agentkanban/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, errorMessage, unwrap } from "./api";

@@ -1,4 +1,4 @@
-import { type CompanyContext, type DomainDeps, DomainError } from "@clankerboard/domain";
+import { type CompanyContext, type DomainDeps, DomainError } from "@agentkanban/domain";
 import type {
   CallToolResult,
   McpServer,

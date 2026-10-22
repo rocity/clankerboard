@@ -1,5 +1,5 @@
-import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { ActorView } from "@clankerboard/shared";
+import { type Db, schema, type Tx } from "@agentkanban/db";
+import type { ActorView } from "@agentkanban/shared";
 import { asc, eq, inArray } from "drizzle-orm";
 import type { Actor, CompanyContext, DomainDeps } from "./context";
 

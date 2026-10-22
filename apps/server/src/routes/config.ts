@@ -1,4 +1,4 @@
-import { type DomainDeps, getPublicConfig } from "@clankerboard/domain";
+import { type DomainDeps, getPublicConfig } from "@agentkanban/domain";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 

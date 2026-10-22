@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { TeamRole } from "@clankerboard/shared";
+import { type Db, schema, type Tx } from "@agentkanban/db";
+import type { TeamRole } from "@agentkanban/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";

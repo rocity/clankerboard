@@ -1,7 +1,7 @@
 // Blocked transitions: Activity on a dependent whose Blocked state flipped
 // because of a change to another Ticket (ADR-0009). Not part of the domain
 // module's public surface.
-import type { Tx } from "@clankerboard/db";
+import type { Tx } from "@agentkanban/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { RecordActivity } from "./activity";
 import {

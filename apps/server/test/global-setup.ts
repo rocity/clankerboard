@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createDatabase, runMigrations } from "@clankerboard/db";
+import { createDatabase, runMigrations } from "@agentkanban/db";
 import type { TestProject } from "vitest/node";
 import { adminUrl, databaseUrl, recreateDatabase, withAdmin } from "./test-db";
 

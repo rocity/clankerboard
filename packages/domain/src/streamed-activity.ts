@@ -1,4 +1,4 @@
-import type { StreamedActivity } from "@clankerboard/shared";
+import type { StreamedActivity } from "@agentkanban/shared";
 import type { ActivityEvent } from "./activity";
 import { type ActorView, resolveActors } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";

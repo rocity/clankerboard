@@ -1,4 +1,4 @@
-# Clankerboard
+# Agent Kanban
 
 A self-hosted task board where humans and AI agents work side by side on the same Tickets. Agents read and change the board through MCP. Humans watch and steer through the web UI.
 
@@ -51,7 +51,7 @@ pnpm dev
 In a second terminal, start the web app:
 
 ```sh
-pnpm --filter @clankerboard/web dev
+pnpm --filter @agentkanban/web dev
 ```
 
 Open <http://localhost:4311>. The first User to sign up is allowed in. Anyone else needs an Invite unless `OPEN_SIGNUP=true`. Without `SMTP_HOST` no email is sent, so copy Invite links from the UI.
@@ -101,7 +101,7 @@ Start the test database first:
 pnpm db:test:up
 ```
 
-Vitest migrates one template database per run and gives each test file its own copy, so files run in parallel. The default connection is `postgres://clankerboard:clankerboard@localhost:55432/postgres`. Override it with `TEST_DATABASE_URL`.
+Vitest migrates one template database per run and gives each test file its own copy, so files run in parallel. The default connection is `postgres://agentkanban:agentkanban@localhost:55432/postgres`. Override it with `TEST_DATABASE_URL`.
 
 Server tests go through the HTTP seam with [apps/server/test/harness.ts](apps/server/test/harness.ts) and check effects through later requests, never by reading tables. Run with `CB_TEST_LOG=debug` to see server logs.
 

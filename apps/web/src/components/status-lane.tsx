@@ -1,5 +1,5 @@
+import { statusLabels, type TicketStatus } from "@agentkanban/shared";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { statusLabels, type TicketStatus } from "@clankerboard/shared";
 import { Link, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { DraggableTicket, isTicketData } from "@/components/draggable-ticket";

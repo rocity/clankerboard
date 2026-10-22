@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { type Db, schema, type Tx } from "@clankerboard/db";
+import { type Db, schema, type Tx } from "@agentkanban/db";
 import {
   type LinkTicketsInput,
   type TicketLinkView,
   type TicketLinkViewKind,
   ticketLinkViewKinds,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { type RecordActivity, withActivity } from "./activity";
 import { type ActorView, actorColumns, refFromColumns, refOf, resolveActors } from "./actors";

@@ -1,4 +1,4 @@
-import { canHardDelete } from "@clankerboard/shared";
+import { canHardDelete } from "@agentkanban/shared";
 import type { CompanyContext } from "./context";
 import { forbidden } from "./errors";
 
@@ -18,7 +18,7 @@ export {
   canSeeAllAgents,
   canSetTeamRole,
   canUpdateCompany,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 
 /**
  * Whether the caller may see a Project, and so its Tickets and Activity. REST

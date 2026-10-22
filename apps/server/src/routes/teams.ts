@@ -8,13 +8,13 @@ import {
   removeTeamMember,
   renameTeam,
   setTeamMemberRole,
-} from "@clankerboard/domain";
+} from "@agentkanban/domain";
 import {
   addTeamMemberInput,
   createTeamInput,
   renameTeamInput,
   setTeamRoleInput,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";

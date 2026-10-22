@@ -1,4 +1,4 @@
-import { type CompanyRole, canHardDelete } from "@clankerboard/shared";
+import { type CompanyRole, canHardDelete } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, Hand, Trash2, X } from "lucide-react";

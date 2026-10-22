@@ -7,7 +7,7 @@ import { buildTestApp } from "./harness";
 function builtWebApp() {
   const dir = mkdtempSync(join(tmpdir(), "cb-web-"));
   mkdirSync(join(dir, "assets"));
-  writeFileSync(join(dir, "index.html"), "<!doctype html><title>Clankerboard</title>");
+  writeFileSync(join(dir, "index.html"), "<!doctype html><title>Agent Kanban</title>");
   writeFileSync(join(dir, "assets", "app.js"), "console.log('shell')");
   return dir;
 }
@@ -18,7 +18,7 @@ describe("web shell", () => {
 
     const index = await request("/");
     expect(index.status).toBe(200);
-    expect(await index.text()).toContain("<title>Clankerboard</title>");
+    expect(await index.text()).toContain("<title>Agent Kanban</title>");
 
     const asset = await request("/assets/app.js");
     expect(asset.status).toBe(200);
@@ -31,7 +31,7 @@ describe("web shell", () => {
     const res = await request("/invite/abc");
 
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("<title>Clankerboard</title>");
+    expect(await res.text()).toContain("<title>Agent Kanban</title>");
   });
 
   it("answers unknown API paths with a JSON not-found", async () => {

@@ -28,11 +28,6 @@
   },
   { "term": "member", "phrase": "or member", "reason": "member is a Company and Team Role" },
   {
-    "term": "Clankerboard",
-    "phrase": "clankerboard://",
-    "reason": "The MCP board resource URI keeps the codename (ADR 0009)"
-  },
-  {
     "term": "slug",
     "phrase": "slug",
     "reason": "Companies have slugs; the avoid is for Project Keys"

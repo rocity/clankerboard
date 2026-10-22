@@ -1,5 +1,5 @@
-import type { Db, Tx } from "@clankerboard/db";
-import { type MoveTicketInput, statusLabels, type TicketStatus } from "@clankerboard/shared";
+import type { Db, Tx } from "@agentkanban/db";
+import { type MoveTicketInput, statusLabels, type TicketStatus } from "@agentkanban/shared";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { watchDependents } from "./blocked";

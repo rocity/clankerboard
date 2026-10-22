@@ -5,7 +5,7 @@ import {
   ticketKey,
   ticketPriority,
   ticketType,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import type { BoardFilters } from "./tickets";
 
 /**

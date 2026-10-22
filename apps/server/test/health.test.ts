@@ -1,4 +1,4 @@
-import { createDatabase } from "@clankerboard/db";
+import { createDatabase } from "@agentkanban/db";
 import { describe, expect, it } from "vitest";
 import { buildTestApp } from "./harness";
 

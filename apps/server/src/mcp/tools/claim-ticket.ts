@@ -1,4 +1,4 @@
-import { claimTicket } from "@clankerboard/domain";
+import { claimTicket } from "@agentkanban/domain";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { ticketKeyParam } from "../params";

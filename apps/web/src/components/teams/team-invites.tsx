@@ -1,4 +1,4 @@
-import { type CompanyRole, canInviteToTeam } from "@clankerboard/shared";
+import { type CompanyRole, canInviteToTeam } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { InviteForm } from "@/components/invite-form";

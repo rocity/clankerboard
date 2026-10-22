@@ -1,4 +1,4 @@
-import type { Tx } from "@clankerboard/db";
+import type { Tx } from "@agentkanban/db";
 import { eq } from "drizzle-orm";
 import { type RecordActivity, withActivity } from "./activity";
 import { watchDependents } from "./blocked";

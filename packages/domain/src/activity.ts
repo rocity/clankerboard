@@ -1,4 +1,4 @@
-import { schema, type Tx } from "@clankerboard/db";
+import { schema, type Tx } from "@agentkanban/db";
 import { sql } from "drizzle-orm";
 import { type ActorRef, actorColumns, refOf } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";

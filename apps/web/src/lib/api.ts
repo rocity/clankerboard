@@ -1,4 +1,4 @@
-import type { AppType } from "@clankerboard/server";
+import type { AppType } from "@agentkanban/server";
 import { hc } from "hono/client";
 import type { ClientErrorStatusCode, ServerErrorStatusCode } from "hono/utils/http-status";
 
