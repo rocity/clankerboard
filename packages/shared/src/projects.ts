@@ -17,6 +17,8 @@ export const createProjectInput = z.object({
 });
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 
+export const listProjectsQuery = z.object({ teamId: z.string().min(1).optional() });
+
 export const updateProjectInput = z.object({
   name: projectName.optional(),
   /** Null clears the Team. */

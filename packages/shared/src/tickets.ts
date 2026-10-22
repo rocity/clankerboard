@@ -29,6 +29,9 @@ export const ticketKey = z
   .string({ error: "Use a ticket key like CB-42." })
   .regex(/^[A-Za-z]{2,10}-[1-9]\d{0,9}$/, { error: "Use a ticket key like CB-42." });
 
+const positionError = { error: "Positions are whole numbers from 0." };
+const limitError = { error: "Limits are whole numbers from 1 to 200." };
+
 const title = z
   .string({ error: "Enter a title." })
   .trim()
@@ -68,11 +71,7 @@ export const moveTicketInput = z.object({
   status: ticketStatus.optional(),
   after: ticketKey.optional(),
   before: ticketKey.optional(),
-  position: z
-    .number({ error: "Positions are whole numbers from 0." })
-    .int({ error: "Positions are whole numbers from 0." })
-    .min(0, { error: "Positions are whole numbers from 0." })
-    .optional(),
+  position: z.number(positionError).int(positionError).min(0, positionError).optional(),
 });
 export type MoveTicketInput = z.infer<typeof moveTicketInput>;
 
@@ -115,10 +114,10 @@ export const listTicketsQuery = z.object({
     .enum(["exclude", "include", "only"], { error: "Use archived=include or archived=only." })
     .default("exclude"),
   limit: z.coerce
-    .number({ error: "Limits are whole numbers from 1 to 200." })
-    .int({ error: "Limits are whole numbers from 1 to 200." })
-    .min(1, { error: "Limits are whole numbers from 1 to 200." })
-    .max(200, { error: "Limits are whole numbers from 1 to 200." })
+    .number(limitError)
+    .int(limitError)
+    .min(1, limitError)
+    .max(200, limitError)
     .default(50),
   cursor: z.string().optional(),
 });

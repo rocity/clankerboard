@@ -5,8 +5,8 @@ import { and, asc, eq } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";
-import { assertMayDelete, canDeleteBoardContent } from "./permissions";
+import { conflict, isUniqueViolation, notFound } from "./errors";
+import { assertMayHardDelete } from "./permissions";
 import { findTeam } from "./teams";
 
 export type ProjectView = {
@@ -39,6 +39,10 @@ type ProjectRow = Awaited<ReturnType<ReturnType<typeof selectProjects>["execute"
 
 function view({ teamId, teamName, ...row }: ProjectRow): ProjectView {
   return { ...row, team: teamId && teamName ? { id: teamId, name: teamName } : null };
+}
+
+export async function getProject({ db }: DomainDeps, ctx: CompanyContext, key: string) {
+  return findProject(db, ctx, key);
 }
 
 /** A Project in the caller's Company, by its Project Key. Anywhere else, it doesn't exist. */
@@ -127,8 +131,7 @@ export async function updateProject(
  * goes with the Project.
  */
 export async function deleteProject(deps: DomainDeps, ctx: CompanyContext, key: string) {
-  assertMayDelete(ctx);
-  if (!canDeleteBoardContent(ctx.role)) throw forbidden();
+  assertMayHardDelete(ctx);
   await withActivity(deps, ctx, async (tx, record) => {
     const project = await findProject(tx, ctx, key);
     await record({ projectId: project.id, kind: "project.deleted", payload: { key } });

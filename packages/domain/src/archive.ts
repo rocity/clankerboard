@@ -2,8 +2,8 @@ import { schema, type Tx } from "@clankerboard/db";
 import { eq } from "drizzle-orm";
 import { type RecordActivity, withActivity } from "./activity";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, forbidden, notFound } from "./errors";
-import { assertMayArchive, assertMayDelete, canDeleteBoardContent } from "./permissions";
+import { conflict, notFound } from "./errors";
+import { assertMayArchive, assertMayHardDelete } from "./permissions";
 import {
   findTicket,
   type TicketRow,
@@ -97,8 +97,7 @@ export async function restoreTicket(
  * the deletion itself is recorded on the Project. Its number is never reused.
  */
 export async function deleteTicket(deps: DomainDeps, ctx: CompanyContext, key: string) {
-  assertMayDelete(ctx);
-  if (!canDeleteBoardContent(ctx.role)) throw forbidden();
+  assertMayHardDelete(ctx);
   await withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
     await detachChildren(tx, row, record);

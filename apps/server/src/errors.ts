@@ -14,7 +14,7 @@ const statusByKind: Record<DomainError["kind"], ContentfulStatusCode> = {
 
 export const handleError: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof DomainError) {
-    return c.json({ error: error.message, ...error.details }, statusByKind[error.kind]);
+    return c.json({ ...error.details, error: error.message }, statusByKind[error.kind]);
   }
   (c.var.log ?? console).error({ err: error }, "unhandled error");
   return c.json({ error: "Something went wrong." }, 500);

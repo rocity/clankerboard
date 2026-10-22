@@ -2,23 +2,22 @@ import {
   createProject,
   type DomainDeps,
   deleteProject,
-  findProject,
+  getProject,
   listProjects,
   updateProject,
 } from "@clankerboard/domain";
-import { createProjectInput, updateProjectInput } from "@clankerboard/shared";
+import { createProjectInput, listProjectsQuery, updateProjectInput } from "@clankerboard/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";
-import { json } from "../validate";
+import { json, query } from "../validate";
 
 export function projectRoutes(deps: DomainDeps) {
   return new Hono<AppEnv>()
     .use("/projects", requireCompany(deps))
     .use("/projects/*", requireCompany(deps))
-    .get("/projects", async (c) => {
-      const teamId = c.req.query("teamId");
-      return c.json({ projects: await listProjects(deps, c.var.company, { teamId }) });
+    .get("/projects", query(listProjectsQuery), async (c) => {
+      return c.json({ projects: await listProjects(deps, c.var.company, c.req.valid("query")) });
     })
     .post("/projects", json(createProjectInput), async (c) => {
       return c.json(
@@ -27,7 +26,7 @@ export function projectRoutes(deps: DomainDeps) {
       );
     })
     .get("/projects/:key", async (c) => {
-      return c.json({ project: await findProject(deps.db, c.var.company, c.req.param("key")) });
+      return c.json({ project: await getProject(deps, c.var.company, c.req.param("key")) });
     })
     .patch("/projects/:key", json(updateProjectInput), async (c) => {
       const project = await updateProject(

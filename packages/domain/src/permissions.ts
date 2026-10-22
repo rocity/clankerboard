@@ -66,9 +66,10 @@ export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
   return ownsAgent || isAdmin(actor);
 }
 
-/** Hard-deleting Projects and Tickets is for owners and admins. */
-export function canDeleteBoardContent(actor: CompanyRole) {
-  return isAdmin(actor);
+/** Hard-deleting a Project or Ticket is for owner and admin Users only. */
+export function assertMayHardDelete(ctx: CompanyContext) {
+  assertMayDelete(ctx);
+  if (!isAdmin(ctx.role)) throw forbidden();
 }
 
 /** Archiving and restoring are for Users, so every Agent change stays visible on the board. */
