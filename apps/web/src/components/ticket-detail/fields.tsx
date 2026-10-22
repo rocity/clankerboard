@@ -9,7 +9,8 @@ import {
   ticketTypes,
 } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
+import { EstimateInput } from "@/components/estimate-input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { actorsQuery } from "@/lib/actors";
@@ -58,21 +59,79 @@ function PickField({ id, label, value, disabled, className, onPick, children }: 
   );
 }
 
+type EstimateProps = {
+  value: number | null;
+  /** Saves the Estimate. Resolves once the server has answered, whether or not it accepted. */
+  onSave: (estimate: number | null) => Promise<unknown>;
+};
+
+/**
+ * The Estimate, typed in and saved on Enter or when the field loses focus.
+ * Emptying it clears the Estimate. Like the selects, it shows the draft while
+ * the request is out, then goes back to what the server holds. The server
+ * checks the range, so its own message is the one shown.
+ */
+function EstimateField({ value, onSave }: EstimateProps) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const saving = useRef(false);
+  const shown = draft ?? (value === null ? "" : String(value));
+
+  async function save(input: HTMLInputElement) {
+    if (draft === null || saving.current) return;
+    // Text a number field can't read (such as a lone "e") is dropped, not saved as blank.
+    if (input.validity.badInput) {
+      setDraft(null);
+      return;
+    }
+    const text = draft.trim();
+    const next = text === "" ? null : Number(text);
+    if (next !== value) {
+      saving.current = true;
+      await onSave(next);
+      saving.current = false;
+    }
+    setDraft(null);
+  }
+
+  return (
+    <div className="grid min-w-0 gap-1.5">
+      <Label htmlFor="ticket-estimate" className="text-xs text-muted-foreground">
+        Estimate
+      </Label>
+      <EstimateInput
+        id="ticket-estimate"
+        value={shown}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={(event) => void save(event.currentTarget)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            void save(event.currentTarget);
+          }
+          if (event.key === "Escape") setDraft(null);
+        }}
+      />
+    </div>
+  );
+}
+
 type Props = {
   ticket: TicketData;
   onStatus: (status: TicketStatus) => Promise<unknown>;
   onType: (type: TicketType) => Promise<unknown>;
   onPriority: (priority: TicketPriority) => Promise<unknown>;
+  onEstimate: (estimate: number | null) => Promise<unknown>;
   onParent: (parentKey: string | null) => Promise<unknown>;
   onAssignee: (assignee: AssigneePick) => Promise<unknown>;
 };
 
-/** The fields of a Ticket that are picked from a list. Each saves on its own. */
+/** The fields of a Ticket that are picked from a list, and the Estimate. Each saves on its own. */
 export function TicketFields({
   ticket,
   onStatus,
   onType,
   onPriority,
+  onEstimate,
   onParent,
   onAssignee,
 }: Props) {
@@ -94,7 +153,7 @@ export function TicketFields({
     a.revoked ? `${a.name} (revoked)` : a.name;
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <PickField
         id="ticket-status"
         label="Status"
@@ -123,7 +182,6 @@ export function TicketFields({
       <PickField
         id="ticket-type"
         label="Type"
-        className="col-span-2 md:col-span-1"
         value={ticket.type}
         onPick={(value) => onType(value as TicketType)}
       >
@@ -133,7 +191,8 @@ export function TicketFields({
           </option>
         ))}
       </PickField>
-      <div className="col-span-2 grid gap-3 md:col-span-3">
+      <EstimateField value={ticket.estimate} onSave={onEstimate} />
+      <div className="col-span-2 grid gap-3 md:col-span-4">
         <PickField
           id="ticket-assignee"
           label="Assignee"

@@ -1,4 +1,4 @@
-import type { TicketStatus, UpdateTicketInput } from "@agentkanban/shared";
+import type { LinkTicketsInput, TicketStatus, UpdateTicketInput } from "@agentkanban/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 import type { TicketData } from "./board";
@@ -37,6 +37,50 @@ export const childrenQuery = (key: string) =>
     queryFn: async () =>
       (await unwrap(api.tickets[":key"].children.$get({ param: { key }, query: {} }))).children,
   });
+
+/**
+ * The Ticket's Links as seen from it, grouped blocked by, blocks, relates to,
+ * archived counterparts included and marked.
+ */
+export const linksQuery = (key: string) =>
+  queryOptions({
+    queryKey: ticketKeys.links(key),
+    staleTime: 0,
+    queryFn: async () => (await unwrap(api.tickets[":key"].links.$get({ param: { key } }))).links,
+  });
+
+export type TicketLinkData = Awaited<
+  ReturnType<NonNullable<ReturnType<typeof linksQuery>["queryFn"]>>
+>[number];
+
+/**
+ * Adds and removes the open Ticket's Links. Each change is Activity on both
+ * Tickets and can make this one Blocked or unblocked, so the Links, the
+ * Timeline, and the Ticket itself are read again. Refusals (a cycle, an
+ * archived Ticket) come back as the error to show.
+ */
+export function useTicketLinkMutations(ticketKey: string) {
+  const queryClient = useQueryClient();
+  const param = { key: ticketKey };
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ticketKeys.links(ticketKey) });
+    void queryClient.invalidateQueries({ queryKey: ticketKeys.timeline(ticketKey) });
+    void queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketKey) });
+  };
+
+  return {
+    link: useMutation({
+      mutationFn: async (json: LinkTicketsInput) =>
+        (await unwrap(api.tickets[":key"].links.$post({ param, json }))).link,
+      onSuccess: refresh,
+    }),
+    unlink: useMutation({
+      mutationFn: async (targetKey: string) =>
+        unwrap(api.tickets[":key"].links[":targetKey"].$delete({ param: { ...param, targetKey } })),
+      onSuccess: refresh,
+    }),
+  };
+}
 
 /** What an Assignee pick sends: an Actor, or null to unassign. */
 export type AssigneePick = { type: "user" | "agent"; id: string } | null;

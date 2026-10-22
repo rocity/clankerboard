@@ -38,9 +38,11 @@ describe("MCP tool list", () => {
       "claim_ticket",
       "create_ticket",
       "get_ticket",
+      "link_tickets",
       "list_projects",
       "list_tickets",
       "move_ticket",
+      "unlink_tickets",
       "update_ticket",
     ]);
     for (const name of names) expect(name).not.toMatch(/delete|archive|restore|remove/);

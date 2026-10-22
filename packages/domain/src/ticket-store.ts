@@ -3,7 +3,7 @@
 // of the domain module's public surface.
 import { type Db, schema, type Tx } from "@agentkanban/db";
 import type { TicketStatus, TicketView } from "@agentkanban/shared";
-import { and, asc, desc, eq, getTableColumns, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, sql } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import type { RecordActivity } from "./activity";
 import { type ActorView, refFromColumns, resolveActors } from "./actors";
@@ -13,7 +13,7 @@ import { canSeeProject } from "./permissions";
 
 export type { TicketView };
 
-export const { tickets, projects } = schema;
+export const { tickets, projects, ticketLinks } = schema;
 
 export type TicketRow = Omit<typeof tickets.$inferSelect, "search"> & { projectKey: string };
 
@@ -91,6 +91,51 @@ export async function childrenOf(db: Db | Tx, ticketId: string, { includeArchive
   return rows.map((row) => ({ ...row, key: ticketKeyOf(row) }));
 }
 
+/**
+ * True for a Ticket with an open blocker, one neither Done nor archived: the
+ * condition Blocked is derived from, for a query over `tickets`.
+ */
+export function isBlocked() {
+  return sql`exists (
+    select 1 from ticket_links l
+    join tickets blocker on blocker.id = l.from_ticket_id
+    where l.to_ticket_id = ${tickets.id}
+      and l.kind = 'blocks'
+      and blocker.status <> 'done'
+      and blocker.archived_at is null
+  )`;
+}
+
+/** The Ticket Keys of each Ticket's open blockers, by Ticket id, in key order. */
+export async function openBlockers(
+  db: Db | Tx,
+  ticketIds: string[],
+): Promise<Map<string, string[]>> {
+  const byTicket = new Map<string, string[]>(ticketIds.map((id) => [id, []]));
+  if (ticketIds.length === 0) return byTicket;
+  const rows = await db
+    .select({
+      blockedId: ticketLinks.toTicketId,
+      projectKey: projects.key,
+      number: tickets.number,
+    })
+    .from(ticketLinks)
+    .innerJoin(tickets, eq(tickets.id, ticketLinks.fromTicketId))
+    .innerJoin(projects, eq(projects.id, tickets.projectId))
+    .where(
+      and(
+        inArray(ticketLinks.toTicketId, [...new Set(ticketIds)]),
+        eq(ticketLinks.kind, "blocks"),
+        // Open, as `isBlocked` counts it.
+        ne(tickets.status, "done"),
+        isNull(tickets.archivedAt),
+      ),
+    )
+    .orderBy(asc(projects.key), asc(tickets.number));
+  for (const row of rows) byTicket.get(row.blockedId)?.push(ticketKeyOf(row));
+  return byTicket;
+}
+
 export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<TicketView[]> {
   const assignees = rows.map((r) => refFromColumns(r.assigneeUserId, r.assigneeAgentId));
   const creators = rows.map((r) => refFromColumns(r.createdByUserId, r.createdByAgentId));
@@ -104,6 +149,11 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
           { key: ticketKeyOf(p), title: p.title, type: p.type },
         ]),
   );
+  const blockers = await openBlockers(
+    db,
+    rows.map((r) => r.id),
+  );
+  const openBlockerCount = (id: string) => blockers.get(id)?.length ?? 0;
   return rows.map((row, i) => ({
     id: row.id,
     key: ticketKeyOf(row),
@@ -115,6 +165,9 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     status: row.status,
     priority: row.priority,
     rank: row.rank,
+    estimate: row.estimate,
+    blocked: openBlockerCount(row.id) > 0,
+    blockedByCount: openBlockerCount(row.id),
     parent: (row.parentId && parents.get(row.parentId)) || null,
     assignee: actor(assignees[i] ?? null),
     createdBy: actor(creators[i] ?? null) as ActorView,

@@ -21,6 +21,8 @@ export type BoardFilters = {
   teamId?: string;
   /** `include` adds archived Tickets to the live ones. The list has no archived-only filter. */
   archived?: "include";
+  /** `true` for only Blocked Tickets, `false` for only unblocked ones. */
+  blocked?: "true" | "false";
 };
 
 /** What a Ticket cannot say about itself: the Team of its Project, when known. */
@@ -48,6 +50,7 @@ export function ticketMatchesFilters(
   if (filters.priority && ticket.priority !== filters.priority) return false;
   if (filters.assignee && !assigneeMatches(ticket.assignee, filters.assignee)) return false;
   if (filters.parentKey && ticket.parent?.key !== filters.parentKey.toUpperCase()) return false;
+  if (filters.blocked && String(ticket.blocked) !== filters.blocked) return false;
   if (filters.teamId && projectTeamId !== undefined && projectTeamId !== filters.teamId) {
     return false;
   }
@@ -94,12 +97,18 @@ export const ticketKeys = {
   detail: (key: string) => ["tickets", "detail", key] as const,
   timeline: (key: string) => ["tickets", "timeline", key] as const,
   children: (key: string) => ["tickets", "children", key] as const,
+  links: (key: string) => ["tickets", "links", key] as const,
+  /** Every live Ticket of the Company, for picking the other Ticket of a new Ticket Link. */
+  company: ["tickets", "company"] as const,
 };
 
 const pageSize = 200;
 
-/** Every live Ticket of a Project that matches the filters, following the list's cursor. */
-async function loadTickets(projectKey: string, filters: BoardFilters) {
+/**
+ * Every live Ticket that matches the filters, following the list's cursor. With
+ * no Project Key, that is every Project of the Company.
+ */
+async function loadTickets(projectKey: string | undefined, filters: BoardFilters) {
   const tickets: TicketData[] = [];
   let cursor: string | undefined;
   do {
@@ -120,6 +129,12 @@ export const ticketsQuery = (projectKey: string, filters: BoardFilters = {}) =>
     queryKey: ticketKeys.board(projectKey, filters),
     queryFn: () => loadTickets(projectKey, filters),
   });
+
+/** Every live Ticket of the Company, in every Project. Read when a Ticket Link is being added. */
+export const companyTicketsQuery = queryOptions({
+  queryKey: ticketKeys.company,
+  queryFn: () => loadTickets(undefined, {}),
+});
 
 /**
  * Applies a Ticket snapshot to every cached view of its Project's board. A view

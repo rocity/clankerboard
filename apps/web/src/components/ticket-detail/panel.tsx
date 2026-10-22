@@ -13,6 +13,7 @@ import { ticketQuery, useTicketMutations } from "@/lib/ticket-detail";
 import { Children } from "./children";
 import { CommentComposer } from "./comment-composer";
 import { TicketFields } from "./fields";
+import { Links } from "./links";
 import { EditableDescription, EditableTitle } from "./text-fields";
 import { Timeline } from "./timeline";
 
@@ -178,6 +179,7 @@ export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props)
             onStatus={(status) => run(() => mutations.move.mutateAsync(status))}
             onType={(type) => run(() => mutations.update.mutateAsync({ type }))}
             onPriority={(priority) => run(() => mutations.update.mutateAsync({ priority }))}
+            onEstimate={(estimate) => run(() => mutations.update.mutateAsync({ estimate }))}
             onParent={(parentKey) => run(() => mutations.update.mutateAsync({ parentKey }))}
             onAssignee={(assignee) => run(() => mutations.assign.mutateAsync(assignee))}
           />
@@ -188,6 +190,8 @@ export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props)
           />
 
           <Children companySlug={companySlug} projectKey={projectKey} ticketKey={ticket.key} />
+
+          <Links companySlug={companySlug} projectKey={projectKey} ticket={ticket} />
 
           <Timeline ticketKey={ticket.key} />
 

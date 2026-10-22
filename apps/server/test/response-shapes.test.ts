@@ -1,6 +1,7 @@
 import {
   commentView,
   projectView,
+  ticketLinkView,
   ticketPage,
   ticketView,
   timelineItem,
@@ -53,6 +54,14 @@ describe("Board response shapes", () => {
       .array(timelineItem)
       .parse((await json("/api/tickets/CB-2/timeline")).timeline);
     expect(timeline.map((item) => item.type)).toEqual(["activity", "activity", "comment"]);
+    const created = await owner.request("/api/tickets/CB-2/links", {
+      method: "POST",
+      body: JSON.stringify({ kind: "blocked_by", target: "CB-1" }),
+    });
+    const link = ticketLinkView.parse(((await created.json()) as { link: unknown }).link);
+    const links = z.array(ticketLinkView).parse((await json("/api/tickets/CB-1/links")).links);
+    expect(link.createdAt).toBeInstanceOf(Date);
+    expect(links.map((l) => l.kind)).toEqual(["blocks"]);
   });
 
   it("export to JSON Schema with timestamps as strings", () => {

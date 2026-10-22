@@ -92,6 +92,25 @@ _Avoid_: Deleted, closed, trashed
 An Actor making itself the Assignee of an unassigned Ticket and moving it to In Progress in one step. It fails if someone else got there first.
 _Avoid_: Grab, pick up, take
 
+**Estimate**:
+How big a Ticket is, in points: a whole number from 0 to 100, or blank.
+_Avoid_: Story points, size, weight
+
+**Ticket Link**:
+A connection between two Tickets other than Parent, of kind Blocks or Relates to.
+_Avoid_: Dependency, relation, association
+
+**Blocks**:
+A Ticket Link saying one Ticket must be finished before another can start. Read from the other side, "blocked by".
+_Avoid_: Depends on, prerequisite
+
+**Relates to**:
+A symmetric Ticket Link between two connected Tickets.
+_Avoid_: See also, references
+
+**Blocked**:
+A Ticket with at least one blocking Ticket that is neither Done nor Archived. Derived, never set directly.
+
 ## History
 
 **Comment**:

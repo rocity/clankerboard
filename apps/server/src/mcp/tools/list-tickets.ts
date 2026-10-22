@@ -48,12 +48,17 @@ const input = listTicketsQuery
       .default(20)
       .describe("How many tickets to return. Defaults to 20."),
     cursor: listTicketsQuery.shape.cursor.describe("nextCursor from the previous page."),
+    // A JSON boolean here, where the REST query string takes "true" or "false".
+    blocked: z
+      .boolean({ error: "Use blocked: true or blocked: false." })
+      .optional()
+      .describe("true for only blocked tickets, false for only tickets that can start."),
   });
 
 export const listTicketsTool = defineTool({
   name: "list_tickets",
   description:
-    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, parent ticket key, text, or assignee (me, a user's email, or an agent's name, as tool output shows them). With status todo and assignee unassigned, the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
+    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, parent ticket key, text, or assignee (me, a user's email, or an agent's name, as tool output shows them). Blocked tickets are marked blocked and can't be claimed until their blockers are done. When looking for work, pass blocked: false with status todo and assignee unassigned, and the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
   input,
   output: z.object({
     tickets: z.array(ticketSummary),

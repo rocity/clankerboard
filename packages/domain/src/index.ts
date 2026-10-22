@@ -22,5 +22,6 @@ export * from "./revocation";
 export * from "./sign-up";
 export * from "./streamed-activity";
 export * from "./teams";
+export * from "./ticket-links";
 export * from "./ticket-search";
 export * from "./tickets";

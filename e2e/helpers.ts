@@ -215,6 +215,16 @@ export async function assignTicket(
   return (await post<{ ticket: TicketRow }>(page, `/api/tickets/${key}/assign`, body, 200)).ticket;
 }
 
+/** Records that `key` blocks, is blocked by, or relates to `target`. */
+export async function linkTickets(
+  page: Page,
+  key: string,
+  kind: "blocks" | "blocked_by" | "relates_to",
+  target: string,
+) {
+  await post(page, `/api/tickets/${key}/links`, { kind, target });
+}
+
 /** The Tickets of a Project in the server's own board order. */
 export async function listTickets(page: Page, projectKey: string) {
   const res = await page.request.get(`/api/tickets?projectKey=${projectKey}&limit=200`);
