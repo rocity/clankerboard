@@ -43,7 +43,7 @@ const input = listTicketsQuery
 export const listTicketsTool = defineTool({
   name: "list_tickets",
   description:
-    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, assignee, parent ticket key, or text. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
+    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, assignee, parent ticket key, or text. With status todo and assignee unassigned, the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
   input,
   output: z.object({
     tickets: z.array(ticketSummary),

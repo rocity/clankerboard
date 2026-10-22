@@ -9,7 +9,7 @@ const projectSummary = projectView.pick({ key: true, name: true, team: true });
 export const listProjectsTool = defineTool({
   name: "list_projects",
   description:
-    "List the projects you can access, with each project key, name, and team. Ticket keys start with their project key, such as CB-42.",
+    "List the projects you can access, with each project key, name, and team. Ticket keys start with their project key, such as CB-42. Start here, then find work with list_tickets.",
   input: z.object({}),
   output: z.object({ projects: z.array(projectSummary) }),
   annotations: { readOnlyHint: true },

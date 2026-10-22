@@ -46,7 +46,7 @@ export function registerBoardResource(server: McpServer, env: ToolEnv, config: B
     {
       mimeType: "text/markdown",
       description:
-        "A project's tickets in Markdown, grouped by status and most urgent first, with ticket key, type, priority, title, and assignee. Archived tickets and old Done tickets are left out.",
+        "A project's tickets in Markdown, grouped by status and most urgent first, with ticket key, type, priority, title, and assignee. Archived tickets and old Done tickets are left out. Read it to see what is pending before you claim a ticket.",
     },
     async (uri, { key }) => {
       try {

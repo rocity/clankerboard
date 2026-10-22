@@ -47,3 +47,11 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
   - "Old" Done means `updatedAt` before the window, so a Done Ticket edited recently stays. The window is `BOARD_DONE_WINDOW_DAYS` (default 14), in `AppConfig.boardDoneWindowMs`.
   - The template's list callback offers one board per Project, so clients can browse boards.
   - Errors are protocol errors, not tool errors: unknown, malformed, and other-Company Project Keys are `ResourceNotFoundError` with "Not found." (the SDK sends it as -32602 with the uri). Other DomainErrors are invalid params; anything else is logged and "Something went wrong.".
+
+## 04-05
+
+- **Descriptions chain the loop:** each step names the tool for the next one (list_projects to list_tickets, list_tickets to claim_ticket, claim_ticket to add_comment, add_comment to move_ticket, which says to move to review). The test pins only those tool names and the AC phrases, not whole sentences, so copy can still be tuned.
+- **"The next ticket" means To Do:** list_tickets says that with status todo and assignee unassigned the first result is the next ticket to claim. Backlog is treated as not ready. The smoke seeds an urgent Backlog bug to pin that.
+- **The board resource is not named in tool descriptions.** Its URI contains "board", which the copy check rejects in prose (GLOSSARY: Project, avoid Board). Its own description says to read it before claiming, and clients list it from resources/templates.
+- **The tool list test is exact:** it lists the nine v1 tools and checks that no name mentions delete, archive, restore, or remove, so a new tool has to update the test on purpose.
+- **The smoke is a vitest test** (`apps/server/test/mcp-agent-loop.test.ts`), so it always runs in `pnpm test` (and CI) over the in-process app. It follows the idea.md prompt: orient, list unassigned To Do bugs, Claim the top one, comment, move to Review, reading the board resource after each step. A second case runs two agents at once and checks they Claim different bugs, as idea.md's two-agent test asks. Which agent loses the race is not asserted, since either order is valid.

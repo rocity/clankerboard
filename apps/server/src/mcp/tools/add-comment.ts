@@ -7,7 +7,7 @@ import { defineTool } from "../tool";
 export const addCommentTool = defineTool({
   name: "add_comment",
   description:
-    "Add a Markdown comment to a ticket, by its ticket key. Use it to report logs, test results, or a summary of your changes.",
+    "Add a Markdown comment to a ticket, by its ticket key. Use it to report logs, test results, or a summary of your changes, then move the ticket to review with move_ticket.",
   input: addCommentInput.extend({
     key: ticketKey.describe("The ticket key, such as CB-42."),
     body: addCommentInput.shape.body.describe("Markdown."),
