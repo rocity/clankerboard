@@ -16,3 +16,11 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **`list_projects`** returns only Project Key, name, and Team, to save context.
 - **Read-only tools** carry `readOnlyHint: true`.
 - **Version:** from `apps/server/package.json`, which now has a `version` (0.1.0). The bundle inlines it.
+
+## 04-03 MCP assign and claim tools
+
+- **`assign_ticket` takes one string handle** (or null), not a typed `{ type, id }`. The domain's new `findAssignee` matches the email of a User in the Company first, then an Agent's name, both ignoring case. The User wins if an Agent happens to be named the same as their email.
+- **Unknown handles** (no such User or Agent, a User outside the Company, another Company's Agent) all read `No user or agent matches "<handle>".`, so nothing leaks across Companies. A revoked Agent is found, then refused by Assign's own rule ("That agent was revoked.").
+- **Emails are not in tool output yet:** Ticket views show a User's name, not email, so an agent learns an email from its human. Revisit if agents need to hand off to someone they only saw by name.
+- **Claim errors are the domain's copy** ("CB-3 is already held by Claude-2."), unchanged. The description tells the agent to pick another Ticket on failure.
+- **Annotations:** `claim_ticket` is not idempotent (a second call fails); `assign_ticket` is.

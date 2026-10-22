@@ -1,10 +1,10 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { AssignTicketInput } from "@clankerboard/shared";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorRef, actorColumns, refFromColumns, refOf, sameActor } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, invalid, notFound } from "./errors";
+import { conflict, DomainError, invalid, notFound } from "./errors";
 import {
   bottomRank,
   findTicket,
@@ -17,7 +17,7 @@ import {
   ticketView,
 } from "./ticket-store";
 
-const { memberships, agents } = schema;
+const { memberships, agents, users } = schema;
 
 /** Throws unless `ref` is an Actor who can hold work in this Company right now. */
 async function assertAssignable(tx: Db | Tx, ctx: CompanyContext, ref: ActorRef) {
@@ -39,6 +39,32 @@ async function assertAssignable(tx: Db | Tx, ctx: CompanyContext, ref: ActorRef)
     .where(and(eq(agents.id, ref.id), eq(agents.companyId, ctx.companyId)));
   if (!agent) throw notFound();
   if (agent.revokedAt || !agent.ownerRole) throw invalid("That agent was revoked.");
+}
+
+/**
+ * The Actor a handle names in this Company: the User with that email, or
+ * else the Agent with that name, both ignoring case. Revoked Agents are found
+ * too, so assigning one fails with the reason. For callers, such as MCP, that
+ * know Actors by what they read rather than by id.
+ */
+export async function findAssignee(
+  { db }: DomainDeps,
+  ctx: CompanyContext,
+  handle: string,
+): Promise<ActorRef> {
+  const needle = handle.trim().toLowerCase();
+  const [member] = await db
+    .select({ id: users.id })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(and(eq(memberships.companyId, ctx.companyId), eq(sql`lower(${users.email})`, needle)));
+  if (member) return { type: "user", id: member.id };
+  const [agent] = await db
+    .select({ id: agents.id })
+    .from(agents)
+    .where(and(eq(agents.companyId, ctx.companyId), eq(sql`lower(${agents.name})`, needle)));
+  if (agent) return { type: "agent", id: agent.id };
+  throw new DomainError("not_found", `No user or agent matches "${handle.trim()}".`);
 }
 
 export async function assignTicket(
