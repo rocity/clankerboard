@@ -335,9 +335,11 @@ test.describe("archived Tickets", () => {
       title: "Old report",
       priority: "high",
     });
-    // The Archive control belongs to the Ticket detail panel, so archive over the API.
-    const res = await page.request.post(`/api/tickets/${old.key}/archive`);
-    expect(res.status()).toBe(200);
+    // Archive from the Ticket detail panel, as a person would.
+    await page.goto(`/acme-robotics/projects/PLAT/tickets/${old.key}`);
+    const panel = page.getByRole("dialog", { name: `Ticket ${old.key}` });
+    await panel.getByRole("button", { name: "Archive" }).click();
+    await expect(panel.getByText("Archived", { exact: true })).toBeVisible();
     return old;
   }
 
@@ -411,6 +413,52 @@ test.describe("archived Tickets", () => {
     await page.getByLabel("Show archived").uncheck();
 
     await expectTitles(page, ["Keep this", "Old report"]);
+  });
+});
+
+test.describe("with the Ticket panel", () => {
+  async function seedFiltered(page: Page) {
+    await openBoard(page);
+    await createTicket(page, { projectKey: "PLAT", title: "Urgent one", priority: "high" });
+    await createTicket(page, { projectKey: "PLAT", title: "Calm one", priority: "low" });
+    await createTicket(page, { projectKey: "PLAT", title: "Another urgent", priority: "high" });
+  }
+
+  const panel = (page: Page, key: string) => page.getByRole("dialog", { name: `Ticket ${key}` });
+
+  test("opening and closing a Ticket keeps the filters", async ({ page }) => {
+    await seedFiltered(page);
+    await showBoard(page, "?priority=high");
+    await expectTitles(page, ["Urgent one", "Another urgent"]);
+
+    await page.getByRole("link", { name: /Urgent one/ }).click();
+    await expect(panel(page, "PLAT-1")).toBeVisible();
+    expect(params(page)).toEqual({ priority: "high" });
+
+    await panel(page, "PLAT-1").getByRole("button", { name: "Close" }).click();
+    await expect(panel(page, "PLAT-1")).toHaveCount(0);
+    expect(params(page)).toEqual({ priority: "high" });
+    await expectTitles(page, ["Urgent one", "Another urgent"]);
+  });
+
+  test("a change in the panel leaves a filtered board showing only what matches", async ({
+    page,
+  }) => {
+    await seedFiltered(page);
+    await showBoard(page, "?priority=high");
+    await page.getByRole("link", { name: /Urgent one/ }).click();
+    const dialog = panel(page, "PLAT-1");
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByLabel("Priority").selectOption("low");
+
+    await expect(dialog.getByLabel("Priority")).toHaveValue("low");
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expectTitles(page, ["Another urgent"]);
+    expect(params(page)).toEqual({ priority: "high" });
+    // The panel's own entry took the change too: reopening shows it without a stale value.
+    await page.goto("/acme-robotics/projects/PLAT/tickets/PLAT-1?priority=high");
+    await expect(panel(page, "PLAT-1").getByLabel("Priority")).toHaveValue("low");
   });
 });
 
