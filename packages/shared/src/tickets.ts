@@ -4,6 +4,8 @@ import { projectKey } from "./projects";
 export const ticketTypes = ["epic", "story", "task", "bug"] as const;
 export const ticketStatuses = ["backlog", "todo", "in_progress", "review", "done"] as const;
 export const ticketPriorities = ["low", "medium", "high", "urgent"] as const;
+/** How a Ticket Link is stored. `blocked_by` is only an input: it is stored as the reverse Blocks row. */
+export const ticketLinkKinds = ["blocks", "relates_to"] as const;
 
 export const ticketType = z.enum(ticketTypes, { error: "Pick epic, story, task, or bug." });
 export const ticketStatus = z.enum(ticketStatuses, {
