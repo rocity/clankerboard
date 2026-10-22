@@ -4,8 +4,8 @@ import {
   type DomainDeps,
   type DomainHooks,
   type EventBus,
+  InProcessEventBus,
   type Mailer,
-  noopEventBus,
   noopMailer,
   revokeAgentsOfRemovedMember,
 } from "@clankerboard/domain";
@@ -20,6 +20,7 @@ import { mcpRoutes } from "./mcp/routes";
 import { authenticate } from "./middleware/authenticate";
 import { requestLogger } from "./middleware/request-logger";
 import { RateLimiter } from "./rate-limit";
+import { StreamManager } from "./realtime/streams";
 import { agentRoutes } from "./routes/agents";
 import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
@@ -28,6 +29,7 @@ import { inviteRoutes } from "./routes/invites";
 import { meRoutes } from "./routes/me";
 import { memberRoutes } from "./routes/members";
 import { projectRoutes } from "./routes/projects";
+import { streamRoutes } from "./routes/stream";
 import { teamRoutes } from "./routes/teams";
 import { ticketRoutes } from "./routes/tickets";
 import { webRoutes } from "./routes/web";
@@ -40,10 +42,12 @@ export type AppDeps = {
   mailer: Mailer;
   config: AppConfig;
   logger: Logger;
-  /** Receives every Activity after commit. Defaults to one that drops it. */
+  /** Carries every Activity after commit to the live stream. Defaults to an in-process bus. */
   events?: EventBus;
   /** Extra domain hooks, run after the built-in ones (such as revoking a removed member's Agents). */
   hooks?: Partial<DomainHooks>;
+  /** Aborted when the process stops. Open live streams then end, since they never would on their own. */
+  shutdown?: AbortSignal;
 };
 
 export function createApp(deps: AppDeps) {
@@ -58,7 +62,9 @@ export function createApp(deps: AppDeps) {
       inviteTtlMs: config.inviteTtlMs,
       openSignup: config.openSignup,
     },
-    events: deps.events ?? noopEventBus,
+    events:
+      deps.events ??
+      new InProcessEventBus((err) => deps.logger.error({ err }, "event listener failed")),
     hooks: {
       memberRemoved: [
         revokeAgentsOfRemovedMember(deps.clock),
@@ -69,6 +75,8 @@ export function createApp(deps: AppDeps) {
   const auth = createAuth({ domain, config, logger: deps.logger });
   // One instance, so `/api` and `/mcp` spend from the same per-key bucket.
   const authenticated = authenticate(auth, domain, new RateLimiter(config.rateLimit, deps.clock));
+  const streams = new StreamManager(domain);
+  deps.shutdown?.addEventListener("abort", () => streams.closeAll(), { once: true });
 
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
@@ -80,7 +88,8 @@ export function createApp(deps: AppDeps) {
     .route("/", teamRoutes(domain))
     .route("/", agentRoutes(domain))
     .route("/", projectRoutes(domain))
-    .route("/", ticketRoutes(domain));
+    .route("/", ticketRoutes(domain))
+    .route("/", streamRoutes(domain, streams));
 
   const app = new Hono<AppEnv>()
     .use(requestId())

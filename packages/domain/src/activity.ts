@@ -15,12 +15,21 @@ export type ActivityEvent = {
   createdAt: Date;
 };
 
-/** Where Activity goes after its transaction commits. Spec 05 streams it to browsers. */
+export type ActivityListener = (event: ActivityEvent) => void;
+
+/**
+ * Where Activity goes after its transaction commits, and where the live stream
+ * reads it from. The in-process bus is the v1 implementation; one backed by
+ * Postgres LISTEN/NOTIFY can replace it without changing either side.
+ */
 export type EventBus = {
   publish(event: ActivityEvent): void;
+  /**
+   * Calls `listener` with each Activity of the Company published from now on,
+   * in publish order. Returns the function that unsubscribes it.
+   */
+  subscribe(companyId: string, listener: ActivityListener): () => void;
 };
-
-export const noopEventBus: EventBus = { publish: () => {} };
 
 export type RecordActivity = (input: {
   projectId: string;

@@ -1,11 +1,11 @@
 import type { Database } from "@clankerboard/db";
-import type {
-  ActivityEvent,
-  Clock,
-  EventBus,
-  Mailer,
-  MailMessage,
-  TicketView,
+import {
+  type ActivityEvent,
+  type Clock,
+  InProcessEventBus,
+  type Mailer,
+  type MailMessage,
+  type TicketView,
 } from "@clankerboard/domain";
 import type { CompanyRole } from "@clankerboard/shared";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
@@ -29,13 +29,33 @@ export function testDatabase(): Database {
   return database;
 }
 
+type FakeTimer = { due: number; ms: number; callback: () => void };
+
+/** A clock that moves only when told. `advance` fires each timer that comes due, in order. */
 export class FakeClock implements Clock {
+  private readonly timers = new Set<FakeTimer>();
+
   constructor(private current = new Date("2026-01-01T00:00:00.000Z")) {}
   now() {
     return new Date(this.current);
   }
+  every(ms: number, callback: () => void) {
+    const timer = { due: this.current.getTime() + ms, ms, callback };
+    this.timers.add(timer);
+    return () => {
+      this.timers.delete(timer);
+    };
+  }
   advance(ms: number) {
-    this.current = new Date(this.current.getTime() + ms);
+    const target = this.current.getTime() + ms;
+    for (;;) {
+      const [next] = [...this.timers].filter((t) => t.due <= target).sort((a, b) => a.due - b.due);
+      if (!next) break;
+      this.current = new Date(next.due);
+      next.due += next.ms;
+      next.callback();
+    }
+    this.current = new Date(target);
   }
 }
 
@@ -48,22 +68,96 @@ export class CapturingMailer implements Mailer {
 }
 
 /**
- * Captures published Activity. Set `probe` to run a check at the moment each
- * event is published, such as asking the API whether the change is visible yet.
+ * An in-process bus that also captures published Activity. Set `probe` to run
+ * a check at the moment each event is published, such as asking the API
+ * whether the change is visible yet.
  */
-export class CapturingEventBus implements EventBus {
+export class CapturingEventBus extends InProcessEventBus {
   readonly published: ActivityEvent[] = [];
   probe?: (event: ActivityEvent) => Promise<boolean>;
   private readonly results: Promise<boolean>[] = [];
 
-  publish(event: ActivityEvent) {
+  override publish(event: ActivityEvent) {
     this.published.push(event);
     if (this.probe) this.results.push(this.probe(event));
+    super.publish(event);
   }
 
   probeResults() {
     return Promise.all(this.results);
   }
+}
+
+/** One message read off an SSE stream: an event, a bare `retry:`, or a comment. */
+export type StreamMessage = {
+  id?: string;
+  event?: string;
+  data?: string;
+  retry?: number;
+  comment?: string;
+};
+
+export type OpenStream = {
+  response: Response;
+  /** The next message, or `null` once the stream has ended. */
+  next(): Promise<StreamMessage | null>;
+  /** The next message that is an event, skipping retry and comment messages. */
+  nextEvent(): Promise<StreamMessage & { id: string; event: string; data: string }>;
+  close(): Promise<void>;
+};
+
+function parseStreamMessage(block: string): StreamMessage {
+  const message: StreamMessage = {};
+  const data: string[] = [];
+  for (const line of block.split("\n")) {
+    if (line.startsWith(":")) {
+      message.comment = line.slice(1).trim();
+      continue;
+    }
+    const colon = line.indexOf(":");
+    const field = colon === -1 ? line : line.slice(0, colon);
+    const value = colon === -1 ? "" : line.slice(colon + 1).replace(/^ /, "");
+    if (field === "id") message.id = value;
+    else if (field === "event") message.event = value;
+    else if (field === "data") data.push(value);
+    else if (field === "retry") message.retry = Number(value);
+  }
+  if (data.length > 0) message.data = data.join("\n");
+  return message;
+}
+
+/** Opens the live stream as any caller and reads it message by message. */
+export async function openStream(as: Fetch, init: RequestInit = {}): Promise<OpenStream> {
+  const response = await as("/api/stream", init);
+  const reader = response.body?.pipeThrough(new TextDecoderStream()).getReader();
+  let buffered = "";
+
+  async function next(): Promise<StreamMessage | null> {
+    if (!reader) return null;
+    for (;;) {
+      const end = buffered.indexOf("\n\n");
+      if (end !== -1) {
+        const block = buffered.slice(0, end);
+        buffered = buffered.slice(end + 2);
+        return parseStreamMessage(block);
+      }
+      const { done, value } = await reader.read();
+      if (done) return null;
+      buffered += value;
+    }
+  }
+
+  async function nextEvent() {
+    for (;;) {
+      const message = await next();
+      if (!message) throw new Error("the stream ended before the next event");
+      if (message.id !== undefined && message.event !== undefined && message.data !== undefined) {
+        return message as StreamMessage & { id: string; event: string; data: string };
+      }
+    }
+  }
+
+  return { response, next, nextEvent, close: async () => reader?.cancel() };
 }
 
 /** True when text follows the user-facing copy rule's mechanical parts. */

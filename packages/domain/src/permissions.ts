@@ -66,6 +66,15 @@ export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
   return ownsAgent || isAdmin(actor);
 }
 
+/**
+ * Whether the caller may see an Activity. Every member sees every Project
+ * (Spec 03), so this is the Company, the same answer REST reads give by
+ * scoping their queries to it.
+ */
+export function canSeeActivity(ctx: CompanyContext, activity: { companyId: string }) {
+  return activity.companyId === ctx.companyId;
+}
+
 /** Hard-deleting a Project or Ticket is for owner and admin Users only. */
 export function assertMayHardDelete(ctx: CompanyContext) {
   assertMayDelete(ctx);

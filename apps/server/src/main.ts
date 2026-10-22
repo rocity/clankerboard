@@ -15,6 +15,7 @@ await runMigrations(database.db, env.migrationsDir);
 logger.info("migrations applied");
 
 const authSecret = env.authSecret ?? (await ensureAuthSecret(database.db));
+const shuttingDown = new AbortController();
 
 const app = createApp({
   db: database.db,
@@ -22,6 +23,7 @@ const app = createApp({
   mailer: env.smtp ? createSmtpMailer(env.smtp, logger) : noopMailer,
   config: { ...env, authSecret },
   logger,
+  shutdown: shuttingDown.signal,
 });
 
 const server = serve({ fetch: app.fetch, port: env.port }, (info) => {
@@ -33,6 +35,8 @@ function shutdown(signal: string) {
   server.close(() => {
     database.close().finally(() => process.exit(0));
   });
+  // Live streams never end on their own, so close() would wait on them forever.
+  shuttingDown.abort();
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));

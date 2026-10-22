@@ -76,3 +76,27 @@ export const timelineItem = z.discriminatedUnion("type", [
   }),
 ]);
 export type TimelineItem = z.output<typeof timelineItem>;
+
+/** One Activity on the board, as the live stream sends it. */
+export const activityView = z.object({
+  id: z.number().int(),
+  kind: z.string(),
+  projectId: z.string(),
+  /** The Ticket's key, also for a Ticket that was hard-deleted. Null for Project Activity. */
+  ticketKey: z.string().nullable(),
+  actor: actorView,
+  payload: z.record(z.string(), z.unknown()),
+  createdAt: timestamp,
+});
+export type ActivityView = z.output<typeof activityView>;
+
+/**
+ * The data of one live stream event: the Activity, and the Ticket as it is
+ * now. `ticket` is null for Project Activity and for a hard-deleted Ticket,
+ * whose key is still in `activity.ticketKey`.
+ */
+export const streamedActivity = z.object({
+  activity: activityView,
+  ticket: ticketView.nullable(),
+});
+export type StreamedActivity = z.output<typeof streamedActivity>;
