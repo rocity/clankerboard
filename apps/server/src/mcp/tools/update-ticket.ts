@@ -2,7 +2,7 @@ import { updateTicket } from "@clankerboard/domain";
 import { updateTicketInput } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
-import { ticketKeyParam } from "../params";
+import { estimateDescription, ticketKeyParam } from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -11,7 +11,7 @@ const { shape } = updateTicketInput;
 export const updateTicketTool = defineTool({
   name: "update_ticket",
   description:
-    "Change a ticket's title, description, priority, or parent, by its ticket key. Fields you leave out stay as they are.",
+    "Change a ticket's title, description, priority, parent, or estimate, by its ticket key. Fields you leave out stay as they are.",
   // The spec gives Agents no way to change a Ticket's type.
   input: updateTicketInput.omit({ type: true }).extend({
     key: ticketKeyParam,
@@ -21,6 +21,7 @@ export const updateTicketTool = defineTool({
     parentKey: shape.parentKey.describe(
       "The parent's ticket key, such as CB-7, or null to clear it.",
     ),
+    estimate: shape.estimate.describe(estimateDescription),
   }),
   output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },

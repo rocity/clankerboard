@@ -56,6 +56,15 @@ const description = z
   .string({ error: "Descriptions are Markdown text." })
   .max(50_000, { error: "Descriptions can be up to 50,000 characters." });
 
+const estimateError = { error: "Estimates are whole numbers from 0 to 100." };
+
+/** Points from 0 to 100. Null is blank, which is not the same as 0. */
+export const ticketEstimate = z
+  .number(estimateError)
+  .int(estimateError)
+  .min(0, estimateError)
+  .max(100, estimateError);
+
 export const createTicketInput = z.object({
   projectKey,
   title,
@@ -63,6 +72,7 @@ export const createTicketInput = z.object({
   type: ticketType,
   priority: ticketPriority.default("medium"),
   parentKey: ticketKey.nullish(),
+  estimate: ticketEstimate.nullable().default(null),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -73,6 +83,8 @@ export const updateTicketInput = z.object({
   priority: ticketPriority.optional(),
   /** Null clears the Parent. */
   parentKey: ticketKey.nullable().optional(),
+  /** Null clears the Estimate. */
+  estimate: ticketEstimate.nullable().optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 
