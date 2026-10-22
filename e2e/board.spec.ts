@@ -353,7 +353,9 @@ test.describe("Agent prompt dialog", () => {
     const dialog = page.getByRole("dialog", { name: "Agent prompt" });
     const prompt = dialog.locator("pre");
 
-    await expect(prompt).toContainText('"Platform" (Project Key PLAT)');
+    await expect(prompt).toContainText(
+      'You will work on Tickets in the Agent Kanban Project "Platform" (Project Key PLAT)',
+    );
     await expect(prompt).toContainText(`${baseURL}/acme-robotics/projects/PLAT`);
     await expect(prompt).toContainText(`${baseURL}/acme-robotics/agents`);
     await expect(prompt).toContainText(

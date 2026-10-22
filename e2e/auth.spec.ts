@@ -9,7 +9,9 @@ test("a first User signs up, creates a Company, signs out, and signs back in to 
 }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/sign-in/);
+  await expect(page).toHaveTitle("Agent Kanban");
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByText("Agent Kanban", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Sign up" }).click();
   await page.getByLabel("Name").fill("Ada");
@@ -26,6 +28,7 @@ test("a first User signs up, creates a Company, signs out, and signs back in to 
   await expect(page).toHaveURL("/acme-robotics");
   await expect(page.getByRole("heading", { name: "Acme Robotics" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Company" })).toHaveText("Acme Robotics");
+  await expect(page.getByRole("link", { name: "Agent Kanban" })).toBeVisible();
 
   await page.getByRole("button", { name: "User menu" }).click();
   await expect(page.getByText("ada@example.com")).toBeVisible();

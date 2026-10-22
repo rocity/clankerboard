@@ -81,7 +81,7 @@ describe("Company Invites", () => {
     expect(withSmtp.mailer.sent).toHaveLength(1);
     const mail = withSmtp.mailer.sent[0];
     expect(mail?.to).toBe("bob@example.com");
-    expect(mail?.subject).toBe("Join Acme on Clankerboard");
+    expect(mail?.subject).toBe("Join Acme on Agent Kanban");
     expect(mail?.text).toContain(sent.body.link);
     expect(plainCopy(`${mail?.subject} ${mail?.text}`)).toBe(true);
   });
