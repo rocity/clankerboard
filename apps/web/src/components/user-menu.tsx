@@ -36,7 +36,7 @@ export function UserMenu() {
           variant="ghost"
           size="icon"
           className="size-11 rounded-full md:size-9"
-          aria-label="Account"
+          aria-label="User menu"
         >
           <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground md:size-7">
             {initials(user?.name ?? "")}

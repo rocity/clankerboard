@@ -46,7 +46,7 @@ test("flow 2: invite by copied link, accept in a fresh browser, and land in the 
   const link = await page.evaluate(() => navigator.clipboard.readText());
   expect(link).toContain("/invite#");
 
-  // Open sign-up is off here, so only the Invite lets this person in.
+  // Open sign-up is off here, so only the Invite lets this User in.
   const invitee = await freshContext(browser, page);
   await invitee.page.goto(link);
   await expect(invitee.page.getByRole("heading", { name: "Join Acme Robotics" })).toBeVisible();
@@ -120,7 +120,7 @@ test("opening a second Invite link in the same tab replaces the first", async ({
   await visitor.context.close();
 });
 
-test("an invitee who already has an account signs in on the Invite page and joins", async ({
+test("an invitee who has signed up before signs in on the Invite page and joins", async ({
   page,
   browser,
 }) => {
@@ -143,7 +143,7 @@ test("an invitee who already has an account signs in on the Invite page and join
   await invitee.context.close();
 });
 
-test("a signed-in invitee joins with one click, and the wrong account can sign out", async ({
+test("a signed-in invitee joins with one click, and the wrong User can sign out", async ({
   page,
   browser,
 }) => {

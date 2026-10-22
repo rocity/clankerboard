@@ -5,7 +5,7 @@ import { UserMenu } from "@/components/user-menu";
 
 type Props = {
   children: ReactNode;
-  /** Shows the account menu, for pages a signed-in User can be stuck on. */
+  /** Shows the User menu, for pages a signed-in User can be stuck on. */
   signedIn?: boolean;
 };
 

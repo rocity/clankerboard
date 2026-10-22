@@ -27,7 +27,7 @@ test("a first User signs up, creates a Company, signs out, and signs back in to 
   await expect(page.getByRole("heading", { name: "Acme Robotics" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Company" })).toHaveText("Acme Robotics");
 
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "User menu" }).click();
   await expect(page.getByText("ada@example.com")).toBeVisible();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
@@ -40,7 +40,7 @@ test("a first User signs up, creates a Company, signs out, and signs back in to 
 
 test("a wrong password shows a plain message and stays on sign-in", async ({ page }) => {
   await signUp(page, "Ada", "ada@example.com");
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "User menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
 
   await page.getByLabel("Email").fill("ada@example.com");

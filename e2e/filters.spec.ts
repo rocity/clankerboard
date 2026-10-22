@@ -335,7 +335,7 @@ test.describe("archived Tickets", () => {
       title: "Old report",
       priority: "high",
     });
-    // Archive from the Ticket detail panel, as a person would.
+    // Archive from the Ticket detail panel, as a User would.
     await page.goto(`/acme-robotics/projects/PLAT/tickets/${old.key}`);
     const panel = page.getByRole("dialog", { name: `Ticket ${old.key}` });
     await panel.getByRole("button", { name: "Archive" }).click();
@@ -343,7 +343,7 @@ test.describe("archived Tickets", () => {
     return old;
   }
 
-  const archivedCard = (page: Page) => page.getByRole("article", { name: "Old report" });
+  const archivedTicket = (page: Page) => page.getByRole("article", { name: "Old report" });
 
   test("archives, shows archived, and restores a Ticket", async ({ page }) => {
     const old = await seedArchived(page);
@@ -355,7 +355,7 @@ test.describe("archived Tickets", () => {
 
     await expectTitles(page, ["Keep this", "Old report"]);
     expect(params(page)).toEqual({ archived: "true" });
-    await expect(archivedCard(page).getByText("Archived", { exact: true })).toBeVisible();
+    await expect(archivedTicket(page).getByText("Archived", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("article", { name: "Keep this" }).getByText("Archived"),
     ).toHaveCount(0);
@@ -363,7 +363,7 @@ test.describe("archived Tickets", () => {
 
     await page.getByRole("button", { name: "Restore Old report" }).click();
 
-    await expect(archivedCard(page).getByText("Archived", { exact: true })).toHaveCount(0);
+    await expect(archivedTicket(page).getByText("Archived", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Restore/ })).toHaveCount(0);
     await expectTitles(page, ["Keep this", "Old report"]);
     const restored = await (await page.request.get(`/api/tickets/${old.key}`)).json();
@@ -396,7 +396,7 @@ test.describe("archived Tickets", () => {
     await showBoard(page, "?archived=true&priority=high");
 
     await expectTitles(page, ["Old report"]);
-    await expect(archivedCard(page).getByText("Archived", { exact: true })).toBeVisible();
+    await expect(archivedTicket(page).getByText("Archived", { exact: true })).toBeVisible();
   });
 
   test("a restored Ticket also returns to the board with archived hidden", async ({ page }) => {

@@ -84,18 +84,18 @@ test("a new key is shown once, with setup snippets for this server", async ({
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Copy your key now" })).toBeVisible();
-  const secret = await dialog.getByLabel("API key").inputValue();
-  expect(secret).toMatch(/^cb_[A-Za-z0-9_-]{32,}$/);
+  const apiKey = await dialog.getByLabel("API key").inputValue();
+  expect(apiKey).toMatch(/^cb_[A-Za-z0-9_-]{32,}$/);
   expect(await scrollsSideways(page)).toBe(false);
 
   await dialog.getByRole("button", { name: "Copy key" }).click();
   await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(secret);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(apiKey);
 
   // The command is ready to paste, with this server's URL and the key.
   const command = dialog.getByRole("tabpanel");
   await expect(command).toContainText(
-    `claude mcp add --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer ${secret}"`,
+    `claude mcp add --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer ${apiKey}"`,
   );
   await dialog.getByRole("button", { name: "Copy command" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`${baseURL}/mcp`);
@@ -105,8 +105,8 @@ test("a new key is shown once, with setup snippets for this server", async ({
   const snippet = dialog.getByRole("tabpanel");
   await expect(snippet).toContainText(`"url": "${baseURL}/mcp"`);
   await expect(snippet).toContainText(`"Authorization": "Bearer \${CLANKERBOARD_API_KEY}"`);
-  await expect(snippet).toContainText(`export CLANKERBOARD_API_KEY=${secret}`);
-  expect(await snippet.locator("pre").first().textContent()).not.toContain(secret);
+  await expect(snippet).toContainText(`export CLANKERBOARD_API_KEY=${apiKey}`);
+  expect(await snippet.locator("pre").first().textContent()).not.toContain(apiKey);
 
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toHaveCount(0);
@@ -114,11 +114,44 @@ test("a new key is shown once, with setup snippets for this server", async ({
   // The key never comes back: not after closing, not after a reload.
   const card = agentCard(page, "Claude-1");
   await expect(card.getByText("laptop")).toBeVisible();
-  await expect(card.getByText(secret.slice(0, 11))).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(secret);
+  await expect(card.getByText(apiKey.slice(0, 11))).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(apiKey);
   await page.reload();
-  await expect(agentCard(page, "Claude-1").getByText(secret.slice(0, 11))).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(secret);
+  await expect(agentCard(page, "Claude-1").getByText(apiKey.slice(0, 11))).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(apiKey);
+});
+
+test("a key on screen survives an outside click and Escape, and only Done closes it", async ({
+  page,
+}) => {
+  await signUp(page, "Ada", "ada@example.com");
+  await createCompany(page, "Acme Robotics");
+  const agent = await page.request.post("/api/agents", { data: { name: "Claude-1" } });
+  expect(agent.status()).toBe(201);
+  await page.goto("/acme-robotics/agents");
+
+  await agentCard(page, "Claude-1").getByRole("button", { name: "Create key" }).click();
+
+  // Before the key exists, Escape still closes the form.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await agentCard(page, "Claude-1").getByRole("button", { name: "Create key" }).click();
+  await page.getByLabel("Label").fill("laptop");
+  await page.getByRole("button", { name: "Create key" }).click();
+  const dialog = page.getByRole("dialog");
+  const apiKey = await dialog.getByLabel("API key").inputValue();
+  expect(apiKey).toMatch(/^cb_/);
+
+  // A click on the backdrop and Escape both leave the key where it is.
+  await page.mouse.click(2, 2);
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("API key")).toHaveValue(apiKey);
+
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toHaveCount(0);
 });
 
 test("the key list shows label, prefix, and last-used time, and revokes a key", async ({
@@ -224,12 +257,12 @@ test("an admin sees every Agent with its owner, can revoke it, and cannot rename
   await cy.context().close();
 });
 
-test("the Agents page is reachable from the account menu", async ({ page }) => {
+test("the Agents page is reachable from the User menu", async ({ page }) => {
   await signUp(page, "Ada", "ada@example.com");
   await createCompany(page, "Acme Robotics");
   await page.goto("/acme-robotics");
 
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "User menu" }).click();
   await page.getByRole("menuitem", { name: "Agents" }).click();
 
   await expect(page).toHaveURL("/acme-robotics/agents");

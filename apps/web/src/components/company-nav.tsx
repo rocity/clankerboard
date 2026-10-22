@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-// Later cards add their pages here. The row scrolls sideways on a narrow screen
+// Later work adds its pages here. The row scrolls sideways on a narrow screen
 // instead of wrapping, so the header stays one line tall.
 export function CompanyNav({ companySlug }: { companySlug: string }) {
   const linkClass =

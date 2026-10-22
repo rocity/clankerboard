@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { api, unwrap } from "@/lib/api";
 import { teamsQuery } from "@/lib/teams";
 
-/** The button and dialog that create a Team. Show it only to people who may manage Teams. */
+/** The button and dialog that create a Team. Show it only to Users who may manage Teams. */
 export function CreateTeamButton() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);

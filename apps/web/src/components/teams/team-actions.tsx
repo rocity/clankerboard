@@ -14,7 +14,7 @@ type Props = {
   team: { id: string; name: string };
 };
 
-/** Rename and delete for one Team. Show it only to people who may manage Teams. */
+/** Rename and delete for one Team. Show it only to Users who may manage Teams. */
 export function TeamActions({ companySlug, team }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ export function TeamActions({ companySlug, team }: Props) {
         open={deleting}
         onOpenChange={setDeleting}
         title={`Delete ${team.name}?`}
-        description="Its people stay in the company. Its projects stay, with no team. Pending invites for it are cancelled."
+        description="Its users stay in the company. Its projects stay, with no team. Pending invites for it are cancelled."
         confirmLabel="Delete team"
         onConfirm={async () => {
           await remove.mutateAsync();

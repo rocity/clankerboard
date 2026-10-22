@@ -2,7 +2,7 @@ import { type TicketStatus, type TicketWire, ticketStatuses } from "@clankerboar
 
 /**
  * A Ticket as the API sends it: timestamps are ISO strings. Everything on the
- * board, the cards, the query cache, and the live stream's snapshots, uses
+ * board, its Tickets, the query cache, and the live stream's snapshots, uses
  * this one shape.
  */
 export type TicketData = TicketWire;

@@ -25,7 +25,7 @@ test("the header fits the viewport with a long Company name, and its controls ar
 
   const width = page.viewportSize()?.width ?? 0;
   const onPhone = width < 768;
-  for (const name of ["Company", "Appearance", "Account"]) {
+  for (const name of ["Company", "Appearance", "User menu"]) {
     const box = await page.getByRole("button", { name }).boundingBox();
     expect(box).not.toBeNull();
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);

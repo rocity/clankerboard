@@ -6,7 +6,7 @@ import { authProvidersQuery } from "@/lib/queries";
 const labels = { github: "GitHub", google: "Google" } as const;
 
 type Props = {
-  /** Where the provider sends the person back to after sign-in. */
+  /** Where the provider sends the User back to after sign-in. */
   callbackURL: string;
   /** Runs right before leaving for the provider. */
   beforeRedirect?: () => void;

@@ -45,7 +45,7 @@ test("a session that expires while the page is open sends the next action to sig
 test("a sign-in link to another site is ignored", async ({ page }) => {
   await signUp(page, "Ada", "ada@example.com");
   await createCompany(page, "Acme Robotics");
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "User menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
 
   await page.goto("/sign-in?redirect=//evil.example/path");

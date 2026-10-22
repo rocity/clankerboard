@@ -86,7 +86,7 @@ export function applyLiveEvent(queryClient: QueryClient, { activity, ticket }: L
 
   if (kind === "ticket.deleted") {
     dropTicket(queryClient, projectKeyOf(key), key);
-    // An open panel for it finds out the Ticket is gone. The person who deleted
+    // An open panel for it finds out the Ticket is gone. The User who deleted
     // it is already on their way back to the board.
     if (!mine) void queryClient.invalidateQueries({ queryKey: ticketKeys.detail(key) });
   } else if (ticket) {

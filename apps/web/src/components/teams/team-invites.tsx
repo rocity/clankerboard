@@ -16,7 +16,7 @@ type Props = {
 
 /**
  * Invites a new email straight onto a Team, and lists this Team's pending Invites. Owners and
- * admins get every Role they may grant. A lead brings people in as plain members only (ADR-0006).
+ * admins get every Role they may grant. A lead brings Users in as plain members only (ADR-0006).
  */
 export function TeamInvites({ teamId, teamName, role, leadsTeam }: Props) {
   // The server answers owners and admins with every Invite and a lead with their Teams' only.

@@ -85,7 +85,7 @@ test("the Teams list is reached from the navigation and shows each Team with its
 });
 
 const memberRow = (page: Page, text: string) =>
-  page.getByRole("list", { name: "People" }).getByRole("listitem").filter({ hasText: text });
+  page.getByRole("list", { name: "Users" }).getByRole("listitem").filter({ hasText: text });
 
 test("a Team page shows its members with who leads, and its Projects, to a plain member", async ({
   page,
@@ -104,7 +104,7 @@ test("a Team page shows its members with who leads, and its Projects, to a plain
   await expect(memberRow(eve.page, "Lee")).toContainText("Lead");
   await expect(memberRow(eve.page, "Lee")).toContainText("lee@example.com");
   await expect(memberRow(eve.page, "Bob")).not.toContainText("Lead");
-  await expect(eve.page.getByRole("list", { name: "People" }).getByRole("listitem")).toHaveCount(2);
+  await expect(eve.page.getByRole("list", { name: "Users" }).getByRole("listitem")).toHaveCount(2);
   const projects = eve.page.getByRole("list", { name: "Projects" });
   await expect(projects.getByRole("listitem")).toHaveCount(2);
   await expect(projects).toContainText("Core API");
@@ -206,7 +206,7 @@ test("an owner adds a Company member to a Team, and the picker stops offering th
   const { platform, close } = await seed({ page, browser });
   await page.goto(`/acme-robotics/teams/${platform.id}`);
 
-  const picker = page.getByLabel("Add a person");
+  const picker = page.getByLabel("Add a user");
   await expect(picker.locator("option")).toHaveText(["Choose someone", "Ada", "Cy", "Eve"]);
   const add = page.getByRole("button", { name: "Add to team" });
   await expectTouchTarget(page, add);
@@ -223,20 +223,20 @@ test("an owner adds a Company member to a Team, and the picker stops offering th
   await close();
 });
 
-test("a Team lead adds and removes people but cannot change a Team Role", async ({
+test("a Team lead adds and removes users but cannot change a Team Role", async ({
   page,
   browser,
 }) => {
   const { lee, platform, close } = await seed({ page, browser });
   await lee.page.goto(`/acme-robotics/teams/${platform.id}`);
 
-  await expect(lee.page.getByLabel("Add a person")).toBeVisible();
+  await expect(lee.page.getByLabel("Add a user")).toBeVisible();
   await expect(lee.page.getByRole("combobox", { name: /^Team role for/ })).toHaveCount(0);
   await expect(lee.page.getByRole("button", { name: "Rename team" })).toHaveCount(0);
   await expect(lee.page.getByRole("button", { name: "Delete team" })).toHaveCount(0);
   await expect(lee.page.getByRole("button", { name: "Remove Lee from team" })).toHaveCount(0);
 
-  await lee.page.getByLabel("Add a person").selectOption({ label: "Eve" });
+  await lee.page.getByLabel("Add a user").selectOption({ label: "Eve" });
   await lee.page.getByRole("button", { name: "Add to team" }).click();
   await expect(memberRow(lee.page, "Eve")).toBeVisible();
 
@@ -376,15 +376,15 @@ test("an owner can invite to a Team as an admin or a member, and sees only that 
 
 // What each Role sees. Platform is led by Lee and has Bob on it. Lee is only a member of Design.
 const controlsByRole = [
-  { who: "an owner", user: "ada", team: "platform", create: true, manage: true, people: true },
-  { who: "an admin", user: "cy", team: "platform", create: true, manage: true, people: true },
+  { who: "an owner", user: "ada", team: "platform", create: true, manage: true, users: true },
+  { who: "an admin", user: "cy", team: "platform", create: true, manage: true, users: true },
   {
     who: "the Team's lead",
     user: "lee",
     team: "platform",
     create: false,
     manage: false,
-    people: true,
+    users: true,
   },
   {
     who: "a plain member of the Team",
@@ -392,7 +392,7 @@ const controlsByRole = [
     team: "platform",
     create: false,
     manage: false,
-    people: false,
+    users: false,
   },
   {
     who: "a member on no Team",
@@ -400,7 +400,7 @@ const controlsByRole = [
     team: "platform",
     create: false,
     manage: false,
-    people: false,
+    users: false,
   },
   {
     who: "a lead of another Team",
@@ -408,7 +408,7 @@ const controlsByRole = [
     team: "design",
     create: false,
     manage: false,
-    people: false,
+    users: false,
   },
 ] as const;
 
@@ -419,14 +419,14 @@ for (const row of controlsByRole) {
   }) => {
     const seeded = await seed({ page, browser });
     await addTeamMember(page, seeded.design.id, "lee@example.com");
-    const people = {
+    const viewers = {
       ada: { page },
       cy: seeded.cy,
       lee: seeded.lee,
       bob: seeded.bob,
       eve: seeded.eve,
     };
-    const viewer = people[row.user].page;
+    const viewer = viewers[row.user].page;
     const teamId = row.team === "platform" ? seeded.platform.id : seeded.design.id;
     await inviteByApi(page, "pending@example.com", { teamId });
 
@@ -437,7 +437,7 @@ for (const row of controlsByRole) {
     );
 
     await viewer.goto(`/acme-robotics/teams/${teamId}`);
-    await expect(viewer.getByRole("list", { name: "People" })).toBeVisible();
+    await expect(viewer.getByRole("list", { name: "Users" })).toBeVisible();
     await expect(viewer.getByRole("button", { name: "Rename team" })).toHaveCount(
       row.manage ? 1 : 0,
     );
@@ -445,16 +445,16 @@ for (const row of controlsByRole) {
       row.manage ? 1 : 0,
     );
     await expect(viewer.getByLabel(/^Team role for/).first()).toBeVisible({ visible: row.manage });
-    await expect(viewer.getByLabel("Add a person")).toHaveCount(row.people ? 1 : 0);
+    await expect(viewer.getByLabel("Add a user")).toHaveCount(row.users ? 1 : 0);
     await expect(viewer.getByRole("button", { name: "Create invite" })).toHaveCount(
-      row.people ? 1 : 0,
+      row.users ? 1 : 0,
     );
     await expect(viewer.getByRole("list", { name: "Pending invites" })).toHaveCount(
-      row.people ? 1 : 0,
+      row.users ? 1 : 0,
     );
     await expect(viewer.getByRole("button", { name: /^Remove .* from team$/ }).first()).toBeVisible(
       {
-        visible: row.people,
+        visible: row.users,
       },
     );
     // Nobody gets controls on their own row.

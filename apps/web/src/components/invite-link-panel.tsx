@@ -28,7 +28,7 @@ export function InviteLinkPanel({ issued, onDone }: Props) {
       setCopyFailed(false);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // Clipboard access can be blocked. Select the text so the person can copy it by hand.
+      // Clipboard access can be blocked. Select the text so the User can copy it by hand.
       input.current?.select();
       setCopyFailed(true);
     }
@@ -54,7 +54,7 @@ export function InviteLinkPanel({ issued, onDone }: Props) {
           onFocus={(event) => event.currentTarget.select()}
           className="h-11 font-mono text-base md:h-9 md:text-sm"
         />
-        <Button type="button" className="h-11 sm:h-9" onClick={copy}>
+        <Button type="button" className="h-11 md:h-9" onClick={copy}>
           {copied ? <Check /> : <Copy />}
           {copied ? "Copied" : "Copy link"}
         </Button>
@@ -65,7 +65,7 @@ export function InviteLinkPanel({ issued, onDone }: Props) {
         </p>
       )}
       <div>
-        <Button type="button" variant="ghost" className="h-11 sm:h-9" onClick={onDone}>
+        <Button type="button" variant="ghost" className="h-11 md:h-9" onClick={onDone}>
           Done
         </Button>
       </div>

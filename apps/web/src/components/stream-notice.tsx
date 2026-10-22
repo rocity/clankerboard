@@ -39,7 +39,7 @@ export function StreamNotice() {
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 rounded-full"
+            className="h-11 rounded-full md:h-8"
             onClick={() => location.reload()}
           >
             Reload

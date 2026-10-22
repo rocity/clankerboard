@@ -8,7 +8,7 @@ import { putTicket, ticketKeys } from "./tickets";
 /**
  * Where a Ticket is dropped: a Status and the Tickets it lands between. The
  * neighbours are the ones next to it in the Status, without the moved Ticket,
- * as the person sees them.
+ * as the User sees them.
  */
 export type Placement = {
   status: TicketStatus;

@@ -64,7 +64,7 @@ function TeamPage() {
         <>
           <section aria-labelledby="members-heading" className="grid gap-3">
             <h2 id="members-heading" className="text-lg font-medium">
-              People
+              Users
             </h2>
             {manages && (
               <AddTeamMember teamId={teamId} onTeam={team.data.members.map((m) => m.userId)} />

@@ -56,7 +56,7 @@ export function AddTeamMember({ teamId, onTeam }: Props) {
       onSubmit={submit}
     >
       <div className="grid gap-2">
-        <Label htmlFor="add-team-member">Add a person</Label>
+        <Label htmlFor="add-team-member">Add a user</Label>
         <NativeSelect
           id="add-team-member"
           value={userId}

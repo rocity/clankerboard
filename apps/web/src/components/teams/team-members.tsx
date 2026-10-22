@@ -34,7 +34,7 @@ export function TeamMembers({ teamId, members, me }: Props) {
 
   return (
     <ul
-      aria-label="People"
+      aria-label="Users"
       className="divide-y rounded-xl border bg-card text-card-foreground shadow-sm"
     >
       {members.map((member) => (

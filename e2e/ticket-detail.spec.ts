@@ -273,9 +273,9 @@ test.describe("editing", () => {
     // The board behind the panel shows the change once it is closed.
     await dialog.getByRole("button", { name: "Close" }).click();
     const lane = page.getByRole("region", { name: "In Progress" });
-    const card = lane.getByRole("article", { name: "Fix rounding" });
-    await expect(card).toBeVisible();
-    await expect(card.getByText("Urgent", { exact: true })).toBeVisible();
+    const ticket = lane.getByRole("article", { name: "Fix rounding" });
+    await expect(ticket).toBeVisible();
+    await expect(ticket.getByText("Urgent", { exact: true })).toBeVisible();
   });
 
   test("shows the server's refusal and puts the field back", async ({ page }) => {
@@ -357,9 +357,9 @@ test.describe("timeline and comments", () => {
   test("merges Comments and Activity in time order, with Agents marked", async ({ page }) => {
     await setUp(page);
     const agent = await createAgent(page, "Claude-1");
-    const secret = await createApiKey(page, agent.id);
+    const apiKey = await createApiKey(page, agent.id);
     await createTicket(page, { projectKey: "PLAT", title: "Busy" });
-    const asAgent = await actAsAgent(secret);
+    const asAgent = await actAsAgent(apiKey);
 
     await moveTicket(page, "PLAT-1", "todo");
     await addComment(page, "PLAT-1", "Human first");

@@ -106,7 +106,7 @@ test("leaves archived Tickets off the board", async ({ page }) => {
   expect(keep.key).toBe("PLAT-1");
 });
 
-test.describe("Ticket card", () => {
+test.describe("Ticket summary", () => {
   test("puts the title first and shows only what matters", async ({ page }) => {
     await openBoard(page);
     const epic = await createTicket(page, {
@@ -185,34 +185,34 @@ test.describe("Ticket card", () => {
     await assignTicket(page, byUser.key, { type: "user", id: me.user.id });
     await page.reload();
 
-    const agentCard = ticketIn(page, "Backlog", "Agent work");
-    await expect(agentCard.getByRole("img", { name: "Agent" })).toBeVisible();
-    await expect(agentCard).toContainText("Claude-Code-Agent");
-    const humanCard = ticketIn(page, "Backlog", "Human work");
-    await expect(humanCard).toContainText("Ada");
-    await expect(humanCard.getByRole("img", { name: "Agent" })).toHaveCount(0);
+    const agentTicket = ticketIn(page, "Backlog", "Agent work");
+    await expect(agentTicket.getByRole("img", { name: "Agent" })).toBeVisible();
+    await expect(agentTicket).toContainText("Claude-Code-Agent");
+    const humanTicket = ticketIn(page, "Backlog", "Human work");
+    await expect(humanTicket).toContainText("Ada");
+    await expect(humanTicket.getByRole("img", { name: "Agent" })).toHaveCount(0);
     await expect(
       ticketIn(page, "Backlog", "Nobody yet").getByRole("img", { name: "Agent" }),
     ).toHaveCount(0);
 
-    // The Assignee sits in the bottom right corner of the card, inside it, even when long.
-    const card = await agentCard.boundingBox();
-    const assignee = await agentCard.getByTestId("assignee").boundingBox();
+    // The Assignee sits in the bottom right corner of the Ticket, inside it, even when long.
+    const ticket = await agentTicket.boundingBox();
+    const assignee = await agentTicket.getByTestId("assignee").boundingBox();
     expect(assignee).not.toBeNull();
     expect((assignee?.x ?? 0) + (assignee?.width ?? 0)).toBeLessThanOrEqual(
-      (card?.x ?? 0) + (card?.width ?? 0),
+      (ticket?.x ?? 0) + (ticket?.width ?? 0),
     );
-    expect(assignee?.y ?? 0).toBeGreaterThan((card?.y ?? 0) + (card?.height ?? 0) / 2);
+    expect(assignee?.y ?? 0).toBeGreaterThan((ticket?.y ?? 0) + (ticket?.height ?? 0) / 2);
   });
 
-  test("keeps a long title inside the card", async ({ page }) => {
+  test("keeps a long title inside the Ticket", async ({ page }) => {
     await openBoard(page);
     const long = `${"Reconcile the nightly settlement export ".repeat(4)}Supercalifragilisticexpialidocious${"x".repeat(60)}`;
     await createTicket(page, { projectKey: "PLAT", title: long.slice(0, 200) });
     await page.reload();
 
-    const card = lane(page, "Backlog").getByRole("article");
-    const box = await card.boundingBox();
+    const ticket = lane(page, "Backlog").getByRole("article");
+    const box = await ticket.boundingBox();
     const laneBox = await lane(page, "Backlog").boundingBox();
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
       (laneBox?.x ?? 0) + (laneBox?.width ?? 0),
@@ -222,7 +222,7 @@ test.describe("Ticket card", () => {
       const done = await lane(page, "Done").boundingBox();
       expect(Math.abs((done?.width ?? 0) - (laneBox?.width ?? 0))).toBeLessThan(2);
     }
-    const title = await card.getByRole("heading").boundingBox();
+    const title = await ticket.getByRole("heading").boundingBox();
     expect((title?.x ?? 0) + (title?.width ?? 0)).toBeLessThanOrEqual(
       (box?.x ?? 0) + (box?.width ?? 0) + 1,
     );
@@ -235,16 +235,16 @@ test.describe("Ticket card", () => {
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.reload();
-      const card = ticketIn(page, "Backlog", "Visible");
-      await expect(card).toBeVisible();
+      const ticket = ticketIn(page, "Backlog", "Visible");
+      await expect(ticket).toBeVisible();
       const background = (el: Locator) =>
         el.evaluate((node) => getComputedStyle(node).backgroundColor);
       const colors = {
         page: await background(page.locator("body")),
         lane: await background(lane(page, "Backlog")),
-        card: await background(card),
+        ticket: await background(ticket),
       };
-      expect(colors.card).not.toBe(colors.lane);
+      expect(colors.ticket).not.toBe(colors.lane);
       expect(colors.lane).not.toBe(colors.page);
     }
   });
@@ -271,10 +271,10 @@ test.describe("create Ticket dialog", () => {
     await dialog.getByRole("button", { name: "Create ticket" }).click();
 
     await expect(dialog).toBeHidden();
-    const card = ticketIn(page, "Backlog", "Fix rounding");
-    await expect(card).toBeVisible();
-    await expect(card.getByText("Urgent", { exact: true })).toBeVisible();
-    await expect(card.getByText("Checkout", { exact: true })).toBeVisible();
+    const ticket = ticketIn(page, "Backlog", "Fix rounding");
+    await expect(ticket).toBeVisible();
+    await expect(ticket.getByText("Urgent", { exact: true })).toBeVisible();
+    await expect(ticket.getByText("Checkout", { exact: true })).toBeVisible();
     // It lands at the bottom of Backlog.
     expect(await titlesIn(page, "Backlog")).toEqual(["Checkout", "Payments", "Fix rounding"]);
 
@@ -353,9 +353,9 @@ test("fits the viewport: Statuses scroll sideways on a phone, and all show on a 
     expect(await scroller.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
     const first = await lane(page, "Backlog").boundingBox();
     expect(first?.x).toBeGreaterThanOrEqual(0);
-    const card = await ticketIn(page, "Backlog", "Ticket 1").boundingBox();
-    expect(card?.width).toBeGreaterThanOrEqual(width * 0.8);
-    expect(card?.x).toBeGreaterThanOrEqual(0);
+    const ticket = await ticketIn(page, "Backlog", "Ticket 1").boundingBox();
+    expect(ticket?.width).toBeGreaterThanOrEqual(width * 0.8);
+    expect(ticket?.x).toBeGreaterThanOrEqual(0);
 
     await lane(page, "Done").scrollIntoViewIfNeeded();
     await expect(lane(page, "Done")).toBeInViewport({ ratio: 0.9 });

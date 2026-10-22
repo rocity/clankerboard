@@ -24,12 +24,13 @@ type Props = {
 
 /**
  * Creates a key and shows it. The key lives only in this dialog's state: it is
- * not put in the query cache, and closing the dialog forgets it for good.
+ * not put in the query cache, and closing the dialog forgets it for good. While
+ * the key is on screen only Done and the close button close the dialog.
  */
 export function CreateKeyDialog({ agent, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const config = useQuery(configQuery);
-  const [secret, setSecret] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +49,7 @@ export function CreateKeyDialog({ agent, open, onOpenChange }: Props) {
       const created = await unwrap(
         api.agents[":agentId"].keys.$post({ param: { agentId: agent.id }, json: parsed.data }),
       );
-      setSecret(created.secret);
+      setApiKey(created.secret);
       await queryClient.invalidateQueries({ queryKey: ["agents"] });
     } catch (err) {
       setError(errorMessage(err));
@@ -60,15 +61,25 @@ export function CreateKeyDialog({ agent, open, onOpenChange }: Props) {
   function close(next: boolean) {
     onOpenChange(next);
     if (!next) {
-      setSecret(null);
+      setApiKey(null);
       setError(null);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        {secret === null ? (
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+        // The key is shown once. An outside click or Escape must not throw it away;
+        // only Done (or the close button) does.
+        onInteractOutside={(event) => {
+          if (apiKey !== null) event.preventDefault();
+        }}
+        onEscapeKeyDown={(event) => {
+          if (apiKey !== null) event.preventDefault();
+        }}
+      >
+        {apiKey === null ? (
           <>
             <DialogHeader>
               <DialogTitle>Create key</DialogTitle>
@@ -110,12 +121,12 @@ export function CreateKeyDialog({ agent, open, onOpenChange }: Props) {
                 <Input
                   id="api-key"
                   readOnly
-                  value={secret}
+                  value={apiKey}
                   onFocus={(event) => event.currentTarget.select()}
                   className="h-11 min-w-0 font-mono text-base md:h-9 md:text-xs"
                 />
                 <CopyButton
-                  text={secret}
+                  text={apiKey}
                   label="Copy key"
                   variant="default"
                   className="h-11 md:h-9"
@@ -123,7 +134,7 @@ export function CreateKeyDialog({ agent, open, onOpenChange }: Props) {
               </div>
             </div>
             {config.data ? (
-              <SetupSnippets publicUrl={config.data.publicUrl} secret={secret} />
+              <SetupSnippets publicUrl={config.data.publicUrl} apiKey={apiKey} />
             ) : (
               <p role="status" className="text-sm text-muted-foreground">
                 {config.isError ? "Could not load the setup steps." : "Loading setup steps."}

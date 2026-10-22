@@ -24,7 +24,7 @@ const isStatusData = (data: Record<string | symbol, unknown>): data is StatusDro
   data.type === "status";
 
 /**
- * The Board of one Project: a Status per column, each in rank order. A Ticket
+ * The Board of one Project: one lane per Status, each in rank order. A Ticket
  * can be dragged within a Status or to another one. The drop is the only thing
  * the board handles: it works out where the Ticket landed and hands that to
  * `moveTicket`, which updates the cache at once and asks the server.
@@ -90,7 +90,7 @@ export function Board({ projectKey, filters = {} }: Props) {
     return error ? (
       <div role="alert" className="grid justify-items-start gap-2 text-sm">
         <p>The board did not load.</p>
-        <button type="button" className="underline" onClick={() => refetch()}>
+        <button type="button" className="min-h-11 underline md:min-h-0" onClick={() => refetch()}>
           Try again
         </button>
       </div>

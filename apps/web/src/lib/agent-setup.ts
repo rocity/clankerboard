@@ -9,8 +9,8 @@ export function mcpUrl(publicUrl: string) {
 }
 
 /** The command that registers this server in Claude Code, with the key filled in. */
-export function addCommand(publicUrl: string, secret: string) {
-  return `claude mcp add --transport http ${serverName} ${mcpUrl(publicUrl)} --header "Authorization: Bearer ${secret}"`;
+export function addCommand(publicUrl: string, apiKey: string) {
+  return `claude mcp add --transport http ${serverName} ${mcpUrl(publicUrl)} --header "Authorization: Bearer ${apiKey}"`;
 }
 
 /** A `.mcp.json` that reads the key from the environment, so the file is safe to commit. */
@@ -30,6 +30,6 @@ export function mcpJson(publicUrl: string) {
   );
 }
 
-export function exportLine(secret: string) {
-  return `export ${keyEnvVar}=${secret}`;
+export function exportLine(apiKey: string) {
+  return `export ${keyEnvVar}=${apiKey}`;
 }

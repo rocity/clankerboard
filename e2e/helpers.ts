@@ -221,7 +221,7 @@ export async function listTickets(page: Page, projectKey: string) {
   return ((await res.json()) as { tickets: TicketRow[] }).tickets;
 }
 
-/** An API Key for an Agent of the signed-in User. The secret is shown only here. */
+/** An API Key for an Agent of the signed-in User. The key is shown only here. */
 export async function createApiKey(page: Page, agentId: string) {
   const body = await post<{ secret: string }>(page, `/api/agents/${agentId}/keys`, {
     label: "e2e",
@@ -229,11 +229,11 @@ export async function createApiKey(page: Page, agentId: string) {
   return body.secret;
 }
 
-/** A request context that acts as the Agent holding `secret`, never as a signed-in User. */
-export function actAsAgent(secret: string): Promise<APIRequestContext> {
+/** A request context that acts as the Agent holding `apiKey`, never as a signed-in User. */
+export function actAsAgent(apiKey: string): Promise<APIRequestContext> {
   return request.newContext({
     baseURL: test.info().project.use.baseURL,
-    extraHTTPHeaders: { authorization: `Bearer ${secret}` },
+    extraHTTPHeaders: { authorization: `Bearer ${apiKey}` },
   });
 }
 
@@ -243,10 +243,10 @@ export async function addComment(page: Page, key: string, body: string) {
 }
 
 /**
- * An MCP client for the Agent holding `secret`, over real HTTP like Claude Code
+ * An MCP client for the Agent holding `apiKey`, over real HTTP like Claude Code
  * would use it. Call `tool` to run a tool, and `close` when done.
  */
-export async function connectMcp(secret: string) {
+export async function connectMcp(apiKey: string) {
   const baseURL = test.info().project.use.baseURL;
   const client = new Client(
     { name: "clankerboard-e2e", version: "0.0.0" },
@@ -254,7 +254,7 @@ export async function connectMcp(secret: string) {
   );
   await client.connect(
     new StreamableHTTPClientTransport(new URL("/mcp", baseURL), {
-      requestInit: { headers: { authorization: `Bearer ${secret}` } },
+      requestInit: { headers: { authorization: `Bearer ${apiKey}` } },
     }),
   );
   return {

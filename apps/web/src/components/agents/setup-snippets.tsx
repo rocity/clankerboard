@@ -27,11 +27,11 @@ function Step({ children }: { children: ReactNode }) {
 
 type Props = {
   publicUrl: string;
-  secret: string;
+  apiKey: string;
 };
 
 /** Ready-to-paste Claude Code setup for a new key, pointing at this server. */
-export function SetupSnippets({ publicUrl, secret }: Props) {
+export function SetupSnippets({ publicUrl, apiKey }: Props) {
   return (
     <Tabs defaultValue="command">
       <TabsList className="w-full">
@@ -44,13 +44,13 @@ export function SetupSnippets({ publicUrl, secret }: Props) {
       </TabsList>
       <TabsContent value="command" className="grid gap-3">
         <Step>Run this in your project.</Step>
-        <Snippet text={addCommand(publicUrl, secret)} label="Copy command" wrap />
+        <Snippet text={addCommand(publicUrl, apiKey)} label="Copy command" wrap />
       </TabsContent>
       <TabsContent value="file" className="grid gap-3">
         <Step>Add this to .mcp.json in your project. It is safe to commit.</Step>
         <Snippet text={mcpJson(publicUrl)} label="Copy .mcp.json" />
         <Step>Then set the key where Claude Code runs.</Step>
-        <Snippet text={exportLine(secret)} label="Copy export" wrap />
+        <Snippet text={exportLine(apiKey)} label="Copy export" wrap />
       </TabsContent>
     </Tabs>
   );

@@ -147,8 +147,8 @@ async function flow3(page: Page, name: string) {
     .click();
   await page.getByLabel("Label").fill("laptop");
   await page.getByRole("button", { name: "Create key" }).click();
-  const secret = await page.getByRole("dialog").getByLabel("API key").inputValue();
-  expect(secret).toMatch(/^cb_/);
+  const apiKey = await page.getByRole("dialog").getByLabel("API key").inputValue();
+  expect(apiKey).toMatch(/^cb_/);
 
   await openBoard(page, ["Ship the board", "Write the docs"]);
   await page.evaluate(() => {
@@ -160,13 +160,13 @@ async function flow3(page: Page, name: string) {
   await lane(page, "In Progress").scrollIntoViewIfNeeded();
   await shot(page, `${name}-before`);
 
-  const mcp = await connectMcp(secret);
+  const mcp = await connectMcp(apiKey);
   await mcp.tool("claim_ticket", { key: "PLAT-1" });
 
-  const card = ticketIn(page, "In Progress", "Ship the board");
-  await expect(card).toBeVisible();
-  await expect(card.getByTestId("assignee")).toContainText("Claude-1");
-  await expect(card.getByRole("img", { name: "Agent" })).toBeVisible();
+  const ticket = ticketIn(page, "In Progress", "Ship the board");
+  await expect(ticket).toBeVisible();
+  await expect(ticket.getByTestId("assignee")).toContainText("Claude-1");
+  await expect(ticket.getByRole("img", { name: "Agent" })).toBeVisible();
   await expect(ticketIn(page, "Backlog", "Ship the board")).toHaveCount(0);
   await expect(ticketIn(page, "Backlog", "Write the docs")).toBeVisible();
   // The change is marked for a moment because someone else made it.
@@ -435,11 +435,11 @@ test("switching Company switches the stream", async ({ page }) => {
   await createCompany(page, "Acme Robotics");
   await createProject(page, { name: "Platform", key: "PLAT" });
   await createTicket(page, { projectKey: "PLAT", title: "Acme task" });
-  const acmeAgent = await agentOverMcp(page, "Acme-Bot");
+  const acmeAgent = await agentOverMcp(page, "Acme-Agent");
   await createCompany(page, "Globex");
   await createProject(page, { name: "Platform", key: "PLAT" });
   await createTicket(page, { projectKey: "PLAT", title: "Globex task" });
-  const globexAgent = await agentOverMcp(page, "Globex-Bot");
+  const globexAgent = await agentOverMcp(page, "Globex-Agent");
 
   await page.goto("/acme-robotics/projects/PLAT");
   await expect(ticketIn(page, "Backlog", "Acme task")).toBeVisible();
