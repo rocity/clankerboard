@@ -35,6 +35,8 @@ const ticketChanges = [
 /** Every named event the stream sends besides `resync` and `unauthorized`. */
 export const activityKinds = [
   ...ticketChanges,
+  "ticket.linked",
+  "ticket.unlinked",
   "ticket.deleted",
   "comment.added",
   "project.created",
@@ -102,6 +104,11 @@ export function applyLiveEvent(queryClient: QueryClient, { activity, ticket }: L
   if (kind !== "comment.added") {
     // A Parent's children change when a Ticket is created, re-parented, archived, or deleted.
     void queryClient.invalidateQueries({ queryKey: ["tickets", "children"] });
+    // Links show the other Ticket's title, Status, and archived mark, so any change to a
+    // Ticket can change another Ticket's Links. `ticket.linked` and `ticket.unlinked`
+    // land on both Tickets. Only an open panel's Links (and an open picker) refetch.
+    void queryClient.invalidateQueries({ queryKey: ["tickets", "links"] });
+    void queryClient.invalidateQueries({ queryKey: ticketKeys.company });
   }
 }
 

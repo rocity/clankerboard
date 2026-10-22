@@ -8,6 +8,11 @@
   { "term": "link", "phrase": "emailed the link", "reason": "The Invite link" },
   { "term": "link", "phrase": "This link expires", "reason": "The Invite link" },
   {
+    "term": "link",
+    "phrase": "removed the link to",
+    "reason": "A Ticket Link, not a Parent link; Spec 07's Timeline copy"
+  },
+  {
     "term": "owner",
     "phrase": "agent's owner",
     "reason": "A User owns an Agent (GLOSSARY.md, Agent)"

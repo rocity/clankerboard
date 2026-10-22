@@ -33,6 +33,44 @@ function describeChange(field: string, change: Change) {
   }
 }
 
+/** A Ticket Link being added, as seen from the Ticket whose Timeline it is on. */
+function describeLinked(kind: unknown, other: string) {
+  switch (kind) {
+    case "blocked_by":
+      return `marked this as blocked by ${other}`;
+    case "blocks":
+      return `marked this as blocking ${other}`;
+    default:
+      return `linked this to ${other}`;
+  }
+}
+
+/**
+ * What another Ticket's change did, as the first half of a Blocked transition:
+ * "moved CB-3 to Done", then ", so this is no longer blocked".
+ */
+function describeCause(reason: unknown, other: string | null) {
+  if (!other) return "changed a blocking ticket";
+  switch (reason) {
+    case "done":
+      return `moved ${other} to Done`;
+    case "reopened":
+      return `moved ${other} out of Done`;
+    case "archived":
+      return `archived ${other}`;
+    case "restored":
+      return `restored ${other}`;
+    case "deleted":
+      return `deleted ${other}`;
+    case "linked":
+      return `marked ${other} as blocking this`;
+    case "unlinked":
+      return `removed the link to ${other}`;
+    default:
+      return `changed ${other}`;
+  }
+}
+
 /**
  * What an Activity says, to follow the Actor's name: "moved this from To Do to
  * In Progress". `actorName` turns an Actor reference (type and id only, as
@@ -43,6 +81,8 @@ export function describeActivity(
   payload: Record<string, unknown>,
   actorName: (ref: ActorRef) => string,
 ) {
+  // Ticket Link and Blocked Activity name the other Ticket here.
+  const other = typeof payload.ticket === "string" ? payload.ticket : null;
   switch (kind) {
     case "ticket.created":
       return "created this ticket";
@@ -73,6 +113,14 @@ export function describeActivity(
       return typeof payload.parent === "string"
         ? `detached this from ${payload.parent}`
         : "detached this from its parent";
+    case "ticket.linked":
+      return describeLinked(payload.kind, other ?? "another ticket");
+    case "ticket.unlinked":
+      return `removed the link to ${other ?? "another ticket"}`;
+    case "ticket.blocked":
+      return `${describeCause(payload.reason, other)}, so this is blocked`;
+    case "ticket.unblocked":
+      return `${describeCause(payload.reason, other)}, so this is no longer blocked`;
     default:
       return "changed this ticket";
   }
