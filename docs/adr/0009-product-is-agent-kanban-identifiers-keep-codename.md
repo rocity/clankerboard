@@ -8,9 +8,9 @@ Every piece of text an end user reads names the product **Agent Kanban** (Spec 0
 - **Browser storage keys** `clankerboard-theme` and `clankerboard-last-company`. Renaming them resets every returning User's theme (with a flash of the wrong one) and the Company they land in.
 - **The `@clankerboard/*` package scope.** Internal to the monorepo; renaming it touches every import for no visible gain.
 - **Docker and database names**: the Compose project name, database names, and credentials. Renaming them forces self-hosting operators to migrate or reconfigure a working deployment.
-- **Test fixtures and test client names**, including Projects named "Clankerboard". That is fixture data, not branding.
+- **Test fixtures and test MCP client names**, including Projects named "Clankerboard". That is fixture data, not branding.
 
-The Agent prompt therefore reads "the Agent Kanban project ... through the "clankerboard" MCP server". The mix is accepted: the server name is an identifier the User types, and it must match what the Agents page tells them to register.
+The Agent prompt therefore reads "the Agent Kanban Project ... through the "clankerboard" MCP server". The mix is accepted: the server name is an identifier the User types, and it must match what the Agents page tells them to register.
 
 ## Consequences
 
