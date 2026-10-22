@@ -333,6 +333,44 @@ test.describe("create Ticket dialog", () => {
   });
 });
 
+test.describe("Agent prompt dialog", () => {
+  test.use({ permissions: ["clipboard-read", "clipboard-write"] });
+
+  test("sits above Create ticket", async ({ page }) => {
+    await openBoard(page);
+    const prompt = await page.getByRole("button", { name: "Agent prompt" }).boundingBox();
+    const create = await page.getByRole("button", { name: "Create ticket" }).boundingBox();
+    expect(prompt).not.toBeNull();
+    expect((prompt?.y ?? 0) + (prompt?.height ?? 0)).toBeLessThanOrEqual(create?.y ?? 0);
+  });
+
+  test("copies a prompt for this Project that connects to this server without an API Key", async ({
+    page,
+    baseURL,
+  }) => {
+    await openBoard(page);
+    await page.getByRole("button", { name: "Agent prompt" }).click();
+    const dialog = page.getByRole("dialog", { name: "Agent prompt" });
+    const prompt = dialog.locator("pre");
+
+    await expect(prompt).toContainText('"Platform" (Project Key PLAT)');
+    await expect(prompt).toContainText(`${baseURL}/acme-robotics/projects/PLAT`);
+    await expect(prompt).toContainText(`${baseURL}/acme-robotics/agents`);
+    await expect(prompt).toContainText(
+      `claude mcp add --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer <API key>"`,
+    );
+    await expect(prompt).toContainText(
+      "list_tickets with projectKey PLAT, status todo, and assignee unassigned",
+    );
+
+    await dialog.getByRole("button", { name: "Copy prompt" }).click();
+    await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      await prompt.textContent(),
+    );
+  });
+});
+
 test("fits the viewport: Statuses scroll sideways on a phone, and all show on a desktop", async ({
   page,
 }) => {
