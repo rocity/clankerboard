@@ -37,6 +37,12 @@ export const ticketKeys = {
     filters === undefined
       ? (["tickets", "board", projectKey] as const)
       : (["tickets", "board", projectKey, normalize(filters)] as const),
+  // The open Ticket and what hangs off it. Each is its own key, not a prefix of
+  // another, so `setQueryData` on one never touches the others (06-08 patches
+  // `detail` from a snapshot and refetches `timeline` on `comment.added`).
+  detail: (key: string) => ["tickets", "detail", key] as const,
+  timeline: (key: string) => ["tickets", "timeline", key] as const,
+  children: (key: string) => ["tickets", "children", key] as const,
 };
 
 const pageSize = 200;
@@ -64,11 +70,18 @@ export const ticketsQuery = (projectKey: string, filters: BoardFilters = {}) =>
     queryFn: () => loadTickets(projectKey, filters),
   });
 
-/** Applies a Ticket snapshot to every cached view of its Project's board. */
+/**
+ * Applies a Ticket snapshot to every cached view of its Project's board and to
+ * the open Ticket's own entry, unless that holds a newer snapshot.
+ */
 export function putTicket(queryClient: QueryClient, ticket: TicketData) {
   queryClient.setQueriesData<TicketData[]>(
     { queryKey: ticketKeys.board(ticket.projectKey) },
     (held) => held && withTicket(held, ticket),
+  );
+  queryClient.setQueryData<TicketData>(
+    ticketKeys.detail(ticket.key),
+    (held) => held && (held.updatedAt > ticket.updatedAt ? held : ticket),
   );
 }
 
