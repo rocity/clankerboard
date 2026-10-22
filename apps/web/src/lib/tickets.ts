@@ -18,6 +18,11 @@ export type BoardFilters = {
   q?: string;
 };
 
+/** True when the filters hide some of a Project's Tickets. */
+export function isFiltered(filters: BoardFilters) {
+  return Object.keys(normalize(filters)).length > 0;
+}
+
 /** Drops empty values and fixes the key order, so equal filters share one cache entry. */
 function normalize(filters: BoardFilters): BoardFilters {
   const entries = Object.entries(filters).filter(

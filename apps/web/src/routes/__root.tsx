@@ -2,11 +2,21 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Link, Outlet } from "@tanstack/react-router";
 import { AuthLayout } from "@/components/auth-layout";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  component: Outlet,
+  component: RootLayout,
   notFoundComponent: NotFound,
 });
+
+function RootLayout() {
+  return (
+    <>
+      <Outlet />
+      <Toaster />
+    </>
+  );
+}
 
 function NotFound() {
   return (

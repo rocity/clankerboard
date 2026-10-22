@@ -4,6 +4,7 @@ export * from "./invites";
 export * from "./members";
 export * from "./permissions";
 export * from "./projects";
+export * from "./rank";
 export * from "./roles";
 export * from "./teams";
 export * from "./tickets";

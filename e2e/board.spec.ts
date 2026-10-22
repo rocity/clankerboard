@@ -54,6 +54,7 @@ test("shows the five Statuses in workflow order, with a count each", async ({ pa
 
   await expect(lane(page, "Done")).toBeAttached();
   const names = await page
+    .getByTestId("board-scroller")
     .getByRole("region")
     .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
   expect(names).toEqual(statusLabels);
@@ -73,6 +74,7 @@ test("lists each Status's Tickets in the server's rank order", async ({ page }) 
   for (const key of keys.slice(7)) await moveTicket(page, key, "review");
   await moveTicket(page, keys[8] as string, "review", 0);
   await page.reload();
+  await expect(page.getByRole("article")).toHaveCount(10);
 
   const expected = await listTickets(page, "PLAT");
   for (const label of statusLabels) {
