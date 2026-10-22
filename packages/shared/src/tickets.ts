@@ -4,6 +4,11 @@ import { projectKey } from "./projects";
 export const ticketTypes = ["epic", "story", "task", "bug"] as const;
 export const ticketStatuses = ["backlog", "todo", "in_progress", "review", "done"] as const;
 export const ticketPriorities = ["low", "medium", "high", "urgent"] as const;
+/** How a Ticket Link is stored. `blocked_by` is only an input: it is stored as the reverse Blocks row. */
+export const ticketLinkKinds = ["blocks", "relates_to"] as const;
+/** A Ticket Link's kind as seen from one of its Tickets, in the order Links are grouped. */
+export const ticketLinkViewKinds = ["blocked_by", "blocks", "relates_to"] as const;
+export type TicketLinkViewKind = (typeof ticketLinkViewKinds)[number];
 
 export const ticketType = z.enum(ticketTypes, { error: "Pick epic, story, task, or bug." });
 export const ticketStatus = z.enum(ticketStatuses, {
@@ -54,6 +59,15 @@ const description = z
   .string({ error: "Descriptions are Markdown text." })
   .max(50_000, { error: "Descriptions can be up to 50,000 characters." });
 
+const estimateError = { error: "Estimates are whole numbers from 0 to 100." };
+
+/** Points from 0 to 100. Null is blank, which is not the same as 0. */
+export const ticketEstimate = z
+  .number(estimateError)
+  .int(estimateError)
+  .min(0, estimateError)
+  .max(100, estimateError);
+
 export const createTicketInput = z.object({
   projectKey,
   title,
@@ -61,6 +75,7 @@ export const createTicketInput = z.object({
   type: ticketType,
   priority: ticketPriority.default("medium"),
   parentKey: ticketKey.nullish(),
+  estimate: ticketEstimate.nullable().default(null),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -71,6 +86,8 @@ export const updateTicketInput = z.object({
   priority: ticketPriority.optional(),
   /** Null clears the Parent. */
   parentKey: ticketKey.nullable().optional(),
+  /** Null clears the Estimate. */
+  estimate: ticketEstimate.nullable().optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 
@@ -86,6 +103,13 @@ export const moveTicketInput = z.object({
   position: z.number(positionError).int(positionError).min(0, positionError).optional(),
 });
 export type MoveTicketInput = z.infer<typeof moveTicketInput>;
+
+/** Links the Ticket in the path to `target`. `blocked_by` is stored as `target` blocks it. */
+export const linkTicketsInput = z.object({
+  kind: z.enum(ticketLinkViewKinds, { error: "Pick blocks, blocked_by, or relates_to." }),
+  target: ticketKey,
+});
+export type LinkTicketsInput = z.infer<typeof linkTicketsInput>;
 
 export const actorRefInput = z.object(
   {
@@ -141,6 +165,11 @@ export const listTicketsQuery = z.object({
   /** Free text over title and description. */
   q: z.string().trim().max(200).optional(),
   archived: archivedFilter,
+  /** Only Blocked Tickets (true) or only unblocked ones (false). */
+  blocked: z
+    .enum(["true", "false"], { error: "Use blocked=true or blocked=false." })
+    .transform((value) => value === "true")
+    .optional(),
   limit: z.coerce
     .number(limitError)
     .int(limitError)

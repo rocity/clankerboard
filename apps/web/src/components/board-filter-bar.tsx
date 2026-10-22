@@ -204,6 +204,19 @@ export function BoardFilterBar({
             )}
           </NativeSelect>
         </Field>
+        <Field id="filter-blocked" label="Blocked">
+          <NativeSelect
+            id="filter-blocked"
+            value={search.blocked ?? ""}
+            onChange={(e) =>
+              onChange({ blocked: (e.target.value || undefined) as BoardSearch["blocked"] })
+            }
+          >
+            <option value="">Any</option>
+            <option value="only">Only blocked</option>
+            <option value="hide">Hide blocked</option>
+          </NativeSelect>
+        </Field>
         <Label
           htmlFor="filter-archived"
           className="col-span-2 min-h-11 cursor-pointer gap-2.5 text-sm md:col-span-1 md:min-h-9"

@@ -4,12 +4,26 @@ import type {
   TicketPriority,
   TicketStatus,
 } from "@clankerboard/shared";
-import { and, asc, desc, eq, gte, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  isNotNull,
+  isNull,
+  ne,
+  not,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { invalid } from "./errors";
 import { canSeeProject } from "./permissions";
 import {
   findTicket,
+  isBlocked,
   projects,
   selectTickets,
   type TicketRow,
@@ -140,6 +154,7 @@ export async function listTickets(
         filter.assignee ? assigneeCondition(filter.assignee) : undefined,
         parent ? eq(tickets.parentId, parent.id) : undefined,
         filter.teamId ? eq(projects.teamId, filter.teamId) : undefined,
+        filter.blocked === undefined ? undefined : filter.blocked ? isBlocked() : not(isBlocked()),
         filter.q
           ? sql`${tickets.search} @@ websearch_to_tsquery('english', ${filter.q})`
           : undefined,

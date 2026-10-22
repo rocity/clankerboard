@@ -1,6 +1,7 @@
 import {
   companyRoles,
   teamRoles,
+  ticketLinkKinds,
   ticketPriorities,
   ticketStatuses,
   ticketTypes,
@@ -290,6 +291,8 @@ export const tickets = pgTable(
     type: ticketType().notNull(),
     status: ticketStatus().notNull().default("backlog"),
     priority: ticketPriority().notNull().default("medium"),
+    /** Points from 0 to 100. Null means blank (not sized), which is distinct from 0. */
+    estimate: integer(),
     /** Fractional-index position within the Ticket's Status column. */
     rank: rankText().notNull(),
     assigneeUserId: actorUser(),
@@ -315,6 +318,47 @@ export const tickets = pgTable(
     ),
     check(
       "tickets_one_creator",
+      sql`num_nonnulls(${t.createdByUserId}, ${t.createdByAgentId}) = 1`,
+    ),
+    check("tickets_estimate_range", sql`${t.estimate} between 0 and 100`),
+  ],
+);
+
+export const ticketLinkKind = pgEnum("ticket_link_kind", ticketLinkKinds);
+
+// A connection between two Tickets other than Parent (Spec 07). For Blocks,
+// "from" blocks "to". Relates to is symmetric and stored once per pair. The
+// Ticket Links domain module owns the rules; Blocked is derived from these rows.
+export const ticketLinks = pgTable(
+  "ticket_links",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    // Cascade, so hard-deleting a Ticket removes its Links.
+    fromTicketId: text()
+      .notNull()
+      .references(() => tickets.id, { onDelete: "cascade" }),
+    toTicketId: text()
+      .notNull()
+      .references(() => tickets.id, { onDelete: "cascade" }),
+    kind: ticketLinkKind().notNull(),
+    createdByUserId: actorUser(),
+    createdByAgentId: actorAgent(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One Link per pair of Tickets, whatever its kind or direction.
+    uniqueIndex("ticket_links_pair_unique").on(
+      sql`least(${t.fromTicketId}, ${t.toTicketId})`,
+      sql`greatest(${t.fromTicketId}, ${t.toTicketId})`,
+    ),
+    index().on(t.fromTicketId),
+    index().on(t.toTicketId),
+    check("ticket_links_not_self", sql`${t.fromTicketId} <> ${t.toTicketId}`),
+    check(
+      "ticket_links_one_creator",
       sql`num_nonnulls(${t.createdByUserId}, ${t.createdByAgentId}) = 1`,
     ),
   ],

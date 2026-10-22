@@ -1,6 +1,7 @@
 import type { Tx } from "@clankerboard/db";
 import { eq } from "drizzle-orm";
 import { type RecordActivity, withActivity } from "./activity";
+import { watchDependents } from "./blocked";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict } from "./errors";
 import { assertMayArchive, assertMayHardDelete } from "./permissions";
@@ -48,9 +49,11 @@ export async function archiveTicket(
     const row = await findTicket(tx, ctx, key, true);
     if (row.archivedAt) throw conflict("This ticket is already archived.");
     const now = deps.clock.now();
+    const recordFlips = await watchDependents(tx, row);
     const detached = await detachChildren(tx, row, record);
     const view = await saveTicket(tx, row, { archivedAt: now, updatedAt: now });
     await record(ticketActivity(row, "ticket.archived", { detached }));
+    await recordFlips(record, "archived");
     return view;
   });
 }
@@ -65,8 +68,10 @@ export async function restoreTicket(
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
     if (!row.archivedAt) throw conflict("This ticket isn't archived.");
+    const recordFlips = await watchDependents(tx, row);
     const view = await saveTicket(tx, row, { archivedAt: null, updatedAt: deps.clock.now() });
     await record(ticketActivity(row, "ticket.restored"));
+    await recordFlips(record, "restored");
     return view;
   });
 }
@@ -79,6 +84,8 @@ export async function deleteTicket(deps: DomainDeps, ctx: CompanyContext, key: s
   assertMayHardDelete(ctx);
   await withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
+    // Its Links go with it, by cascade, so a Ticket it blocked may be unblocked.
+    const recordFlips = await watchDependents(tx, row);
     await detachChildren(tx, row, record);
     await tx.delete(tickets).where(eq(tickets.id, row.id));
     await record({
@@ -88,5 +95,6 @@ export async function deleteTicket(deps: DomainDeps, ctx: CompanyContext, key: s
       // Only the key: the point of a hard delete is that the content is gone.
       payload: { ticketKey: ticketKeyOf(row) },
     });
+    await recordFlips(record, "deleted");
   });
 }
