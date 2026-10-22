@@ -16,3 +16,13 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **`list_projects`** returns only Project Key, name, and Team, to save context.
 - **Read-only tools** carry `readOnlyHint: true`.
 - **Version:** from `apps/server/package.json`, which now has a `version` (0.1.0). The bundle inlines it.
+
+## 04-02
+
+- **Inputs** extend the shared `createTicketInput`, `updateTicketInput`, and `addCommentInput` (adding `key` and per-field descriptions), so REST and MCP validate alike. `move_ticket` reuses `ticketStatus`.
+- **`update_ticket` omits `type`.** The spec lists title, description, priority, and Parent only. `parentKey: null` clears the Parent.
+- **`move_ticket` requires a Status** and passes no place, so the domain puts the Ticket at the bottom, also when the Status is unchanged. No `after`/`before`/`position` for Agents.
+- **`add_comment` replies with a one-line confirmation**, not the body, since the model just wrote it. Structured content still carries the full Comment.
+- **Annotations:** every write tool has `readOnlyHint: false, destructiveHint: false`. `update_ticket` is also `idempotentHint: true`.
+- **Activity credit for Comments** is checked through the timeline's comment item (with its `activityId`), since a Comment stands in for its `comment.added` Activity there.
+- **Rule-violation tests** pin the adapter: the domain's messages come back verbatim as tool errors, and the board is unchanged. Updating or commenting on an archived Ticket is allowed by the domain, so only moves and archived Parents are errors.
