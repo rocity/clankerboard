@@ -1,4 +1,4 @@
-import type { CompanyRole } from "@clankerboard/shared";
+import { canHardDelete } from "@clankerboard/shared";
 import type { CompanyContext } from "./context";
 import { forbidden } from "./errors";
 
@@ -6,6 +6,7 @@ import { forbidden } from "./errors";
 // questions. This module adds the checks that need a request or a Project.
 export {
   canChangeRole,
+  canHardDelete,
   canInvite,
   canInviteToTeam,
   canListInvites,
@@ -18,8 +19,6 @@ export {
   canSetTeamRole,
   canUpdateCompany,
 } from "@clankerboard/shared";
-
-const isAdmin = (role: CompanyRole) => role === "owner" || role === "admin";
 
 /**
  * Whether the caller may see a Project, and so its Tickets and Activity. REST
@@ -34,7 +33,7 @@ export function canSeeProject(ctx: CompanyContext, project: { companyId: string 
 /** Hard-deleting a Project or Ticket is for owner and admin Users only. */
 export function assertMayHardDelete(ctx: CompanyContext) {
   assertMayDelete(ctx);
-  if (!isAdmin(ctx.role)) throw forbidden();
+  if (!canHardDelete(ctx.role)) throw forbidden();
 }
 
 /** Archiving and restoring are for Users, so every Agent change stays visible on the board. */

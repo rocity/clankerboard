@@ -1,4 +1,12 @@
-import { type Browser, expect, type Locator, type Page, test } from "@playwright/test";
+import {
+  type APIRequestContext,
+  type Browser,
+  expect,
+  type Locator,
+  type Page,
+  request,
+  test,
+} from "@playwright/test";
 
 export const password = "correct-horse-battery";
 
@@ -30,6 +38,50 @@ export async function createCompany(page: Page, name: string) {
 export async function companies(page: Page) {
   const res = await page.request.get("/api/companies");
   return (await res.json()) as { companies: CompanyRow[]; activeCompanyId: string | null };
+}
+
+type InviteRow = { id: string; email: string; role: string; status: string };
+
+/** Creates an Invite over HTTP as the signed-in User, for tests that do not exercise the Invite form. */
+export async function inviteByApi(
+  page: Page,
+  email: string,
+  options: { role?: string; teamId?: string } = {},
+) {
+  const res = await page.request.post("/api/invites", { data: { email, ...options } });
+  expect(res.status()).toBe(201);
+  return (await res.json()) as { invite: InviteRow; link: string };
+}
+
+/**
+ * Opens a fresh browser context for a new User and joins them to the Company through an
+ * Invite link, over HTTP. The returned page is signed in with that Company active.
+ */
+export async function joinByApi(
+  browser: Browser,
+  like: Page,
+  link: string,
+  user: { name: string; email: string },
+) {
+  const origin = new URL(link).origin;
+  const token = link.split("#")[1] ?? "";
+  const dark = await like.evaluate(() => matchMedia("(prefers-color-scheme: dark)").matches);
+  const context = await browser.newContext({
+    viewport: like.viewportSize(),
+    colorScheme: dark ? "dark" : "light",
+    permissions: ["clipboard-read", "clipboard-write"],
+  });
+  const signUpRes = await context.request.post(`${origin}/api/auth/sign-up/email`, {
+    data: { ...user, password },
+    headers: { origin, "x-invite-token": token },
+  });
+  expect(signUpRes.status()).toBe(200);
+  const acceptRes = await context.request.post(`${origin}/api/invite-links/accept`, {
+    data: { token },
+    headers: { origin },
+  });
+  expect(acceptRes.status()).toBe(200);
+  return { context, page: await context.newPage() };
 }
 
 /**
@@ -133,4 +185,25 @@ export async function assignTicket(
 export async function listTickets(page: Page, projectKey: string) {
   const res = await page.request.get(`/api/tickets?projectKey=${projectKey}&limit=200`);
   return ((await res.json()) as { tickets: TicketRow[] }).tickets;
+}
+
+/** An API Key for an Agent of the signed-in User. The secret is shown only here. */
+export async function createApiKey(page: Page, agentId: string) {
+  const body = await post<{ secret: string }>(page, `/api/agents/${agentId}/keys`, {
+    label: "e2e",
+  });
+  return body.secret;
+}
+
+/** A request context that acts as the Agent holding `secret`, never as a signed-in User. */
+export function actAsAgent(secret: string): Promise<APIRequestContext> {
+  return request.newContext({
+    baseURL: test.info().project.use.baseURL,
+    extraHTTPHeaders: { authorization: `Bearer ${secret}` },
+  });
+}
+
+/** Adds a Comment as the signed-in User. */
+export async function addComment(page: Page, key: string, body: string) {
+  return post<{ comment: { id: string } }>(page, `/api/tickets/${key}/comments`, { body });
 }

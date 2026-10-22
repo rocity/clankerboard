@@ -1,7 +1,10 @@
 import { statusLabels, type TicketStatus } from "@clankerboard/shared";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Link, useParams } from "@tanstack/react-router";
+import { RestoreTicketButton } from "@/components/restore-ticket-button";
 import { SortableTicket } from "@/components/sortable-ticket";
+import { TicketSummary } from "@/components/ticket-summary";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +27,7 @@ export const statusDropId = (status: TicketStatus) => `status:${status}`;
 export function StatusLane({ status, tickets, receiving }: Props) {
   const label = statusLabels[status];
   const { setNodeRef } = useDroppable({ id: statusDropId(status) });
+  const { companySlug, projectKey } = useParams({ from: "/$companySlug/projects/$projectKey" });
 
   return (
     <section
@@ -48,7 +52,22 @@ export function StatusLane({ status, tickets, receiving }: Props) {
         ) : (
           <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
             {tickets.map((ticket) => (
-              <SortableTicket key={ticket.key} ticket={ticket} />
+              <SortableTicket key={ticket.key} ticket={ticket}>
+                <Link
+                  to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
+                  params={{ companySlug, projectKey, ticketKey: ticket.key }}
+                  // The board's filters live in its search params, so opening a Ticket keeps them.
+                  search={(prev) => prev}
+                  // A link is dragged by the browser itself unless told otherwise, which would end our drag.
+                  draggable={false}
+                  className="block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  <TicketSummary ticket={ticket} />
+                </Link>
+                {ticket.archivedAt && (
+                  <RestoreTicketButton ticketKey={ticket.key} title={ticket.title} />
+                )}
+              </SortableTicket>
             ))}
           </ul>
         )}

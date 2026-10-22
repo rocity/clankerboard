@@ -42,15 +42,19 @@ export function groupByStatus(tickets: readonly TicketData[]): TicketsByStatus {
 
 /**
  * The Ticket list after one Ticket changed: replaces the entry with the same
- * key, or adds it. An archived Ticket leaves the board. A snapshot older than
- * the one already held is ignored, so a late echo cannot undo a newer change.
+ * key, or adds it. When the Ticket no longer `belongs` in this view (it does not
+ * match the view's filters), it leaves instead. A snapshot older than the one
+ * already held is ignored, so a late echo cannot undo a newer change.
  */
-export function withTicket(tickets: readonly TicketData[], ticket: TicketData): TicketData[] {
+export function withTicket(
+  tickets: readonly TicketData[],
+  ticket: TicketData,
+  belongs = true,
+): TicketData[] {
   const without = tickets.filter((t) => t.key !== ticket.key);
   const held = tickets.find((t) => t.key === ticket.key);
   if (held && held.updatedAt > ticket.updatedAt) return [...tickets];
-  if (ticket.archivedAt) return without;
-  return [...without, ticket];
+  return belongs ? [...without, ticket] : without;
 }
 
 /** The Ticket list without the Ticket with this key. */

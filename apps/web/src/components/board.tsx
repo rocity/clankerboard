@@ -113,7 +113,12 @@ const sameOrder = (a: Order, b: Order) => ticketStatuses.every((s) => a[s].join(
  * `moveTicket`), so the cache is touched once.
  */
 export function Board({ projectKey, filters = {} }: Props) {
-  const { data, error, refetch } = useQuery(ticketsQuery(projectKey, filters));
+  const { data, error, refetch, isPlaceholderData } = useQuery({
+    ...ticketsQuery(projectKey, filters),
+    // While a new filter loads, keep showing the last view of this Project instead of a blank.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[2] === projectKey ? previous : undefined,
+  });
   const queryClient = useQueryClient();
   const [held, setHeld] = useState<Order | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
@@ -229,14 +234,21 @@ export function Board({ projectKey, filters = {} }: Props) {
 
     if (sameOrder(final, orderOf(byStatus))) return setHeld(null);
     const at = dropped.indexOf(key);
-    const neighbour = (k: string | undefined) => (k ? (byKey.get(k) ?? null) : null);
+    // The server ranks between live Tickets, so an archived one is not a neighbour.
+    const neighbour = (step: -1 | 1) => {
+      for (let i = at + step; i >= 0 && i < dropped.length; i += step) {
+        const next = byKey.get(dropped[i] as string);
+        if (next && !next.archivedAt) return next;
+      }
+      return null;
+    };
     const count = dragCount.current;
     settling.current = true;
     setHeld(final);
     void moveTicket(
       queryClient,
       ticket,
-      { status, after: neighbour(dropped[at - 1]), before: neighbour(dropped[at + 1]) },
+      { status, after: neighbour(-1), before: neighbour(1) },
       { filtered: isFiltered(filters) },
     ).then(() => {
       // Normally the layout effect has cleared it already.
@@ -284,23 +296,31 @@ export function Board({ projectKey, filters = {} }: Props) {
         },
       }}
     >
-      <div
-        ref={scroller}
-        data-testid="board-scroller"
-        className={cn(
-          "-mx-4 flex scroll-px-4 gap-3 overflow-x-auto px-4 pb-4 md:mx-0 md:snap-none md:px-0",
-          // Snapping fights the scroll that carries a held Ticket to the next Status.
-          activeKey ? "snap-none" : "snap-x snap-mandatory",
+      <div className="grid gap-3">
+        {isFiltered(filters) && data.length === 0 && !isPlaceholderData && (
+          <p role="status" className="text-sm text-muted-foreground">
+            No tickets match these filters.
+          </p>
         )}
-      >
-        {ticketStatuses.map((status) => (
-          <StatusLane
-            key={status}
-            status={status}
-            receiving={receiving === status}
-            tickets={order[status].flatMap((key) => byKey.get(key) ?? [])}
-          />
-        ))}
+        <div
+          ref={scroller}
+          data-testid="board-scroller"
+          aria-busy={isPlaceholderData}
+          className={cn(
+            "-mx-4 flex scroll-px-4 gap-3 overflow-x-auto px-4 pb-4 transition-opacity aria-busy:opacity-60 md:mx-0 md:snap-none md:px-0",
+            // Snapping fights the scroll that carries a held Ticket to the next Status.
+            activeKey ? "snap-none" : "snap-x snap-mandatory",
+          )}
+        >
+          {ticketStatuses.map((status) => (
+            <StatusLane
+              key={status}
+              status={status}
+              receiving={receiving === status}
+              tickets={order[status].flatMap((key) => byKey.get(key) ?? [])}
+            />
+          ))}
+        </div>
       </div>
       <DragOverlay>
         {activeTicket && (

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { SquareKanban } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { CompanyNav } from "@/components/company-nav";
 import { CompanySwitcher } from "@/components/company-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -28,6 +29,7 @@ export function AppHeader({ companySlug }: { companySlug: string }) {
           <UserMenu />
         </div>
       </div>
+      <CompanyNav companySlug={companySlug} />
     </header>
   );
 }

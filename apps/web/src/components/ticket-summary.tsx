@@ -1,5 +1,5 @@
 import type { TicketType } from "@clankerboard/shared";
-import { BookOpen, Bot, Bug, CircleCheck, type LucideIcon, Zap } from "lucide-react";
+import { Archive, BookOpen, Bot, Bug, CircleCheck, type LucideIcon, Zap } from "lucide-react";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
@@ -74,26 +74,42 @@ function Assignee({ assignee }: { assignee: NonNullable<TicketData["assignee"]> 
  */
 export function TicketSummary({ ticket }: { ticket: TicketData }) {
   const loud = ticket.priority === "high" || ticket.priority === "urgent" ? ticket.priority : null;
+  const archived = ticket.archivedAt !== null;
 
   return (
     <article
       aria-label={ticket.title}
-      className="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border bg-card p-3 text-card-foreground shadow-sm dark:bg-secondary"
+      data-archived={archived || undefined}
+      className={cn(
+        "grid grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border bg-card p-3 text-card-foreground shadow-sm dark:bg-secondary",
+        // An archived Ticket is flat and dashed, so it reads as set aside.
+        archived && "border-dashed bg-transparent shadow-none dark:bg-transparent",
+      )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <div className="flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground">
           <TypeIcon type={ticket.type} />
           <span className="font-mono">{ticket.key}</span>
         </div>
-        {loud && (
-          <span
-            className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-              loudPriorities[loud].className,
+        {(archived || loud) && (
+          <div className="ml-auto flex items-center gap-1.5">
+            {archived && (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                <Archive aria-hidden className="size-3" />
+                Archived
+              </span>
             )}
-          >
-            {loudPriorities[loud].label}
-          </span>
+            {loud && (
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                  loudPriorities[loud].className,
+                )}
+              >
+                {loudPriorities[loud].label}
+              </span>
+            )}
+          </div>
         )}
       </div>
       <h3 className="text-base leading-snug font-semibold [overflow-wrap:anywhere] md:text-sm">

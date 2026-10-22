@@ -203,6 +203,8 @@ test("flow 1: sign up, create a Company, a Project and a Ticket, drag it to In P
   await expect(ticketIn(page, "In Progress", "Ship the board")).toBeVisible();
   await expect(ticketIn(page, "Backlog", "Ship the board")).toHaveCount(0);
   expect((await moved).status()).toBe(200);
+  // Letting go over a Ticket's link does not open it.
+  await expect(page).toHaveURL("/acme-robotics/projects/PLAT");
 
   await page.reload();
   await expect(ticketIn(page, "In Progress", "Ship the board")).toBeVisible();
@@ -467,9 +469,11 @@ test.describe("with touch", () => {
       await page.evaluate(() => window.scrollTo(0, 0));
       const scroller = page.getByTestId("board-scroller");
       const at = await scroller.evaluate((el) => el.scrollLeft);
-      await touch("touchStart", width * 0.8, 200);
+      const onTicket = await ticketIn(page, "Backlog", "A").boundingBox();
+      const y = (onTicket?.y ?? 200) + (onTicket?.height ?? 0) / 2;
+      await touch("touchStart", width * 0.8, y);
       for (let i = 1; i <= 10; i++) {
-        await touch("touchMove", width * 0.8 - i * 25, 200);
+        await touch("touchMove", width * 0.8 - i * 25, y);
         await page.waitForTimeout(10);
       }
       await touch("touchEnd", 0, 0);

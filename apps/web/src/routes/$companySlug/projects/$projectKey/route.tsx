@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
 import { ChevronLeft, UsersRound } from "lucide-react";
 import { Board } from "@/components/board";
+import { BoardFilterBar } from "@/components/board-filter-bar";
 import { CreateTicketDialog } from "@/components/create-ticket-dialog";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
+import { toBoardFilters, validateBoardSearch } from "@/lib/board-search";
 import { projectQuery } from "@/lib/projects";
+import { sessionQuery } from "@/lib/queries";
 import { ticketsQuery } from "@/lib/tickets";
 
 // A Project's board. Ticket routes (the detail panel) nest under this one, so
@@ -23,13 +26,20 @@ export const Route = createFileRoute("/$companySlug/projects/$projectKey")({
       throw error;
     }
   },
+  // Filters and search live in the URL, so a filtered view can be shared. They are
+  // inherited by the Ticket routes nested below, which share this board.
+  validateSearch: validateBoardSearch,
   component: ProjectBoard,
   notFoundComponent: ProjectNotFound,
 });
 
 function ProjectBoard() {
   const { companySlug, projectKey } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { data: project } = useQuery(projectQuery(projectKey));
+  const { data: me } = useQuery(sessionQuery);
+  const filters = toBoardFilters(search, me?.id);
 
   return (
     <div className="grid gap-4">
@@ -62,7 +72,13 @@ function ProjectBoard() {
           <CreateTicketDialog projectKey={projectKey} />
         </div>
       </div>
-      <Board projectKey={projectKey} />
+      <BoardFilterBar
+        projectKey={projectKey}
+        search={search}
+        onChange={(patch) => navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })}
+        onClear={() => navigate({ search: {}, replace: true })}
+      />
+      <Board projectKey={projectKey} filters={filters} />
       <Outlet />
     </div>
   );

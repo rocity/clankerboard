@@ -16,8 +16,10 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as CompanySlugIndexRouteImport } from './routes/$companySlug/index'
 import { Route as CompanySlugAgentsRouteImport } from './routes/$companySlug/agents'
+import { Route as CompanySlugMembersRouteImport } from './routes/$companySlug/members'
 import { Route as CompanySlugProjectsIndexRouteImport } from './routes/$companySlug/projects/index'
 import { Route as CompanySlugProjectsProjectKeyRouteRouteImport } from './routes/$companySlug/projects/$projectKey/route'
+import { Route as CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport } from './routes/$companySlug/projects/$projectKey/tickets/$ticketKey'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,6 +56,11 @@ const CompanySlugAgentsRoute = CompanySlugAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => CompanySlugRouteRoute,
 } as any)
+const CompanySlugMembersRoute = CompanySlugMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
 const CompanySlugProjectsIndexRoute =
   CompanySlugProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -66,6 +73,12 @@ const CompanySlugProjectsProjectKeyRouteRoute =
     path: '/projects/$projectKey',
     getParentRoute: () => CompanySlugRouteRoute,
   } as any)
+const CompanySlugProjectsProjectKeyTicketsTicketKeyRoute =
+  CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport.update({
+    id: '/tickets/$ticketKey',
+    path: '/tickets/$ticketKey',
+    getParentRoute: () => CompanySlugProjectsProjectKeyRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -74,9 +87,11 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
+  '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
-  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
+  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,9 +99,11 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
+  '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug': typeof CompanySlugIndexRoute
-  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
+  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   '/$companySlug/projects': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,9 +113,11 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
+  '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
-  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
+  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,9 +128,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/$companySlug/agents'
+    | '/$companySlug/members'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects/'
+    | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,9 +140,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/$companySlug/agents'
+    | '/$companySlug/members'
     | '/$companySlug'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects'
+    | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   id:
     | '__root__'
     | '/'
@@ -130,9 +153,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/$companySlug/agents'
+    | '/$companySlug/members'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects/'
+    | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -194,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugAgentsRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/members': {
+      id: '/$companySlug/members'
+      path: '/members'
+      fullPath: '/$companySlug/members'
+      preLoaderRoute: typeof CompanySlugMembersRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
     '/$companySlug/projects/': {
       id: '/$companySlug/projects/'
       path: '/projects'
@@ -208,21 +240,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugProjectsProjectKeyRouteRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/projects/$projectKey/tickets/$ticketKey': {
+      id: '/$companySlug/projects/$projectKey/tickets/$ticketKey'
+      path: '/tickets/$ticketKey'
+      fullPath: '/$companySlug/projects/$projectKey/tickets/$ticketKey'
+      preLoaderRoute: typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport
+      parentRoute: typeof CompanySlugProjectsProjectKeyRouteRoute
+    }
   }
 }
 
+interface CompanySlugProjectsProjectKeyRouteRouteChildren {
+  CompanySlugProjectsProjectKeyTicketsTicketKeyRoute: typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
+}
+
+const CompanySlugProjectsProjectKeyRouteRouteChildren: CompanySlugProjectsProjectKeyRouteRouteChildren =
+  {
+    CompanySlugProjectsProjectKeyTicketsTicketKeyRoute:
+      CompanySlugProjectsProjectKeyTicketsTicketKeyRoute,
+  }
+
+const CompanySlugProjectsProjectKeyRouteRouteWithChildren =
+  CompanySlugProjectsProjectKeyRouteRoute._addFileChildren(
+    CompanySlugProjectsProjectKeyRouteRouteChildren,
+  )
+
 interface CompanySlugRouteRouteChildren {
   CompanySlugAgentsRoute: typeof CompanySlugAgentsRoute
+  CompanySlugMembersRoute: typeof CompanySlugMembersRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
-  CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRoute
+  CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   CompanySlugProjectsIndexRoute: typeof CompanySlugProjectsIndexRoute
 }
 
 const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
   CompanySlugAgentsRoute: CompanySlugAgentsRoute,
+  CompanySlugMembersRoute: CompanySlugMembersRoute,
   CompanySlugIndexRoute: CompanySlugIndexRoute,
   CompanySlugProjectsProjectKeyRouteRoute:
-    CompanySlugProjectsProjectKeyRouteRoute,
+    CompanySlugProjectsProjectKeyRouteRouteWithChildren,
   CompanySlugProjectsIndexRoute: CompanySlugProjectsIndexRoute,
 }
 

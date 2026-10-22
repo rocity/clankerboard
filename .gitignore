@@ -2,6 +2,7 @@ __private/
 node_modules/
 dist/
 .env
+.env.local
 *.tsbuildinfo
 test-results/
 playwright-report/
