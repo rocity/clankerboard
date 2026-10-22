@@ -8,9 +8,14 @@ export function mcpUrl(publicUrl: string) {
   return `${publicUrl.replace(/\/+$/, "")}/mcp`;
 }
 
-/** The command that registers this server in Claude Code, with the key filled in. */
+/**
+ * The command that registers this server in Claude Code, with the key filled in.
+ * User scope makes it load in every session on the machine. Claude Code's
+ * default, local scope, ties it to the folder the command ran in, so sessions
+ * opened anywhere else don't have the tools.
+ */
 export function addCommand(publicUrl: string, apiKey: string) {
-  return `claude mcp add --transport http ${serverName} ${mcpUrl(publicUrl)} --header "Authorization: Bearer ${apiKey}"`;
+  return `claude mcp add --scope user --transport http ${serverName} ${mcpUrl(publicUrl)} --header "Authorization: Bearer ${apiKey}"`;
 }
 
 /** A `.mcp.json` that reads the key from the environment, so the file is safe to commit. */
@@ -54,7 +59,7 @@ export function agentPrompt({ publicUrl, companySlug, projectKey, projectName }:
 ## 1. Connect
 Check that the ${serverName} MCP tools (list_tickets, get_ticket, claim_ticket, and the rest) are available. If they are not:
 1. Ask me for an API Key. I create one for an Agent at ${base}/${companySlug}/agents.
-2. Run this command with the key in place of <API key>. Never write the key into a file in this repository.
+2. Run this command with the key in place of <API key>. It registers the server once for every Claude Code session on this machine, whatever folder it opens in. Never write the key into a file in this repository.
    ${addCommand(base, "<API key>")}
 3. Ask me to restart Claude Code so the tools load, then go on with step 2.
 

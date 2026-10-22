@@ -357,7 +357,7 @@ test.describe("Agent prompt dialog", () => {
     await expect(prompt).toContainText(`${baseURL}/acme-robotics/projects/PLAT`);
     await expect(prompt).toContainText(`${baseURL}/acme-robotics/agents`);
     await expect(prompt).toContainText(
-      `claude mcp add --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer <API key>"`,
+      `claude mcp add --scope user --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer <API key>"`,
     );
     await expect(prompt).toContainText(
       "list_tickets with projectKey PLAT, status todo, and assignee unassigned",
