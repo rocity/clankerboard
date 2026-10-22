@@ -8,17 +8,21 @@ import {
   deleteTicket,
   getTicket,
   getTimeline,
+  linkTickets,
   listChildren,
   listComments,
+  listLinks,
   listTickets,
   moveTicket,
   restoreTicket,
+  unlinkTickets,
   updateTicket,
 } from "@clankerboard/domain";
 import {
   addCommentInput,
   assignTicketInput,
   createTicketInput,
+  linkTicketsInput,
   listChildrenQuery,
   listTicketsQuery,
   moveTicketInput,
@@ -97,5 +101,16 @@ export function ticketRoutes(deps: DomainDeps) {
         includeArchived: c.req.valid("query").archived === "include",
       });
       return c.json({ children });
+    })
+    .get("/tickets/:key/links", async (c) => {
+      return c.json({ links: await listLinks(deps, c.var.company, c.req.param("key")) });
+    })
+    .post("/tickets/:key/links", json(linkTicketsInput), async (c) => {
+      const link = await linkTickets(deps, c.var.company, c.req.param("key"), c.req.valid("json"));
+      return c.json({ link }, 201);
+    })
+    .delete("/tickets/:key/links/:targetKey", async (c) => {
+      await unlinkTickets(deps, c.var.company, c.req.param("key"), c.req.param("targetKey"));
+      return c.body(null, 204);
     });
 }

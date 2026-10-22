@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ticketPriority, ticketStatus, ticketType } from "./tickets";
+import { ticketLinkViewKinds, ticketPriority, ticketStatus, ticketType } from "./tickets";
 
 // Response shapes for the board. The domain's view types are derived from
 // these, and Spec 04's MCP tools reuse them as output schemas. Timestamps are
@@ -50,6 +50,23 @@ export const ticketView = z.object({
 export type TicketView = z.output<typeof ticketView>;
 /** A Ticket as it travels in JSON: timestamps are ISO strings. The web app's shape. */
 export type TicketWire = z.input<typeof ticketView>;
+
+/**
+ * A Ticket Link as seen from one of its Tickets: the kind from that side, and
+ * the other Ticket, which may be in another Project or archived.
+ */
+export const ticketLinkView = z.object({
+  kind: z.enum(ticketLinkViewKinds),
+  key: z.string(),
+  projectKey: z.string(),
+  title: z.string(),
+  type: ticketType,
+  status: ticketStatus,
+  archived: z.boolean(),
+  createdBy: actorView,
+  createdAt: timestamp,
+});
+export type TicketLinkView = z.output<typeof ticketLinkView>;
 
 export const ticketPage = z.object({
   tickets: z.array(ticketView),
