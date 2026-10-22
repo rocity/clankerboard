@@ -141,3 +141,7 @@ docker compose up --build
 ```
 
 This starts the app on port 3000 with its own Postgres volume. If another project holds 3000, put `PORT=<free port>` and a matching `BASE_URL` in `.env`. The image bundles the server into one file and carries the built web app and migrations. Health check: `GET /healthz`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

@@ -1,6 +1,7 @@
 {
   "name": "clankerboard",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.8.0",
   "engines": {
