@@ -19,6 +19,8 @@ import { Route as CompanySlugAgentsRouteImport } from './routes/$companySlug/age
 import { Route as CompanySlugMembersRouteImport } from './routes/$companySlug/members'
 import { Route as CompanySlugProjectsIndexRouteImport } from './routes/$companySlug/projects/index'
 import { Route as CompanySlugProjectsProjectKeyRouteRouteImport } from './routes/$companySlug/projects/$projectKey/route'
+import { Route as CompanySlugTeamsIndexRouteImport } from './routes/$companySlug/teams/index'
+import { Route as CompanySlugTeamsTeamIdRouteImport } from './routes/$companySlug/teams/$teamId'
 import { Route as CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport } from './routes/$companySlug/projects/$projectKey/tickets/$ticketKey'
 
 const IndexRoute = IndexRouteImport.update({
@@ -73,6 +75,16 @@ const CompanySlugProjectsProjectKeyRouteRoute =
     path: '/projects/$projectKey',
     getParentRoute: () => CompanySlugRouteRoute,
   } as any)
+const CompanySlugTeamsIndexRoute = CompanySlugTeamsIndexRouteImport.update({
+  id: '/teams/',
+  path: '/teams/',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
+const CompanySlugTeamsTeamIdRoute = CompanySlugTeamsTeamIdRouteImport.update({
+  id: '/teams/$teamId',
+  path: '/teams/$teamId',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
 const CompanySlugProjectsProjectKeyTicketsTicketKeyRoute =
   CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport.update({
     id: '/tickets/$ticketKey',
@@ -90,7 +102,9 @@ export interface FileRoutesByFullPath {
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
+  '/$companySlug/teams/$teamId': typeof CompanySlugTeamsTeamIdRoute
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/teams/': typeof CompanySlugTeamsIndexRoute
   '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRoutesByTo {
@@ -102,7 +116,9 @@ export interface FileRoutesByTo {
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
+  '/$companySlug/teams/$teamId': typeof CompanySlugTeamsTeamIdRoute
   '/$companySlug/projects': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/teams': typeof CompanySlugTeamsIndexRoute
   '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRoutesById {
@@ -116,7 +132,9 @@ export interface FileRoutesById {
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
+  '/$companySlug/teams/$teamId': typeof CompanySlugTeamsTeamIdRoute
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/teams/': typeof CompanySlugTeamsIndexRoute
   '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRouteTypes {
@@ -131,7 +149,9 @@ export interface FileRouteTypes {
     | '/$companySlug/members'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
+    | '/$companySlug/teams/$teamId'
     | '/$companySlug/projects/'
+    | '/$companySlug/teams/'
     | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,7 +163,9 @@ export interface FileRouteTypes {
     | '/$companySlug/members'
     | '/$companySlug'
     | '/$companySlug/projects/$projectKey'
+    | '/$companySlug/teams/$teamId'
     | '/$companySlug/projects'
+    | '/$companySlug/teams'
     | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   id:
     | '__root__'
@@ -156,7 +178,9 @@ export interface FileRouteTypes {
     | '/$companySlug/members'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
+    | '/$companySlug/teams/$teamId'
     | '/$companySlug/projects/'
+    | '/$companySlug/teams/'
     | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   fileRoutesById: FileRoutesById
 }
@@ -240,6 +264,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugProjectsProjectKeyRouteRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/teams/': {
+      id: '/$companySlug/teams/'
+      path: '/teams'
+      fullPath: '/$companySlug/teams/'
+      preLoaderRoute: typeof CompanySlugTeamsIndexRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
+    '/$companySlug/teams/$teamId': {
+      id: '/$companySlug/teams/$teamId'
+      path: '/teams/$teamId'
+      fullPath: '/$companySlug/teams/$teamId'
+      preLoaderRoute: typeof CompanySlugTeamsTeamIdRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
     '/$companySlug/projects/$projectKey/tickets/$ticketKey': {
       id: '/$companySlug/projects/$projectKey/tickets/$ticketKey'
       path: '/tickets/$ticketKey'
@@ -270,7 +308,9 @@ interface CompanySlugRouteRouteChildren {
   CompanySlugMembersRoute: typeof CompanySlugMembersRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
   CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
+  CompanySlugTeamsTeamIdRoute: typeof CompanySlugTeamsTeamIdRoute
   CompanySlugProjectsIndexRoute: typeof CompanySlugProjectsIndexRoute
+  CompanySlugTeamsIndexRoute: typeof CompanySlugTeamsIndexRoute
 }
 
 const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
@@ -279,7 +319,9 @@ const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
   CompanySlugIndexRoute: CompanySlugIndexRoute,
   CompanySlugProjectsProjectKeyRouteRoute:
     CompanySlugProjectsProjectKeyRouteRouteWithChildren,
+  CompanySlugTeamsTeamIdRoute: CompanySlugTeamsTeamIdRoute,
   CompanySlugProjectsIndexRoute: CompanySlugProjectsIndexRoute,
+  CompanySlugTeamsIndexRoute: CompanySlugTeamsIndexRoute,
 }
 
 const CompanySlugRouteRouteWithChildren =

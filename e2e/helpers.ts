@@ -144,6 +144,39 @@ export async function createTeam(page: Page, name: string) {
   return (await post<{ team: { id: string; name: string } }>(page, "/api/teams", { name })).team;
 }
 
+type TeamMemberRow = { userId: string; email: string; role: string };
+
+async function userIdOf(page: Page, email: string) {
+  const res = await page.request.get("/api/members");
+  const { members } = (await res.json()) as { members: { userId: string; email: string }[] };
+  const member = members.find((m) => m.email === email);
+  expect(member, `${email} is in the Company`).toBeTruthy();
+  return member?.userId ?? "";
+}
+
+/** Puts a Company member on a Team, as a lead when asked. Run as an owner or admin. */
+export async function addTeamMember(
+  page: Page,
+  teamId: string,
+  email: string,
+  role: "lead" | "member" = "member",
+) {
+  const userId = await userIdOf(page, email);
+  await post<{ member: TeamMemberRow }>(page, `/api/teams/${teamId}/members`, { userId });
+  if (role === "lead") {
+    const res = await page.request.patch(`/api/teams/${teamId}/members/${userId}`, {
+      data: { role },
+    });
+    expect(res.status()).toBe(200);
+  }
+}
+
+/** The Users on a Team, as the server lists them. */
+export async function teamMembers(page: Page, teamId: string) {
+  const res = await page.request.get(`/api/teams/${teamId}`);
+  return ((await res.json()) as { members: TeamMemberRow[] }).members;
+}
+
 /** Creates a Project in the active Company. */
 export async function createProject(
   page: Page,

@@ -8,15 +8,18 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { api, errorMessage, unwrap } from "@/lib/api";
 import { invitesQuery, roleLabel } from "@/lib/members";
+import { cn } from "@/lib/utils";
 
 type Props = {
-  /** The Roles the viewer may invite someone as. */
+  /** The Roles the viewer may invite someone as. With only one, the Role is not asked. */
   roles: CompanyRole[];
+  /** Makes it a Team Invite: accepting also joins this Team. */
+  teamId?: string;
   onIssued: (issued: IssuedInvite) => void;
 };
 
 /** Invites someone by email with a Role. The link comes back right away. */
-export function InviteForm({ roles, onIssued }: Props) {
+export function InviteForm({ roles, teamId, onIssued }: Props) {
   const queryClient = useQueryClient();
   const [role, setRole] = useState<CompanyRole>(
     roles.includes("member") ? "member" : (roles[0] ?? "member"),
@@ -24,7 +27,8 @@ export function InviteForm({ roles, onIssued }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const create = useMutation({
-    mutationFn: (json: { email: string; role: CompanyRole }) => unwrap(api.invites.$post({ json })),
+    mutationFn: (json: { email: string; role: CompanyRole; teamId?: string }) =>
+      unwrap(api.invites.$post({ json })),
     onSuccess: async (issued) => {
       onIssued(issued);
       await queryClient.invalidateQueries(invitesQuery);
@@ -44,16 +48,21 @@ export function InviteForm({ roles, onIssued }: Props) {
     }
     setError(null);
     try {
-      await create.mutateAsync({ email: parsed.data.email, role: parsed.data.role });
+      await create.mutateAsync({ email: parsed.data.email, role: parsed.data.role, teamId });
       form.reset();
     } catch (err) {
       setError(errorMessage(err));
     }
   }
 
+  const asksRole = roles.length > 1;
+
   return (
     <form
-      className="grid gap-4 rounded-xl border bg-card p-4 text-card-foreground shadow-sm md:grid-cols-[1fr_11rem_auto] md:items-end"
+      className={cn(
+        "grid gap-4 rounded-xl border bg-card p-4 text-card-foreground shadow-sm md:items-end",
+        asksRole ? "md:grid-cols-[1fr_11rem_auto]" : "md:grid-cols-[1fr_auto]",
+      )}
       onSubmit={submit}
     >
       <div className="grid gap-2">
@@ -67,25 +76,27 @@ export function InviteForm({ roles, onIssued }: Props) {
           className="h-11 text-base md:h-9 md:text-sm"
         />
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor="invite-role">Role</Label>
-        <NativeSelect
-          id="invite-role"
-          value={role}
-          onChange={(event) => setRole(event.target.value as CompanyRole)}
-        >
-          {roles.map((r) => (
-            <option key={r} value={r}>
-              {roleLabel(r)}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+      {asksRole && (
+        <div className="grid gap-2">
+          <Label htmlFor="invite-role">Role</Label>
+          <NativeSelect
+            id="invite-role"
+            value={role}
+            onChange={(event) => setRole(event.target.value as CompanyRole)}
+          >
+            {roles.map((r) => (
+              <option key={r} value={r}>
+                {roleLabel(r)}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+      )}
       <Button type="submit" className="h-11 md:h-9" disabled={create.isPending}>
         Create invite
       </Button>
       {error && (
-        <p role="alert" className="text-sm text-destructive md:col-span-3">
+        <p role="alert" className="text-sm text-destructive md:col-span-full">
           {error}
         </p>
       )}

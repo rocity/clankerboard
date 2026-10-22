@@ -1,4 +1,4 @@
-import { type CompanyRole, canInvite } from "@clankerboard/shared";
+import { type CompanyRole, canInvite, canInviteToTeam } from "@clankerboard/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RotateCw, X } from "lucide-react";
 import type { IssuedInvite } from "@/components/invite-link-panel";
@@ -11,6 +11,7 @@ export type PendingInvite = {
   id: string;
   email: string;
   role: CompanyRole;
+  teamId: string | null;
   teamName: string | null;
   status: "pending" | "accepted" | "revoked" | "expired";
   expiresAt: string;
@@ -20,15 +21,26 @@ type Props = {
   invites: PendingInvite[];
   /** The signed-in User's Role in this Company. */
   role: CompanyRole;
+  /** True on the page of a Team the viewer leads: its Team Invites may be managed with member Role. */
+  leadsTeam?: boolean;
   /** Called with the new link after a resend. */
   onIssued: (issued: IssuedInvite) => void;
 };
 
-export function PendingInvites({ invites, role, onIssued }: Props) {
+export function PendingInvites({ invites, role, leadsTeam = false, onIssued }: Props) {
   return (
-    <ul className="divide-y rounded-xl border bg-card text-card-foreground shadow-sm">
+    <ul
+      aria-label="Pending invites"
+      className="divide-y rounded-xl border bg-card text-card-foreground shadow-sm"
+    >
       {invites.map((invite) => (
-        <InviteRow key={invite.id} invite={invite} role={role} onIssued={onIssued} />
+        <InviteRow
+          key={invite.id}
+          invite={invite}
+          role={role}
+          leadsTeam={leadsTeam}
+          onIssued={onIssued}
+        />
       ))}
     </ul>
   );
@@ -40,10 +52,12 @@ const expiryDate = (iso: string) =>
 function InviteRow({
   invite,
   role,
+  leadsTeam,
   onIssued,
 }: {
   invite: PendingInvite;
   role: CompanyRole;
+  leadsTeam: boolean;
   onIssued: Props["onIssued"];
 }) {
   const queryClient = useQueryClient();
@@ -63,16 +77,22 @@ function InviteRow({
     onSuccess: refresh,
   });
   const error = resend.error ?? revoke.error;
-  const mayManage = canInvite(role, invite.role);
+  const mayManage = invite.teamId
+    ? canInviteToTeam(role, invite.role, leadsTeam)
+    : canInvite(role, invite.role);
   const expired = invite.status === "expired";
 
   return (
     <li className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <div className="grid min-w-0 gap-1.5">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
         <span className="truncate font-medium">{invite.email}</span>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="secondary">{roleLabel(invite.role)}</Badge>
-          {invite.teamName && <Badge variant="outline">{invite.teamName}</Badge>}
+          {invite.teamName && (
+            <Badge variant="outline" className="min-w-0 max-w-full shrink">
+              <span className="truncate">{invite.teamName}</span>
+            </Badge>
+          )}
           {expired ? (
             <Badge variant="destructive">Expired</Badge>
           ) : (
