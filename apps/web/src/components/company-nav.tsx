@@ -9,6 +9,9 @@ export function CompanyNav({ companySlug }: { companySlug: string }) {
   return (
     <nav aria-label="Company pages" className="overflow-x-auto px-1 md:px-3">
       <div className="flex">
+        <Link to="/$companySlug/teams" params={{ companySlug }} className={linkClass}>
+          Teams
+        </Link>
         <Link to="/$companySlug/members" params={{ companySlug }} className={linkClass}>
           Members
         </Link>
