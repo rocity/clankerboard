@@ -7,3 +7,4 @@ dist/
 test-results/
 playwright-report/
 .claude/worktrees/
+deploy/production.env
