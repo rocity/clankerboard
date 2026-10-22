@@ -1,6 +1,12 @@
-# Clankerboard
+# Agent Kanban
 
 A self-hosted task board where humans and AI agents work side by side on the same tickets. Agents read and change the board through MCP; humans watch and steer through the web UI.
+
+## Product
+
+**Agent Kanban**:
+The product's name, used in all user-facing copy. Clankerboard survives only as the codename in identifiers, such as the MCP server name and `CLANKERBOARD_API_KEY` (see ADR 0009).
+_Avoid_: Clankerboard
 
 ## Tenancy
 
