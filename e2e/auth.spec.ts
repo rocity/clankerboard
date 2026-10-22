@@ -51,10 +51,31 @@ test("a wrong password shows a plain message and stays on sign-in", async ({ pag
   await expect(page).toHaveURL(/\/sign-in/);
 });
 
-test("a second sign-up without an Invite is refused", async ({ page, browser }) => {
+test("the sign-up screen says up front that it needs an Invite", async ({ page, browser }) => {
   await signUp(page, "Ada", "ada@example.com");
 
   const stranger = await browser.newPage();
+  await stranger.goto("/sign-up");
+
+  await expect(stranger.getByRole("heading", { name: "Sign up" })).toBeVisible();
+  await expect(stranger.getByText("Sign-up needs an invite.")).toBeVisible();
+  await expect(stranger.getByLabel("Name")).toHaveCount(0);
+  await expect(stranger.getByRole("button", { name: "Sign up" })).toHaveCount(0);
+  await stranger.getByRole("link", { name: "Sign in" }).click();
+  await expect(stranger.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await stranger.close();
+});
+
+test("the sign-up screen shows the server's refusal when it offered the form anyway", async ({
+  page,
+  browser,
+}) => {
+  await signUp(page, "Ada", "ada@example.com");
+
+  const stranger = await browser.newPage();
+  await stranger.route("**/api/config", (route) =>
+    route.fulfill({ json: { publicUrl: "http://localhost", signUpOpen: true } }),
+  );
   await stranger.goto("/sign-up");
   await stranger.getByLabel("Name").fill("Eve");
   await stranger.getByLabel("Email").fill("eve@example.com");

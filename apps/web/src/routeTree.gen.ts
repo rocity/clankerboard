@@ -15,6 +15,7 @@ import { Route as InviteRouteImport } from './routes/invite'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as CompanySlugIndexRouteImport } from './routes/$companySlug/index'
+import { Route as CompanySlugAgentsRouteImport } from './routes/$companySlug/agents'
 import { Route as CompanySlugProjectsIndexRouteImport } from './routes/$companySlug/projects/index'
 import { Route as CompanySlugProjectsProjectKeyRouteRouteImport } from './routes/$companySlug/projects/$projectKey/route'
 
@@ -48,6 +49,11 @@ const CompanySlugIndexRoute = CompanySlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CompanySlugRouteRoute,
 } as any)
+const CompanySlugAgentsRoute = CompanySlugAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
 const CompanySlugProjectsIndexRoute =
   CompanySlugProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
   '/$companySlug/projects': typeof CompanySlugProjectsIndexRoute
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/agents'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects/'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/agents'
     | '/$companySlug'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/agents'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects/'
@@ -175,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugIndexRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/agents': {
+      id: '/$companySlug/agents'
+      path: '/agents'
+      fullPath: '/$companySlug/agents'
+      preLoaderRoute: typeof CompanySlugAgentsRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
     '/$companySlug/projects/': {
       id: '/$companySlug/projects/'
       path: '/projects'
@@ -193,12 +212,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface CompanySlugRouteRouteChildren {
+  CompanySlugAgentsRoute: typeof CompanySlugAgentsRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
   CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRoute
   CompanySlugProjectsIndexRoute: typeof CompanySlugProjectsIndexRoute
 }
 
 const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
+  CompanySlugAgentsRoute: CompanySlugAgentsRoute,
   CompanySlugIndexRoute: CompanySlugIndexRoute,
   CompanySlugProjectsProjectKeyRouteRoute:
     CompanySlugProjectsProjectKeyRouteRoute,

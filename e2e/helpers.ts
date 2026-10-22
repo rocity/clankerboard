@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { type Browser, expect, type Locator, type Page, test } from "@playwright/test";
 
 export const password = "correct-horse-battery";
 
@@ -30,6 +30,32 @@ export async function createCompany(page: Page, name: string) {
 export async function companies(page: Page) {
   const res = await page.request.get("/api/companies");
   return (await res.json()) as { companies: CompanyRow[]; activeCompanyId: string | null };
+}
+
+/**
+ * Invites `email` to the signed-in User's active Company, then signs them up in a
+ * fresh browser context that matches the running project's viewport and theme.
+ */
+export async function joinCompany(
+  owner: Page,
+  browser: Browser,
+  invitee: { name: string; email: string; role?: "member" | "admin" },
+) {
+  const res = await owner.request.post("/api/invites", {
+    data: { email: invitee.email, role: invitee.role ?? "member" },
+  });
+  expect(res.status()).toBe(201);
+  const { link } = (await res.json()) as { link: string };
+
+  const { viewport, colorScheme, hasTouch } = test.info().project.use;
+  const context = await browser.newContext({ viewport, colorScheme, hasTouch });
+  const page = await context.newPage();
+  await page.goto(link);
+  await page.getByLabel("Name").fill(invitee.name);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign up" }).click();
+  await expect(page).not.toHaveURL(/\/invite/);
+  return page;
 }
 
 /** True when the page scrolls sideways, which breaks the mobile layout. */

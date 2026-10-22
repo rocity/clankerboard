@@ -25,6 +25,7 @@ import { actorRoutes } from "./routes/actors";
 import { agentRoutes } from "./routes/agents";
 import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
+import { configRoutes } from "./routes/config";
 import { healthRoutes } from "./routes/health";
 import { inviteRoutes } from "./routes/invites";
 import { meRoutes } from "./routes/me";
@@ -81,6 +82,7 @@ export function createApp(deps: AppDeps) {
 
   const api = new Hono<AppEnv>()
     .route("/", authProviderRoutes(deps.config))
+    .route("/", configRoutes(domain))
     .use(authenticated)
     .route("/", meRoutes())
     .route("/", companyRoutes(domain))
