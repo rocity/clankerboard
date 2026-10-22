@@ -1,4 +1,5 @@
 import { statusLabels, type TicketStatus } from "@clankerboard/shared";
+import { RestoreTicketButton } from "@/components/restore-ticket-button";
 import { TicketSummary } from "@/components/ticket-summary";
 import type { TicketData } from "@/lib/board";
 
@@ -32,8 +33,11 @@ export function StatusLane({ status, tickets }: Props) {
       ) : (
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {tickets.map((ticket) => (
-            <li key={ticket.key}>
+            <li key={ticket.key} className="grid gap-1.5">
               <TicketSummary ticket={ticket} />
+              {ticket.archivedAt && (
+                <RestoreTicketButton ticketKey={ticket.key} title={ticket.title} />
+              )}
             </li>
           ))}
         </ul>
