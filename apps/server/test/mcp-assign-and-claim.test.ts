@@ -94,7 +94,7 @@ describe("MCP claim_ticket", () => {
 });
 
 describe("MCP assign_ticket", () => {
-  it("assigns a member by email, an Agent by name, and unassigns with null", async () => {
+  it("assigns a user by email, an Agent by name, and unassigns with null", async () => {
     const t = buildTestApp();
     const { bob, second, one } = await setup(t);
     const client = await t.mcpClient(one.secret);

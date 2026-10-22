@@ -61,22 +61,43 @@ function decodeCursor(order: TicketOrder, cursor: string): Cursor {
   throw invalid("That page cursor is not valid.");
 }
 
-/** Rows after the cursor, in the given order. Enums compare in declaration order. */
-function afterCursor(order: TicketOrder, after: Cursor): SQL | undefined {
-  const tail = sql`(${tickets.rank}, ${tickets.number}, ${tickets.id}) > (${after.rank}, ${after.number}, ${after.id})`;
-  const status = sql`${after.status}::ticket_status`;
-  if (order === "board") {
-    return sql`(${tickets.status}, ${tickets.rank}, ${tickets.number}, ${tickets.id}) > (${status}, ${after.rank}, ${after.number}, ${after.id})`;
-  }
-  const priority = sql`${after.priority}::ticket_priority`;
-  return or(
-    sql`${tickets.status} > ${status}`,
-    and(
-      sql`${tickets.status} = ${status}`,
-      or(sql`${tickets.priority} < ${priority}`, and(sql`${tickets.priority} = ${priority}`, tail)),
-    ),
-  );
-}
+/**
+ * Each order's sort, and the rows after a cursor in it. Enums compare in
+ * declaration order.
+ */
+const orders: Record<TicketOrder, { orderBy: SQL[]; afterCursor(after: Cursor): SQL | undefined }> =
+  {
+    board: {
+      orderBy: [asc(tickets.status), asc(tickets.rank), asc(tickets.number), asc(tickets.id)],
+      afterCursor: (after) =>
+        sql`(${tickets.status}, ${tickets.rank}, ${tickets.number}, ${tickets.id}) > (${after.status}::ticket_status, ${after.rank}, ${after.number}, ${after.id})`,
+    },
+    urgency: {
+      orderBy: [
+        asc(tickets.status),
+        desc(tickets.priority),
+        asc(tickets.rank),
+        asc(tickets.number),
+        asc(tickets.id),
+      ],
+      // Priority sorts the other way from the rest, so no single row comparison.
+      afterCursor: (after) => {
+        const status = sql`${after.status}::ticket_status`;
+        const priority = sql`${after.priority}::ticket_priority`;
+        const tail = sql`(${tickets.rank}, ${tickets.number}, ${tickets.id}) > (${after.rank}, ${after.number}, ${after.id})`;
+        return or(
+          sql`${tickets.status} > ${status}`,
+          and(
+            sql`${tickets.status} = ${status}`,
+            or(
+              sql`${tickets.priority} < ${priority}`,
+              and(sql`${tickets.priority} = ${priority}`, tail),
+            ),
+          ),
+        );
+      },
+    },
+  };
 
 function assigneeCondition(filter: AssigneeFilter) {
   switch (filter.kind) {
@@ -122,16 +143,10 @@ export async function listTickets(
           ? sql`${tickets.search} @@ websearch_to_tsquery('english', ${filter.q})`
           : undefined,
         doneSince ? or(ne(tickets.status, "done"), gte(tickets.updatedAt, doneSince)) : undefined,
-        after ? afterCursor(order, after) : undefined,
+        after ? orders[order].afterCursor(after) : undefined,
       ),
     )
-    .orderBy(
-      asc(tickets.status),
-      ...(order === "urgency" ? [desc(tickets.priority)] : []),
-      asc(tickets.rank),
-      asc(tickets.number),
-      asc(tickets.id),
-    )
+    .orderBy(...orders[order].orderBy)
     .limit(filter.limit + 1);
 
   const page = rows.slice(0, filter.limit);

@@ -1,7 +1,8 @@
 import { moveTicket } from "@clankerboard/domain";
-import { ticketKey, ticketStatus } from "@clankerboard/shared";
+import { ticketStatus } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
+import { ticketKeyParam } from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -10,7 +11,7 @@ export const moveTicketTool = defineTool({
   description:
     "Move a ticket to a status, by its ticket key. It goes to the bottom of that status. Move your ticket to review when your work is ready.",
   input: z.object({
-    key: ticketKey.describe("The ticket key, such as CB-42."),
+    key: ticketKeyParam,
     status: ticketStatus.describe("backlog, todo, in_progress, review, or done."),
   }),
   output: z.object({ ticket: mcpTicketView }),

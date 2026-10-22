@@ -24,7 +24,7 @@ export class DomainError extends Error {
 
 // Not-found is also what a caller gets for anything in a Company they don't
 // belong to, so existence never leaks across Companies.
-export const notFound = () => new DomainError("not_found", "Not found.");
+export const notFound = (message = "Not found.") => new DomainError("not_found", message);
 export const forbidden = (message = "You don't have permission to do that.") =>
   new DomainError("forbidden", message);
 export const conflict = (message: string, details?: Record<string, unknown>) =>

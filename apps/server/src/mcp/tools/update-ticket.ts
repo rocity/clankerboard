@@ -1,7 +1,8 @@
 import { updateTicket } from "@clankerboard/domain";
-import { ticketKey, updateTicketInput } from "@clankerboard/shared";
+import { updateTicketInput } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
+import { ticketKeyParam } from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -13,7 +14,7 @@ export const updateTicketTool = defineTool({
     "Change a ticket's title, description, priority, or parent, by its ticket key. Fields you leave out stay as they are.",
   // The spec gives Agents no way to change a Ticket's type.
   input: updateTicketInput.omit({ type: true }).extend({
-    key: ticketKey.describe("The ticket key, such as CB-42."),
+    key: ticketKeyParam,
     title: shape.title.describe("A short summary."),
     description: shape.description.describe("Markdown. Replaces the whole description."),
     priority: shape.priority.describe("low, medium, high, or urgent."),

@@ -4,7 +4,7 @@ import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorRef, actorColumns, refFromColumns, refOf, sameActor } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, DomainError, invalid, notFound } from "./errors";
+import { conflict, invalid, notFound } from "./errors";
 import {
   bottomRank,
   findTicket,
@@ -53,18 +53,18 @@ export async function findAssignee(
   handle: string,
 ): Promise<ActorRef> {
   const needle = handle.trim().toLowerCase();
-  const [member] = await db
+  const [user] = await db
     .select({ id: users.id })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(and(eq(memberships.companyId, ctx.companyId), eq(sql`lower(${users.email})`, needle)));
-  if (member) return { type: "user", id: member.id };
+  if (user) return { type: "user", id: user.id };
   const [agent] = await db
     .select({ id: agents.id })
     .from(agents)
     .where(and(eq(agents.companyId, ctx.companyId), eq(sql`lower(${agents.name})`, needle)));
   if (agent) return { type: "agent", id: agent.id };
-  throw new DomainError("not_found", `No user or agent matches "${handle.trim()}".`);
+  throw notFound(`No user or agent matches "${handle.trim()}".`);
 }
 
 /**

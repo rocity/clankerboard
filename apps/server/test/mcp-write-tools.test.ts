@@ -185,6 +185,20 @@ describe("MCP write tools", () => {
   });
 
   describe("add_comment", () => {
+    it("confirms with the Ticket Key in capitals, however it was typed", async () => {
+      const t = buildTestApp();
+      const { owner, client } = await setup(t);
+      await createTicket(owner.request, { projectKey: "CB", title: "Fix login" });
+
+      const result = await client.callTool({
+        name: "add_comment",
+        arguments: { key: "cb-1", body: "Done." },
+      });
+
+      expect(result.isError).toBeFalsy();
+      expect(textOf(result)).toBe("Added a comment to **CB-1** as Claude-1 (agent).");
+    });
+
     it("appends a Markdown Comment authored by the Agent", async () => {
       const t = buildTestApp();
       const { owner, agent, client } = await setup(t);
@@ -222,7 +236,7 @@ describe("MCP write tools", () => {
 
   describe("rule violations", () => {
     /** CB-1 epic, CB-2 bug under it, CB-3 epic that is archived. */
-    async function board(t: TestApp) {
+    async function seedHierarchy(t: TestApp) {
       const fixture = await setup(t);
       const { owner } = fixture;
       await createTicket(owner.request, { projectKey: "CB", title: "Auth", type: "epic" });
@@ -276,7 +290,7 @@ describe("MCP write tools", () => {
       ],
     ])("answers %s with a tool error and changes nothing", async (_case, name, args, message) => {
       const t = buildTestApp();
-      const { bearer, client } = await board(t);
+      const { bearer, client } = await seedHierarchy(t);
       const before = await ticketsOf(bearer);
 
       const result = await client.callTool({ name, arguments: args });
@@ -298,7 +312,7 @@ describe("MCP write tools", () => {
       ["add_comment", { key: "CB-99", body: "Hello" }],
     ])("answers %s on an unknown or other-Company key %j with Not found.", async (name, args) => {
       const t = buildTestApp();
-      const { client } = await board(t);
+      const { client } = await seedHierarchy(t);
       const other = await createCompany(t, { name: "Globex" });
       await createProject(other.owner.request, { name: "Secret", key: "SEC" });
       await createTicket(other.owner.request, { projectKey: "SEC", title: "Hidden", type: "epic" });

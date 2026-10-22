@@ -1,7 +1,7 @@
 import { assignTicket, findAssignee } from "@clankerboard/domain";
-import { ticketKey } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
+import { ticketKeyParam } from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -12,7 +12,7 @@ export const assignTicketTool = defineTool({
   description:
     "Assign a ticket, by its ticket key such as CB-42, to a user's email or an agent's name as tool output shows them, or pass null to unassign it. Use it to hand work to a human for review. To start work on a ticket yourself, use claim_ticket.",
   input: z.object({
-    key: ticketKey.describe("The ticket key, such as CB-42."),
+    key: ticketKeyParam,
     assignee: z
       .string({ error: assigneeError })
       .trim()

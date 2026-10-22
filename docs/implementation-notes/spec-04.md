@@ -64,3 +64,4 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **One Ticket summary shape** (`ticketSummary` in views.ts) for list_tickets, get_ticket children, and `ticketLine`. It includes the Parent, which is redundant for get_ticket's children but keeps one shape.
 - **The board uses `ticketLine` without the Status**, since each Ticket sits under its Status heading.
 - **The claim conflict message names the holder without an email.** It is the domain's copy, shared with REST.
+- **`ticketKeyParam` upper-cases the key** (zod `toUpperCase`, which JSON Schema can still express), so tools echo `CB-42` however the model typed it, without the adapter normalizing again.

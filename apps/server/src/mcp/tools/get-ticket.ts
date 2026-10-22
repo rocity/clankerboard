@@ -1,7 +1,7 @@
 import { getTicket, listChildren, listComments } from "@clankerboard/domain";
-import { ticketKey } from "@clankerboard/shared";
 import { z } from "zod";
 import { bulletList, commentsMarkdown, ticketLine, ticketMarkdown } from "../markdown";
+import { ticketKeyParam } from "../params";
 import { defineTool } from "../tool";
 import {
   type McpTicketView,
@@ -16,7 +16,7 @@ export const getTicketTool = defineTool({
   name: "get_ticket",
   description:
     "Get one ticket by its ticket key, such as CB-42: its fields, description, parent, children, and comments. Read it before starting work.",
-  input: z.object({ key: ticketKey.describe("The ticket key, such as CB-42.") }),
+  input: z.object({ key: ticketKeyParam }),
   output: z.object({
     ticket: mcpTicketView,
     children: z.array(ticketSummary),
