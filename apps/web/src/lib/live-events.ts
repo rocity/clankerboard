@@ -30,11 +30,18 @@ const ticketChanges = [
   "ticket.archived",
   "ticket.restored",
   "ticket.detached",
+  // A blocker changed elsewhere, so the card gains or loses its Blocked marker.
+  "ticket.blocked",
+  "ticket.unblocked",
 ] as const;
 
 /** Every named event the stream sends besides `resync` and `unauthorized`. */
 export const activityKinds = [
   ...ticketChanges,
+  // Each carries a snapshot, but the card shows no change of its own: when a
+  // Blocks Link flips Blocked, a `ticket.blocked` or `ticket.unblocked` follows.
+  "ticket.linked",
+  "ticket.unlinked",
   "ticket.deleted",
   "comment.added",
   "project.created",

@@ -10,6 +10,7 @@ import {
   createProject,
   createTicket,
   joinCompany,
+  linkTickets,
   signUp,
 } from "./helpers";
 
@@ -593,5 +594,40 @@ test("with reduced motion the mark stays still instead of fading", async ({ page
   await expect(mark).toBeVisible();
   expect(await mark.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
   await expect(mark).toHaveCount(0, { timeout: 5000 });
+  await agent.close();
+});
+
+test("a Blocked card gains and loses its marker live when another session moves the blocker", async ({
+  page,
+}) => {
+  await watchStream(page);
+  await seedAcme(page, ["Design the schema", "Build the API", "Write the docs"]);
+  await linkTickets(page, "PLAT-1", "blocks", "PLAT-2");
+  const agent = await agentOverMcp(page, "Claude-1");
+  await openBoard(page, ["Design the schema", "Build the API", "Write the docs"]);
+  const reads = boardReads(page);
+
+  const marker = ticketIn(page, "Backlog", "Build the API").getByRole("img", {
+    name: "Blocked by 1 ticket",
+  });
+  await expect(marker).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Blocked by/ })).toHaveCount(1);
+  await shot(page, "blocked-before");
+
+  // The blocker is finished elsewhere, so the Ticket is free to start.
+  await agent.tool("move_ticket", { key: "PLAT-1", status: "done" });
+  await expect(marker).toHaveCount(0);
+  await expect(page.getByRole("img", { name: /^Blocked by/ })).toHaveCount(0);
+  await expect(page.locator('[data-ticket-key="PLAT-2"]').getByTestId("live-change")).toBeVisible();
+  await shot(page, "blocked-cleared");
+
+  // Reopened, it blocks again.
+  await agent.tool("move_ticket", { key: "PLAT-1", status: "in_progress" });
+  await expect(marker).toBeVisible();
+
+  expect(reads).toEqual([]);
+  expect(await received(page)).toEqual(
+    expect.arrayContaining(["ticket.unblocked", "ticket.blocked"]),
+  );
   await agent.close();
 });

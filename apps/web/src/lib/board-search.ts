@@ -11,7 +11,8 @@ import type { BoardFilters } from "./tickets";
 /**
  * The filters as they sit in the board's URL: `?assignee=agents&type=bug&q=login`.
  * `assignee` is the list endpoint's value, or `me` for whoever opens the link.
- * `epic` is an Epic's Ticket Key, `team` a Team id, `archived` is on or absent.
+ * `epic` is an Epic's Ticket Key, `team` a Team id, `archived` is on or absent,
+ * and `blocked` is `only` or `hide`, as the filter reads, or absent for both.
  */
 export type BoardSearch = {
   assignee?: string;
@@ -21,7 +22,11 @@ export type BoardSearch = {
   team?: string;
   q?: string;
   archived?: true;
+  blocked?: BlockedChoice;
 };
+
+export const blockedChoices = ["only", "hide"] as const;
+export type BlockedChoice = (typeof blockedChoices)[number];
 
 const maxSearchLength = 200;
 
@@ -42,6 +47,7 @@ export function validateBoardSearch(search: Record<string, unknown>): BoardSearc
   const priority = ticketPriority.safeParse(text(search.priority));
   const epic = ticketKey.safeParse(text(search.epic));
   const q = text(search.q)?.slice(0, maxSearchLength);
+  const blocked = blockedChoices.find((choice) => choice === text(search.blocked));
   return {
     assignee:
       assignee && (assignee === "me" || assigneeFilter.safeParse(assignee).success)
@@ -53,6 +59,7 @@ export function validateBoardSearch(search: Record<string, unknown>): BoardSearc
     team: text(search.team) || undefined,
     q: q || undefined,
     archived: search.archived === true || search.archived === "true" ? true : undefined,
+    blocked,
   };
 }
 
@@ -67,6 +74,7 @@ export function toBoardFilters(search: BoardSearch, meId: string | undefined): B
     teamId: search.team,
     q: search.q,
     archived: search.archived ? "include" : undefined,
+    blocked: search.blocked && (search.blocked === "only" ? "true" : "false"),
   };
 }
 
