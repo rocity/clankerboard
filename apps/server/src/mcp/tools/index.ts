@@ -1,5 +1,7 @@
 import type { Tool } from "../tool";
 import { addCommentTool } from "./add-comment";
+import { assignTicketTool } from "./assign-ticket";
+import { claimTicketTool } from "./claim-ticket";
 import { createTicketTool } from "./create-ticket";
 import { getTicketTool } from "./get-ticket";
 import { listProjectsTool } from "./list-projects";
@@ -10,6 +12,8 @@ import { updateTicketTool } from "./update-ticket";
 export const tools: Tool[] = [
   listProjectsTool,
   getTicketTool,
+  claimTicketTool,
+  assignTicketTool,
   createTicketTool,
   updateTicketTool,
   moveTicketTool,

@@ -26,3 +26,11 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **Annotations:** every write tool has `readOnlyHint: false, destructiveHint: false`. `update_ticket` is also `idempotentHint: true`.
 - **Activity credit for Comments** is checked through the timeline's comment item (with its `activityId`), since a Comment stands in for its `comment.added` Activity there.
 - **Rule-violation tests** pin the adapter: the domain's messages come back verbatim as tool errors, and the board is unchanged. Updating or commenting on an archived Ticket is allowed by the domain, so only moves and archived Parents are errors.
+
+## 04-03 MCP assign and claim tools
+
+- **`assign_ticket` takes one string handle** (or null), not a typed `{ type, id }`. The domain's new `findAssignee` matches the email of a User in the Company first, then an Agent's name, both ignoring case. The User wins if an Agent happens to be named the same as their email.
+- **Unknown handles** (no such User or Agent, a User outside the Company, another Company's Agent) all read `No user or agent matches "<handle>".`, so nothing leaks across Companies. A revoked Agent is found, then refused by Assign's own rule ("That agent was revoked.").
+- **Emails are not in tool output yet:** Ticket views show a User's name, not email, so an agent learns an email from its human. Revisit if agents need to hand off to someone they only saw by name.
+- **Claim errors are the domain's copy** ("CB-3 is already held by Claude-2."), unchanged. The description tells the agent to pick another Ticket on failure.
+- **Annotations:** `claim_ticket` is not idempotent (a second call fails); `assign_ticket` is.
