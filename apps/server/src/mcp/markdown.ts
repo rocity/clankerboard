@@ -1,5 +1,11 @@
-import { statusLabels } from "@clankerboard/shared";
-import type { McpActorView, McpCommentView, McpTicketView, TicketSummary } from "./views";
+import { statusLabels, type TicketLinkViewKind, ticketLinkViewKinds } from "@clankerboard/shared";
+import type {
+  McpActorView,
+  McpCommentView,
+  McpTicketLinkView,
+  McpTicketView,
+  TicketSummary,
+} from "./views";
 
 // Markdown for an LLM reader: short, flat, and keyed by Ticket Key or Project Key.
 
@@ -24,9 +30,9 @@ function points(estimate: number | null) {
 }
 
 /**
- * One line per Ticket: `**CB-3** [task, To Do, medium, 3 pts] Title (assignee: Ada)`.
+ * One line per Ticket: `**CB-3** [task, To Do, medium, 3 pts, blocked] Title (assignee: Ada)`.
  * Leave the Status out where the line already sits under its Status. A blank
- * Estimate adds nothing.
+ * Estimate and an unblocked Ticket add nothing.
  */
 export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
   const estimate = points(ticket.estimate);
@@ -35,6 +41,7 @@ export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
     ...(status ? [statusLabels[ticket.status]] : []),
     ticket.priority,
     ...(estimate ? [estimate] : []),
+    ...(ticket.blocked ? ["blocked"] : []),
   ];
   const assignee = ticket.assignee ? `assignee: ${actorLabel(ticket.assignee)}` : "unassigned";
   return `**${ticket.key}** [${facts.join(", ")}] ${ticket.title} (${assignee})`;
@@ -51,9 +58,35 @@ export function ticketMarkdown(ticket: McpTicketView) {
     `Parent: ${ticket.parent ? `**${ticket.parent.key}** [${ticket.parent.type}] ${ticket.parent.title}` : "none"}`,
     `Created by: ${actorLabel(ticket.createdBy)}`,
   ];
+  if (ticket.blocked) facts.push("Blocked: yes");
   if (ticket.archivedAt) facts.push("Archived: yes");
   const description = ticket.description.trim() || "No description.";
   return `# ${ticket.key}: ${ticket.title}\n\n${facts.map((f) => `- ${f}`).join("\n")}\n\n## Description\n\n${description}`;
+}
+
+const linkGroups: Record<TicketLinkViewKind, string> = {
+  blocked_by: "Blocked by",
+  blocks: "Blocks",
+  relates_to: "Related",
+};
+
+/**
+ * A linked Ticket in the ticket-line style: `**CB-3** [task, To Do] Title`,
+ * with "archived" among the facts when it is.
+ */
+export function linkLine(link: McpTicketLinkView) {
+  const facts = [link.type, statusLabels[link.status], ...(link.archived ? ["archived"] : [])];
+  return `**${link.key}** [${facts.join(", ")}] ${link.title}`;
+}
+
+/** A Ticket's Ticket Links under Blocked by, Blocks, and Related, leaving out empty groups. */
+export function linksMarkdown(links: McpTicketLinkView[]) {
+  const groups = ticketLinkViewKinds.flatMap((kind) => {
+    const lines = links.filter((link) => link.kind === kind).map((link) => `- ${linkLine(link)}`);
+    return lines.length === 0 ? [] : [`### ${linkGroups[kind]}\n\n${lines.join("\n")}`];
+  });
+  if (groups.length === 0) return "## Linked tickets\n\nNo linked tickets.";
+  return `## Linked tickets\n\n${groups.join("\n\n")}`;
 }
 
 /** Comments oldest first, each under its author and time. */

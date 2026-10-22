@@ -1,10 +1,12 @@
 import {
   type ActorView,
   type CommentView,
+  listLinks,
   memberEmails,
+  type TicketLinkView,
   type TicketView,
 } from "@clankerboard/domain";
-import { actorView, commentView, ticketView } from "@clankerboard/shared";
+import { actorView, commentView, ticketLinkView, ticketView } from "@clankerboard/shared";
 import { z } from "zod";
 import type { ToolEnv } from "./tool";
 
@@ -29,6 +31,9 @@ export type McpTicketView = z.output<typeof mcpTicketView>;
 export const mcpCommentView = commentView.extend({ author: mcpActorView });
 export type McpCommentView = z.output<typeof mcpCommentView>;
 
+export const mcpTicketLinkView = ticketLinkView.extend({ createdBy: mcpActorView });
+export type McpTicketLinkView = z.output<typeof mcpTicketLinkView>;
+
 /** A Ticket in a list: enough to pick it, not its description. */
 export const ticketSummary = mcpTicketView.pick({
   key: true,
@@ -37,27 +42,33 @@ export const ticketSummary = mcpTicketView.pick({
   status: true,
   priority: true,
   estimate: true,
+  blocked: true,
   assignee: true,
   parent: true,
 });
 export type TicketSummary = z.output<typeof ticketSummary>;
 
 export function summarize(ticket: McpTicketView): TicketSummary {
-  const { key, title, type, status, priority, estimate, assignee, parent } = ticket;
-  return { key, title, type, status, priority, estimate, assignee, parent };
+  const { key, title, type, status, priority, estimate, blocked, assignee, parent } = ticket;
+  return { key, title, type, status, priority, estimate, blocked, assignee, parent };
 }
 
 /**
- * Adds each User's email to these Tickets and Comments, in one query. A
- * former member has none, since `assign_ticket` can't take them anyway.
+ * Adds each User's email to these Tickets, Comments, and Ticket Links, in one
+ * query. A former member has none, since `assign_ticket` can't take them anyway.
  */
 export async function withEmails(
   { deps, ctx }: ToolEnv,
-  { tickets = [], comments = [] }: { tickets?: TicketView[]; comments?: CommentView[] },
-): Promise<{ tickets: McpTicketView[]; comments: McpCommentView[] }> {
+  {
+    tickets = [],
+    comments = [],
+    links = [],
+  }: { tickets?: TicketView[]; comments?: CommentView[]; links?: TicketLinkView[] },
+): Promise<{ tickets: McpTicketView[]; comments: McpCommentView[]; links: McpTicketLinkView[] }> {
   const actors = [
     ...tickets.flatMap((ticket) => [ticket.assignee, ticket.createdBy]),
     ...comments.map((comment) => comment.author),
+    ...links.map((link) => link.createdBy),
   ];
   const userIds = actors.flatMap((actor) => (actor?.type === "user" ? [actor.id] : []));
   const emails = await memberEmails(deps, ctx, [...new Set(userIds)]);
@@ -72,6 +83,7 @@ export async function withEmails(
       createdBy: add(ticket.createdBy),
     })),
     comments: comments.map((comment) => ({ ...comment, author: add(comment.author) })),
+    links: links.map((link) => ({ ...link, createdBy: add(link.createdBy) })),
   };
 }
 
@@ -79,6 +91,12 @@ export async function withEmails(
 export async function ticketWithEmails(env: ToolEnv, ticket: TicketView): Promise<McpTicketView> {
   const { tickets } = await withEmails(env, { tickets: [ticket] });
   return tickets[0] as McpTicketView;
+}
+
+/** A Ticket's Ticket Links as seen from it, grouped Blocked by, Blocks, then Related. */
+export async function linksWithEmails(env: ToolEnv, key: string): Promise<McpTicketLinkView[]> {
+  const { links } = await withEmails(env, { links: await listLinks(env.deps, env.ctx, key) });
+  return links;
 }
 
 /** One Comment with its author's email. */
