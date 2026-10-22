@@ -1,6 +1,6 @@
 # Coding Standards
 
-The reviewer applies every rule below to each diff. These rules need judgement. Mechanical rules are enforced by `pnpm lint` (Biome, and `scripts/check-copy.mjs` for em dashes and emojis in copy).
+The reviewer applies every rule below to each diff. Read the spec's `docs/implementation-notes/spec-NN.md` first: its choices are decided, so flag one only when it contradicts the spec or an ADR. These rules need judgement. Mechanical rules are enforced by `pnpm lint` (Biome, and `scripts/check-copy.mjs` for em dashes, emojis, and glossary _Avoid_ terms in copy).
 
 ## Language
 

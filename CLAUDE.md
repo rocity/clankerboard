@@ -4,6 +4,7 @@
 - Decisions: [docs/adr/](./docs/adr/). Better Auth gotchas: [docs/better-auth.md](./docs/better-auth.md)
 - Specs and tickets: `__private/Specs/`, `__private/Tickets/` (gitignored, local only). When a ticket and its spec disagree, stop and ask the user which is right
 - Tests need the test database: `pnpm db:test:up`. Full check: `pnpm check`
+- Implementing a spec: record each deliberate choice a reviewer might question in `docs/implementation-notes/spec-NN.md`
 
 ## Guardrails
 - Claude is allowed to commit in this repository
