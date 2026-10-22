@@ -1,4 +1,4 @@
-# Clankerboard Project
+# Agent Kanban Project
 
 - Naming code, routes, tests or copy: use [GLOSSARY.md](./GLOSSARY.md) terms
 - Decisions: [docs/adr/](./docs/adr/). Better Auth gotchas: [docs/better-auth.md](./docs/better-auth.md)

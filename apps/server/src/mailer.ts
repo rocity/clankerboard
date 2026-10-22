@@ -1,4 +1,4 @@
-import type { Mailer } from "@clankerboard/domain";
+import type { Mailer } from "@agentkanban/domain";
 import nodemailer from "nodemailer";
 import type { SmtpConfig } from "./config";
 import type { Logger } from "./logger";

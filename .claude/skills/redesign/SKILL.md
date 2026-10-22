@@ -2,7 +2,7 @@
 name: redesign
 description: >
   Use whenever the user says "redesign" a section, component, or page of the
-  Clankerboard web app (`apps/web`): the board, a Ticket card, Ticket detail,
+  Agent Kanban web app (`apps/web`): the board, a Ticket card, Ticket detail,
   Company/Team settings, the Invite flow, and so on. A redesign request is a
   request to reconsider layout, grouping, hierarchy, and sizing. It is not
   permission to swap Tailwind color classes and call it done. Also invoke
@@ -58,7 +58,7 @@ still reads as "six identical pills", and nothing says what matters.
   card is noise.
 - The **Assignee** goes in its own corner, and Agents are visually distinct
   from Users (e.g. a `Bot` icon from lucide next to the Agent's name). That
-  distinction is the reason Clankerboard exists, so it must survive any
+  distinction is the reason Agent Kanban exists, so it must survive any
   redesign.
 
 These are decisions about grouping and emphasis, not about colors.
@@ -107,8 +107,8 @@ not a 🤖 emoji.
 - Check a mobile viewport (375px) and a desktop one (1280px+).
 - Check both light and dark themes. Switch without clicking through: the theme
   is the `dark` class on `<html>`, chosen by the localStorage key
-  `clankerboard-theme` (`"light"`, `"dark"`, or absent for the system setting).
-  In Playwright, `page.addInitScript(() => localStorage.setItem("clankerboard-theme", "dark"))`
+  `agentkanban-theme` (`"light"`, `"dark"`, or absent for the system setting).
+  In Playwright, `page.addInitScript(() => localStorage.setItem("agentkanban-theme", "dark"))`
   before `goto`, or `page.emulateMedia({ colorScheme: "dark" })` to follow the
   system. The key lives in `apps/web/src/lib/theme.ts` and the inline script in
   `apps/web/index.html`.

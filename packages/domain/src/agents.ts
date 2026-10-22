@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { type Db, schema } from "@clankerboard/db";
+import { type Db, schema } from "@agentkanban/db";
 import { and, asc, eq, inArray, isNull, lte, max, or, sql } from "drizzle-orm";
 import type { Clock } from "./clock";
 import type { CompanyContext, DomainDeps, DomainHooks } from "./context";

@@ -1,4 +1,4 @@
-import type { CompanyContext, DomainDeps } from "@clankerboard/domain";
+import type { CompanyContext, DomainDeps } from "@agentkanban/domain";
 import { type AuthInfo, createMcpHandler } from "@modelcontextprotocol/server";
 import { Hono, type MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";

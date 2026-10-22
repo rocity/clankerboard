@@ -1,4 +1,4 @@
-import { type CompanyRole, createInviteInput } from "@clankerboard/shared";
+import { type CompanyRole, createInviteInput } from "@agentkanban/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import type { IssuedInvite } from "@/components/invite-link-panel";

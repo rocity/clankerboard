@@ -1,4 +1,4 @@
-import { addTeamMemberInput } from "@clankerboard/shared";
+import { addTeamMemberInput } from "@agentkanban/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";

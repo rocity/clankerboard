@@ -19,7 +19,7 @@ async function setup(t: TestApp) {
   const { owner } = await createCompany(t, { name: "Acme" });
   const agent = await createAgent(owner, "Claude-1");
   const { secret } = await createApiKey(t, owner, agent.id);
-  await createProject(owner.request, { name: "Clankerboard", key: "CB" });
+  await createProject(owner.request, { name: "Agent Kanban", key: "CB" });
   const client = await t.mcpClient(secret);
   return { owner, agent, client };
 }
@@ -140,7 +140,7 @@ describe("agent loop smoke", () => {
     await seed(owner);
     const seeded = (await activityOf(as, "CB-3")).length;
     const board = async () => {
-      const result = await client.readResource({ uri: "clankerboard://projects/CB/board" });
+      const result = await client.readResource({ uri: "agentkanban://projects/CB/board" });
       return (result.contents[0] as { text: string }).text;
     };
 
@@ -226,7 +226,7 @@ describe("agent loop smoke", () => {
     const claimed = await Promise.all([claimNextBug(client), claimNextBug(other)]);
 
     expect([...claimed].sort()).toEqual(["CB-2", "CB-3"]);
-    const result = await client.readResource({ uri: "clankerboard://projects/CB/board" });
+    const result = await client.readResource({ uri: "agentkanban://projects/CB/board" });
     const inProgress = section((result.contents[0] as { text: string }).text, "In Progress");
     expect(inProgress).toContain("(assignee: Claude-1 (agent))");
     expect(inProgress).toContain("(assignee: Claude-2 (agent))");

@@ -1,4 +1,4 @@
-import { parentTypesAllowed as parentsAllowed, type TicketType } from "@clankerboard/shared";
+import { parentTypesAllowed as parentsAllowed, type TicketType } from "@agentkanban/shared";
 import { invalid } from "./errors";
 
 const withArticle = (type: TicketType) => `${type === "epic" ? "an" : "a"} ${type}`;

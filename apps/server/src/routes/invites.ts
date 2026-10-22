@@ -6,8 +6,8 @@ import {
   previewInvite,
   resendInvite,
   revokeInvite,
-} from "@clankerboard/domain";
-import { createInviteInput, inviteTokenInput } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import { createInviteInput, inviteTokenInput } from "@agentkanban/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany, requireUser, signedIn } from "../middleware/authenticate";

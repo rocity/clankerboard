@@ -1,5 +1,5 @@
-import { schema, type Tx } from "@clankerboard/db";
-import type { CompanyRole } from "@clankerboard/shared";
+import { schema, type Tx } from "@agentkanban/db";
+import type { CompanyRole } from "@agentkanban/shared";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, forbidden, notFound } from "./errors";

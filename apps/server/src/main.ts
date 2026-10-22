@@ -1,5 +1,5 @@
-import { createDatabase, ensureAuthSecret, runMigrations } from "@clankerboard/db";
-import { noopMailer, systemClock } from "@clankerboard/domain";
+import { createDatabase, ensureAuthSecret, runMigrations } from "@agentkanban/db";
+import { noopMailer, systemClock } from "@agentkanban/domain";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { loadConfig } from "./config";

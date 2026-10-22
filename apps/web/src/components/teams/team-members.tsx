@@ -1,5 +1,5 @@
-import type { CompanyRole, TeamRole } from "@clankerboard/shared";
-import { canManageTeamMembers, canSetTeamRole, teamRoles } from "@clankerboard/shared";
+import type { CompanyRole, TeamRole } from "@agentkanban/shared";
+import { canManageTeamMembers, canSetTeamRole, teamRoles } from "@agentkanban/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserMinus } from "lucide-react";
 import { Avatar } from "@/components/avatar";

@@ -8,7 +8,7 @@ import {
   revokes,
   type StreamSubscriber,
   streamedActivity,
-} from "@clankerboard/domain";
+} from "@agentkanban/domain";
 import type { Logger } from "../logger";
 
 /** How often an idle stream sends a comment, so proxies don't time it out. */

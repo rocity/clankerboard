@@ -1,11 +1,11 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { type Db, schema } from "@clankerboard/db";
+import { type Db, schema } from "@agentkanban/db";
 import {
   type CompanyRole,
   type CreateCompanyInput,
   isReservedCompanySlug,
   type UpdateCompanyInput,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { and, asc, eq } from "drizzle-orm";
 import type { CompanyContext, DomainDeps, UserContext } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";

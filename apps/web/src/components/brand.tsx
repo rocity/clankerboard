@@ -1,4 +1,4 @@
-import { productName } from "@clankerboard/shared";
+import { productName } from "@agentkanban/shared";
 import { SquareKanban } from "lucide-react";
 
 export function Brand() {

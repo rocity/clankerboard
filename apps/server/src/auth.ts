@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { schema } from "@clankerboard/db";
-import { type DomainDeps, isSignUpAllowed } from "@clankerboard/domain";
+import { schema } from "@agentkanban/db";
+import { type DomainDeps, isSignUpAllowed } from "@agentkanban/domain";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";

@@ -1,4 +1,4 @@
-import { canManageTeamMembers, canManageTeams } from "@clankerboard/shared";
+import { canManageTeamMembers, canManageTeams } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";

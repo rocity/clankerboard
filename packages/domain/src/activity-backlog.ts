@@ -1,4 +1,4 @@
-import { schema } from "@clankerboard/db";
+import { schema } from "@agentkanban/db";
 import { and, asc, eq, gt, max } from "drizzle-orm";
 import type { ActivityEvent } from "./activity";
 import { refFromColumns } from "./actors";

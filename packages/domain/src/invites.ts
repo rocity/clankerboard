@@ -1,11 +1,11 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { type Db, schema, type Tx } from "@clankerboard/db";
+import { type Db, schema, type Tx } from "@agentkanban/db";
 import {
   type CompanyRole,
   type CreateInviteInput,
   type InviteStatus,
   productName,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { and, asc, eq, getTableColumns, inArray, isNull } from "drizzle-orm";
 import type { CompanyView } from "./companies";
 import type { CompanyContext, DomainDeps, UserContext } from "./context";

@@ -1,4 +1,4 @@
-import { statusLabels } from "@clankerboard/shared";
+import { statusLabels } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { TypeIcon } from "@/components/ticket-summary";

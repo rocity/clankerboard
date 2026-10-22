@@ -2,7 +2,7 @@ import pg from "pg";
 import { e2eDatabaseName } from "./config.mjs";
 
 const adminUrl =
-  process.env.TEST_DATABASE_URL ?? "postgres://clankerboard:clankerboard@localhost:55432/postgres";
+  process.env.TEST_DATABASE_URL ?? "postgres://agentkanban:agentkanban@localhost:55432/postgres";
 
 export const e2eDatabaseUrl = (() => {
   const url = new URL(adminUrl);

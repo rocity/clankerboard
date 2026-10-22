@@ -1,4 +1,4 @@
-import type { CreateTicketInput, TicketPriority, TicketType } from "@clankerboard/shared";
+import type { CreateTicketInput, TicketPriority, TicketType } from "@agentkanban/shared";
 import { type QueryClient, queryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 import { type TicketData, withoutTicket, withTicket } from "./board";

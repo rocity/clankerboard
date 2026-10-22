@@ -2,7 +2,7 @@ import pg from "pg";
 
 // The compose `db-test` service. Override with TEST_DATABASE_URL to point elsewhere.
 export const adminUrl =
-  process.env.TEST_DATABASE_URL ?? "postgres://clankerboard:clankerboard@localhost:55432/postgres";
+  process.env.TEST_DATABASE_URL ?? "postgres://agentkanban:agentkanban@localhost:55432/postgres";
 
 declare module "vitest" {
   interface ProvidedContext {

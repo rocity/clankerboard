@@ -1,4 +1,4 @@
-import { createApiKeyInput } from "@clankerboard/shared";
+import { createApiKeyInput } from "@agentkanban/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { SetupSnippets } from "@/components/agents/setup-snippets";

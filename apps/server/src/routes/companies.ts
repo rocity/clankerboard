@@ -5,8 +5,8 @@ import {
   listCompanies,
   switchCompany,
   updateCompany,
-} from "@clankerboard/domain";
-import { createCompanyInput, switchCompanyInput, updateCompanyInput } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import { createCompanyInput, switchCompanyInput, updateCompanyInput } from "@agentkanban/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany, requireUser, signedIn } from "../middleware/authenticate";

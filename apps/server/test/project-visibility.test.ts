@@ -1,4 +1,4 @@
-import { companyRoles } from "@clankerboard/shared";
+import { companyRoles } from "@agentkanban/shared";
 import { describe, expect, it } from "vitest";
 import {
   buildTestApp,

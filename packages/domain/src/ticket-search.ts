@@ -3,7 +3,7 @@ import type {
   ListTicketsQuery,
   TicketPriority,
   TicketStatus,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { and, asc, desc, eq, gte, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
 import type { CompanyContext, DomainDeps } from "./context";
 import { invalid } from "./errors";

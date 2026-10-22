@@ -1,4 +1,4 @@
-import { statusLabels } from "@clankerboard/shared";
+import { statusLabels } from "@agentkanban/shared";
 import type { McpActorView, McpCommentView, McpTicketView, TicketSummary } from "./views";
 
 // Markdown for an LLM reader: short, flat, and keyed by Ticket Key or Project Key.

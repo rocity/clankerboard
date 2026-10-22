@@ -1,5 +1,5 @@
-import { changeMemberRole, type DomainDeps, listMembers, removeMember } from "@clankerboard/domain";
-import { changeRoleInput } from "@clankerboard/shared";
+import { changeMemberRole, type DomainDeps, listMembers, removeMember } from "@agentkanban/domain";
+import { changeRoleInput } from "@agentkanban/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";

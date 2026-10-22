@@ -4,7 +4,7 @@ import {
   type TicketType,
   ticketPriorities,
   ticketTypes,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { type FormEvent, useState } from "react";

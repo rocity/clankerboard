@@ -249,7 +249,7 @@ export async function addComment(page: Page, key: string, body: string) {
 export async function connectMcp(apiKey: string) {
   const baseURL = test.info().project.use.baseURL;
   const client = new Client(
-    { name: "clankerboard-e2e", version: "0.0.0" },
+    { name: "agentkanban-e2e", version: "0.0.0" },
     { versionNegotiation: { mode: "legacy" } },
   );
   await client.connect(

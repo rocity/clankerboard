@@ -1,4 +1,4 @@
-import { canInvite, canListInvites } from "@clankerboard/shared";
+import { canInvite, canListInvites } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";

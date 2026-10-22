@@ -1,4 +1,4 @@
-import { createCompanyInput } from "@clankerboard/shared";
+import { createCompanyInput } from "@agentkanban/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";

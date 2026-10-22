@@ -1,4 +1,4 @@
-import { type CompanyRole, canChangeRole, canRemoveMember } from "@clankerboard/shared";
+import { type CompanyRole, canChangeRole, canRemoveMember } from "@agentkanban/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserMinus } from "lucide-react";
 import { useState } from "react";

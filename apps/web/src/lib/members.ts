@@ -1,4 +1,4 @@
-import { type CompanyRole, companyRoles } from "@clankerboard/shared";
+import { type CompanyRole, companyRoles } from "@agentkanban/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 

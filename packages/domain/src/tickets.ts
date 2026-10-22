@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { CreateTicketInput, UpdateTicketInput } from "@clankerboard/shared";
+import type { CreateTicketInput, UpdateTicketInput } from "@agentkanban/shared";
 import { eq, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { actorColumns, refOf } from "./actors";

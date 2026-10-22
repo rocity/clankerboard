@@ -1,4 +1,4 @@
-import { DomainError } from "@clankerboard/domain";
+import { DomainError } from "@agentkanban/domain";
 import type { ErrorHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "./env";

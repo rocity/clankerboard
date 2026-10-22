@@ -8,7 +8,7 @@ export type McpConfig = { board: BoardConfig };
 
 /** One MCP server per request, acting as the Agent in `env.ctx`. */
 export function createMcpServer(env: ToolEnv, config: McpConfig) {
-  const server = new McpServer({ name: "clankerboard", version: appVersion });
+  const server = new McpServer({ name: "agentkanban", version: appVersion });
   registerTools(server, tools, env);
   registerBoardResource(server, env, config.board);
   return server;

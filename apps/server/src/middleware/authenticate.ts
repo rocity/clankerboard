@@ -5,7 +5,7 @@ import {
   resolveCompanyContext,
   type UserContext,
   unauthorized,
-} from "@clankerboard/domain";
+} from "@agentkanban/domain";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Auth } from "../auth";

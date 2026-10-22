@@ -95,7 +95,7 @@ test("a new key is shown once, with setup snippets for this server", async ({
   // The command is ready to paste, with this server's URL and the key.
   const command = dialog.getByRole("tabpanel");
   await expect(command).toContainText(
-    `claude mcp add --scope user --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer ${apiKey}"`,
+    `claude mcp add --scope user --transport http agentkanban ${baseURL}/mcp --header "Authorization: Bearer ${apiKey}"`,
   );
   await dialog.getByRole("button", { name: "Copy command" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`${baseURL}/mcp`);
@@ -104,8 +104,8 @@ test("a new key is shown once, with setup snippets for this server", async ({
   await dialog.getByRole("tab", { name: ".mcp.json" }).click();
   const snippet = dialog.getByRole("tabpanel");
   await expect(snippet).toContainText(`"url": "${baseURL}/mcp"`);
-  await expect(snippet).toContainText(`"Authorization": "Bearer \${CLANKERBOARD_API_KEY}"`);
-  await expect(snippet).toContainText(`export CLANKERBOARD_API_KEY=${apiKey}`);
+  await expect(snippet).toContainText(`"Authorization": "Bearer \${AGENTKANBAN_API_KEY}"`);
+  await expect(snippet).toContainText(`export AGENTKANBAN_API_KEY=${apiKey}`);
   expect(await snippet.locator("pre").first().textContent()).not.toContain(apiKey);
 
   await dialog.getByRole("button", { name: "Done" }).click();

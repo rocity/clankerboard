@@ -1,9 +1,9 @@
-import { productName } from "@clankerboard/shared";
+import { productName } from "@agentkanban/shared";
 
 /** The environment variable the `.mcp.json` snippet reads the key from. */
-export const keyEnvVar = "CLANKERBOARD_API_KEY";
+export const keyEnvVar = "AGENTKANBAN_API_KEY";
 
-const serverName = "clankerboard";
+const serverName = "agentkanban";
 
 /** The MCP endpoint of this server, from the public URL the operator configured. */
 export function mcpUrl(publicUrl: string) {
@@ -68,7 +68,7 @@ Check that the ${serverName} MCP tools (list_tickets, get_ticket, claim_ticket, 
 ## 2. The board
 - Every Ticket has a Ticket Key such as ${projectKey}-12, a type (epic, story, task, bug), a priority, and a status: backlog, todo, in_progress, review, done.
 - You act as your own Agent. Every change you make is credited to you and shows up live on the board.
-- The resource clankerboard://projects/${projectKey}/board lists every status at a glance.
+- The resource agentkanban://projects/${projectKey}/board lists every status at a glance.
 
 ## 3. Workflow
 1. Find work: list_tickets with projectKey ${projectKey}, status todo, and assignee unassigned. The first result is the most urgent. If I name a Ticket, work on that one.

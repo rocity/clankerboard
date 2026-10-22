@@ -7,7 +7,7 @@ import {
   ticketPriorities,
   ticketStatuses,
   ticketTypes,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { Label } from "@/components/ui/label";

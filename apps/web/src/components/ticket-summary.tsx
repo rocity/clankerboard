@@ -1,4 +1,4 @@
-import type { TicketType } from "@clankerboard/shared";
+import type { TicketType } from "@agentkanban/shared";
 import { Archive, BookOpen, Bot, Bug, CircleCheck, type LucideIcon, Zap } from "lucide-react";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";

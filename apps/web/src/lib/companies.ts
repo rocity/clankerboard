@@ -3,7 +3,7 @@ import { api, unwrap } from "./api";
 import { isStreamLive, stopStream } from "./live-stream";
 import { clearCompanyData, companiesQuery } from "./queries";
 
-const lastCompanyKey = "clankerboard-last-company";
+const lastCompanyKey = "agentkanban-last-company";
 
 /** The slug of the Company this browser used last. */
 export function rememberCompany(slug: string) {

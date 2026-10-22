@@ -5,7 +5,7 @@ import { createCompany, signUp } from "./helpers";
 test.beforeEach(resetDatabase);
 
 // The key is recorded in .claude/skills/redesign/SKILL.md.
-const storageKey = "clankerboard-theme";
+const storageKey = "agentkanban-theme";
 
 const isDark = (page: Page) =>
   page.evaluate(() => document.documentElement.classList.contains("dark"));

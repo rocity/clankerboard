@@ -1,5 +1,5 @@
-import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { AssignTicketInput } from "@clankerboard/shared";
+import { type Db, schema, type Tx } from "@agentkanban/db";
+import type { AssignTicketInput } from "@agentkanban/shared";
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorRef, actorColumns, refFromColumns, refOf, sameActor } from "./actors";

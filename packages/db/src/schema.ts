@@ -4,7 +4,7 @@ import {
   ticketPriorities,
   ticketStatuses,
   ticketTypes,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,

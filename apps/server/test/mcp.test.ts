@@ -89,13 +89,13 @@ describe("MCP endpoint", () => {
   it.each([
     ["the 2025 handshake", false],
     ["the 2026-07-28 revision", true],
-  ])("identifies as clankerboard with the app version over %s", async (_era, modern) => {
+  ])("identifies as agentkanban with the app version over %s", async (_era, modern) => {
     const t = buildTestApp();
     const { secret } = await setup(t);
 
     const client = await t.mcpClient(secret, { modern });
 
-    expect(client.getServerVersion()).toMatchObject({ name: "clankerboard", version: pkg.version });
+    expect(client.getServerVersion()).toMatchObject({ name: "agentkanban", version: pkg.version });
   });
 
   it("declares an output schema for every tool, with timestamps as ISO strings", async () => {

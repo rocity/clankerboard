@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { schema } from "@clankerboard/db";
-import type { CommentView, TimelineItem } from "@clankerboard/shared";
+import { schema } from "@agentkanban/db";
+import type { CommentView, TimelineItem } from "@agentkanban/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorView, actorColumns, refFromColumns, refOf, resolveActors } from "./actors";

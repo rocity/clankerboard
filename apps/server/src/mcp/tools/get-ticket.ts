@@ -1,4 +1,4 @@
-import { getTicket, listChildren, listComments } from "@clankerboard/domain";
+import { getTicket, listChildren, listComments } from "@agentkanban/domain";
 import { z } from "zod";
 import { bulletList, commentsMarkdown, ticketLine, ticketMarkdown } from "../markdown";
 import { ticketKeyParam } from "../params";

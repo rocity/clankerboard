@@ -1,4 +1,4 @@
-import { canRevokeAgent } from "@clankerboard/shared";
+import { canRevokeAgent } from "@agentkanban/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bot, ChevronDown, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useId, useState } from "react";

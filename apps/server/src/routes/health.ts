@@ -1,4 +1,4 @@
-import type { Db } from "@clankerboard/db";
+import type { Db } from "@agentkanban/db";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 

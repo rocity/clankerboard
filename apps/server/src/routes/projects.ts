@@ -5,8 +5,8 @@ import {
   getProject,
   listProjects,
   updateProject,
-} from "@clankerboard/domain";
-import { createProjectInput, listProjectsQuery, updateProjectInput } from "@clankerboard/shared";
+} from "@agentkanban/domain";
+import { createProjectInput, listProjectsQuery, updateProjectInput } from "@agentkanban/shared";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";

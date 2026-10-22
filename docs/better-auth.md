@@ -1,4 +1,4 @@
-# Better Auth in Clankerboard
+# Better Auth in Agent Kanban
 
 How we use Better Auth (ADR-0005), and the gotchas that its config won't tell you. Read before touching `apps/server/src/auth.ts` or any Better Auth table in `packages/db/src/schema.ts`.
 

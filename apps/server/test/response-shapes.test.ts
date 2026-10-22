@@ -4,7 +4,7 @@ import {
   ticketPage,
   ticketView,
   timelineItem,
-} from "@clankerboard/shared";
+} from "@agentkanban/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {

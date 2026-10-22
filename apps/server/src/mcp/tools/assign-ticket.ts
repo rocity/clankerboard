@@ -1,4 +1,4 @@
-import { assignTicket, findAssignee } from "@clankerboard/domain";
+import { assignTicket, findAssignee } from "@agentkanban/domain";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { ticketKeyParam } from "../params";

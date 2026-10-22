@@ -1,4 +1,4 @@
-import type { CompanyRole } from "@clankerboard/shared";
+import type { CompanyRole } from "@agentkanban/shared";
 import { describe, expect, it } from "vitest";
 import { buildTestApp, createCompany, type SignedInUser, type TestApp } from "./harness";
 

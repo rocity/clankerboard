@@ -1,5 +1,5 @@
-import { createTicket } from "@clankerboard/domain";
-import { createTicketInput } from "@clankerboard/shared";
+import { createTicket } from "@agentkanban/domain";
+import { createTicketInput } from "@agentkanban/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { defineTool } from "../tool";

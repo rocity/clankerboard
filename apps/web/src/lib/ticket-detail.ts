@@ -1,4 +1,4 @@
-import type { TicketStatus, UpdateTicketInput } from "@clankerboard/shared";
+import type { TicketStatus, UpdateTicketInput } from "@agentkanban/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 import type { TicketData } from "./board";

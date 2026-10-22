@@ -1,4 +1,4 @@
-import { productName } from "@clankerboard/shared";
+import { productName } from "@agentkanban/shared";
 import type { RateLimitConfig } from "./rate-limit";
 
 export type OAuthCredentials = { clientId: string; clientSecret: string };

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createDatabase, type Database } from "@clankerboard/db";
+import { createDatabase, type Database } from "@agentkanban/db";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeEach, inject } from "vitest";
 import { databaseUrl, recreateDatabase, withAdmin } from "./test-db";

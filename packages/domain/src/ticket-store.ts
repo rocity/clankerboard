@@ -1,8 +1,8 @@
 // Shared building blocks for the Ticket services: reading Ticket rows within a
 // Company, shaping them for the API, and writing a change to one row. Not part
 // of the domain module's public surface.
-import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { TicketStatus, TicketView } from "@clankerboard/shared";
+import { type Db, schema, type Tx } from "@agentkanban/db";
+import type { TicketStatus, TicketView } from "@agentkanban/shared";
 import { and, asc, desc, eq, getTableColumns, inArray, isNull } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import type { RecordActivity } from "./activity";
