@@ -19,6 +19,7 @@ import { Route as CompanySlugAgentsRouteImport } from './routes/$companySlug/age
 import { Route as CompanySlugMembersRouteImport } from './routes/$companySlug/members'
 import { Route as CompanySlugProjectsIndexRouteImport } from './routes/$companySlug/projects/index'
 import { Route as CompanySlugProjectsProjectKeyRouteRouteImport } from './routes/$companySlug/projects/$projectKey/route'
+import { Route as CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport } from './routes/$companySlug/projects/$projectKey/tickets/$ticketKey'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -72,6 +73,12 @@ const CompanySlugProjectsProjectKeyRouteRoute =
     path: '/projects/$projectKey',
     getParentRoute: () => CompanySlugRouteRoute,
   } as any)
+const CompanySlugProjectsProjectKeyTicketsTicketKeyRoute =
+  CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport.update({
+    id: '/tickets/$ticketKey',
+    path: '/tickets/$ticketKey',
+    getParentRoute: () => CompanySlugProjectsProjectKeyRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,8 +89,9 @@ export interface FileRoutesByFullPath {
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
-  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
+  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,8 +101,9 @@ export interface FileRoutesByTo {
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug': typeof CompanySlugIndexRoute
-  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
+  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   '/$companySlug/projects': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,8 +115,9 @@ export interface FileRoutesById {
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
-  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRoute
+  '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   '/$companySlug/projects/': typeof CompanySlugProjectsIndexRoute
+  '/$companySlug/projects/$projectKey/tickets/$ticketKey': typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects/'
+    | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/$companySlug'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects'
+    | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   id:
     | '__root__'
     | '/'
@@ -145,6 +157,7 @@ export interface FileRouteTypes {
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
     | '/$companySlug/projects/'
+    | '/$companySlug/projects/$projectKey/tickets/$ticketKey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -227,14 +240,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugProjectsProjectKeyRouteRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/projects/$projectKey/tickets/$ticketKey': {
+      id: '/$companySlug/projects/$projectKey/tickets/$ticketKey'
+      path: '/tickets/$ticketKey'
+      fullPath: '/$companySlug/projects/$projectKey/tickets/$ticketKey'
+      preLoaderRoute: typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRouteImport
+      parentRoute: typeof CompanySlugProjectsProjectKeyRouteRoute
+    }
   }
 }
+
+interface CompanySlugProjectsProjectKeyRouteRouteChildren {
+  CompanySlugProjectsProjectKeyTicketsTicketKeyRoute: typeof CompanySlugProjectsProjectKeyTicketsTicketKeyRoute
+}
+
+const CompanySlugProjectsProjectKeyRouteRouteChildren: CompanySlugProjectsProjectKeyRouteRouteChildren =
+  {
+    CompanySlugProjectsProjectKeyTicketsTicketKeyRoute:
+      CompanySlugProjectsProjectKeyTicketsTicketKeyRoute,
+  }
+
+const CompanySlugProjectsProjectKeyRouteRouteWithChildren =
+  CompanySlugProjectsProjectKeyRouteRoute._addFileChildren(
+    CompanySlugProjectsProjectKeyRouteRouteChildren,
+  )
 
 interface CompanySlugRouteRouteChildren {
   CompanySlugAgentsRoute: typeof CompanySlugAgentsRoute
   CompanySlugMembersRoute: typeof CompanySlugMembersRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
-  CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRoute
+  CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
   CompanySlugProjectsIndexRoute: typeof CompanySlugProjectsIndexRoute
 }
 
@@ -243,7 +278,7 @@ const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
   CompanySlugMembersRoute: CompanySlugMembersRoute,
   CompanySlugIndexRoute: CompanySlugIndexRoute,
   CompanySlugProjectsProjectKeyRouteRoute:
-    CompanySlugProjectsProjectKeyRouteRoute,
+    CompanySlugProjectsProjectKeyRouteRouteWithChildren,
   CompanySlugProjectsIndexRoute: CompanySlugProjectsIndexRoute,
 }
 

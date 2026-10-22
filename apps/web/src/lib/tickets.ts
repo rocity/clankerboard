@@ -83,6 +83,12 @@ export const ticketKeys = {
     filters === undefined
       ? (["tickets", "board", projectKey] as const)
       : (["tickets", "board", projectKey, normalize(filters)] as const),
+  // The open Ticket and what hangs off it. Each is its own key, not a prefix of
+  // another, so `setQueryData` on one never touches the others (06-08 patches
+  // `detail` from a snapshot and refetches `timeline` on `comment.added`).
+  detail: (key: string) => ["tickets", "detail", key] as const,
+  timeline: (key: string) => ["tickets", "timeline", key] as const,
+  children: (key: string) => ["tickets", "children", key] as const,
 };
 
 const pageSize = 200;
@@ -114,11 +120,16 @@ export const ticketsQuery = (projectKey: string, filters: BoardFilters = {}) =>
  * Applies a Ticket snapshot to every cached view of its Project's board. A view
  * takes the Ticket only if it matches that view's filters and drops it
  * otherwise, so a filtered board never shows a Ticket it should not. A view with
- * a text search is refetched instead, since only the server can judge it.
+ * a text search is refetched instead, since only the server can judge it. The
+ * open Ticket's own entry takes the snapshot too, unless it holds a newer one.
  */
 export function putTicket(queryClient: QueryClient, ticket: TicketData) {
   const project = queryClient.getQueryData<{ team: { id: string } | null }>(
     projectKeys.detail(ticket.projectKey),
+  );
+  queryClient.setQueryData<TicketData>(
+    ticketKeys.detail(ticket.key),
+    (held) => held && (held.updatedAt > ticket.updatedAt ? held : ticket),
   );
   const context: FilterContext = {
     projectTeamId: project ? (project.team?.id ?? null) : undefined,

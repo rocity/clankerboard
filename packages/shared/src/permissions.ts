@@ -64,3 +64,8 @@ export function canSeeAllAgents(actor: CompanyRole) {
 export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
   return ownsAgent || isAdmin(actor);
 }
+
+/** Hard-deleting a Project or Ticket is for owner and admin Users only. */
+export function canHardDelete(role: CompanyRole) {
+  return isAdmin(role);
+}

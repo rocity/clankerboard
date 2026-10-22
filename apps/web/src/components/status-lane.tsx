@@ -1,4 +1,5 @@
 import { statusLabels, type TicketStatus } from "@clankerboard/shared";
+import { Link, useParams } from "@tanstack/react-router";
 import { RestoreTicketButton } from "@/components/restore-ticket-button";
 import { TicketSummary } from "@/components/ticket-summary";
 import type { TicketData } from "@/lib/board";
@@ -15,6 +16,7 @@ type Props = {
  */
 export function StatusLane({ status, tickets }: Props) {
   const label = statusLabels[status];
+  const { companySlug, projectKey } = useParams({ from: "/$companySlug/projects/$projectKey" });
 
   return (
     <section
@@ -34,7 +36,15 @@ export function StatusLane({ status, tickets }: Props) {
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {tickets.map((ticket) => (
             <li key={ticket.key} className="grid gap-1.5">
-              <TicketSummary ticket={ticket} />
+              <Link
+                to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
+                params={{ companySlug, projectKey, ticketKey: ticket.key }}
+                // The board's filters live in its search params, so opening a Ticket keeps them.
+                search={(prev) => prev}
+                className="block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <TicketSummary ticket={ticket} />
+              </Link>
               {ticket.archivedAt && (
                 <RestoreTicketButton ticketKey={ticket.key} title={ticket.title} />
               )}

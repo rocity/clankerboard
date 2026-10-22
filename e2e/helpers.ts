@@ -1,4 +1,12 @@
-import { type Browser, expect, type Locator, type Page, test } from "@playwright/test";
+import {
+  type APIRequestContext,
+  type Browser,
+  expect,
+  type Locator,
+  type Page,
+  request,
+  test,
+} from "@playwright/test";
 
 export const password = "correct-horse-battery";
 
@@ -177,4 +185,25 @@ export async function assignTicket(
 export async function listTickets(page: Page, projectKey: string) {
   const res = await page.request.get(`/api/tickets?projectKey=${projectKey}&limit=200`);
   return ((await res.json()) as { tickets: TicketRow[] }).tickets;
+}
+
+/** An API Key for an Agent of the signed-in User. The secret is shown only here. */
+export async function createApiKey(page: Page, agentId: string) {
+  const body = await post<{ secret: string }>(page, `/api/agents/${agentId}/keys`, {
+    label: "e2e",
+  });
+  return body.secret;
+}
+
+/** A request context that acts as the Agent holding `secret`, never as a signed-in User. */
+export function actAsAgent(secret: string): Promise<APIRequestContext> {
+  return request.newContext({
+    baseURL: test.info().project.use.baseURL,
+    extraHTTPHeaders: { authorization: `Bearer ${secret}` },
+  });
+}
+
+/** Adds a Comment as the signed-in User. */
+export async function addComment(page: Page, key: string, body: string) {
+  return post<{ comment: { id: string } }>(page, `/api/tickets/${key}/comments`, { body });
 }
