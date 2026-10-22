@@ -105,9 +105,13 @@ not a 🤖 emoji.
 "This should look different now" is not verification. Take a screenshot.
 - Use the `run` skill to start the dev server.
 - Check a mobile viewport (375px) and a desktop one (1280px+).
-- Check both light and dark themes. Once the theme toggle exists, note its
-  storage key or mechanism here so future runs can switch themes without
-  clicking through.
+- Check both light and dark themes. Switch without clicking through: the theme
+  is the `dark` class on `<html>`, chosen by the localStorage key
+  `clankerboard-theme` (`"light"`, `"dark"`, or absent for the system setting).
+  In Playwright, `page.addInitScript(() => localStorage.setItem("clankerboard-theme", "dark"))`
+  before `goto`, or `page.emulateMedia({ colorScheme: "dark" })` to follow the
+  system. The key lives in `apps/web/src/lib/theme.ts` and the inline script in
+  `apps/web/index.html`.
 
 For board views specifically:
 - **Mobile:** columns overflow horizontally. Check that the column you're

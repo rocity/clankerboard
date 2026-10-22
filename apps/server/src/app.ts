@@ -112,3 +112,6 @@ export function createApp(deps: AppDeps) {
 
   return app;
 }
+
+/** The route types the web app's Hono RPC client (`hc`) is generated from. */
+export type AppType = ReturnType<typeof createApp>;

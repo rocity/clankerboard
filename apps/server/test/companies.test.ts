@@ -125,6 +125,43 @@ describe("Companies", () => {
     });
   });
 
+  // The web app serves these at the top level, next to /<company slug>.
+  it.each(["api", "invite", "sign-in", "sign-up", "mcp", "healthz"])(
+    "refuses the reserved slug %s",
+    async (slug) => {
+      const t = buildTestApp();
+      const { owner } = await createCompany(t, { name: "Acme" });
+
+      const create = await owner.request("/api/companies", {
+        method: "POST",
+        body: JSON.stringify({ name: "Another", slug }),
+      });
+      const rename = await owner.request("/api/company", {
+        method: "PATCH",
+        body: JSON.stringify({ slug }),
+      });
+
+      for (const res of [create, rename]) {
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "That slug is reserved." });
+      }
+    },
+  );
+
+  it("derives a different slug when the name would be a reserved one", async () => {
+    const t = buildTestApp();
+    const alice = await t.signUp({ email: "alice@example.com" });
+
+    const res = await alice.request("/api/companies", {
+      method: "POST",
+      body: JSON.stringify({ name: "API" }),
+    });
+
+    expect(res.status).toBe(201);
+    const { company } = (await res.json()) as { company: Company };
+    expect(company.slug).toMatch(/^api-[a-z0-9]+$/);
+  });
+
   it("returns not-found for a Company the User does not belong to", async () => {
     const t = buildTestApp();
     const { company: acme } = await createCompany(t, { name: "Acme" });

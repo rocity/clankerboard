@@ -10,9 +10,11 @@
       "!**/dist",
       "!**/drizzle/meta",
       "!**/test-results",
-      "!**/playwright-report"
+      "!**/playwright-report",
+      "!**/routeTree.gen.ts"
     ]
   },
+  "css": { "parser": { "tailwindDirectives": true } },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",

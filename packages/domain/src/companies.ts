@@ -1,6 +1,11 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { type Db, schema } from "@clankerboard/db";
-import type { CompanyRole, CreateCompanyInput, UpdateCompanyInput } from "@clankerboard/shared";
+import {
+  type CompanyRole,
+  type CreateCompanyInput,
+  isReservedCompanySlug,
+  type UpdateCompanyInput,
+} from "@clankerboard/shared";
 import { and, asc, eq } from "drizzle-orm";
 import type { CompanyContext, DomainDeps, UserContext } from "./context";
 import { conflict, forbidden, isUniqueViolation, notFound } from "./errors";
@@ -44,7 +49,7 @@ async function slugTaken(db: Db, slug: string) {
 
 async function freeSlug(db: Db, name: string) {
   const base = slugify(name);
-  if (!(await slugTaken(db, base))) return base;
+  if (!isReservedCompanySlug(base) && !(await slugTaken(db, base))) return base;
   for (;;) {
     const candidate = `${base}-${randomBytes(3).toString("hex")}`;
     if (!(await slugTaken(db, candidate))) return candidate;

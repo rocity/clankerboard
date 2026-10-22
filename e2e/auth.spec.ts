@@ -1,20 +1,120 @@
 import { expect, test } from "@playwright/test";
 import { resetDatabase } from "./database";
+import { createCompany, password, scrollsSideways, signIn, signUp } from "./helpers";
 
 test.beforeEach(resetDatabase);
 
-test("the first User signs up, sees their profile, and signs out", async ({ page }) => {
+test("a first User signs up, creates a Company, signs out, and signs back in to it", async ({
+  page,
+}) => {
   await page.goto("/");
+  await expect(page).toHaveURL(/\/sign-in/);
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 
   await page.getByRole("link", { name: "Sign up" }).click();
   await page.getByLabel("Name").fill("Ada");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse-battery");
+  await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign up" }).click();
 
-  await expect(page.getByText("Signed in as Ada (ada@example.com)")).toBeVisible();
+  // No Company yet, so the app asks for one.
+  await expect(page.getByRole("heading", { name: "Create your company" })).toBeVisible();
+  expect(await scrollsSideways(page)).toBe(false);
+  await page.getByLabel("Company name").fill("Acme Robotics");
+  await page.getByRole("button", { name: "Create company" }).click();
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL("/acme-robotics");
+  await expect(page.getByRole("heading", { name: "Acme Robotics" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Company" })).toHaveText("Acme Robotics");
+
+  await page.getByRole("button", { name: "Account" }).click();
+  await expect(page.getByText("ada@example.com")).toBeVisible();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+
+  // A new session has no active Company, so this lands on the one the browser used last.
+  await signIn(page, "ada@example.com");
+  await expect(page).toHaveURL("/acme-robotics");
+  await expect(page.getByRole("heading", { name: "Acme Robotics" })).toBeVisible();
+});
+
+test("a wrong password shows a plain message and stays on sign-in", async ({ page }) => {
+  await signUp(page, "Ada", "ada@example.com");
+  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+
+  await page.getByLabel("Email").fill("ada@example.com");
+  await page.getByLabel("Password").fill("not-the-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(page.getByRole("alert")).toHaveText("Invalid email or password");
+  await expect(page).toHaveURL(/\/sign-in/);
+});
+
+test("a second sign-up without an Invite is refused", async ({ page, browser }) => {
+  await signUp(page, "Ada", "ada@example.com");
+
+  const stranger = await browser.newPage();
+  await stranger.goto("/sign-up");
+  await stranger.getByLabel("Name").fill("Eve");
+  await stranger.getByLabel("Email").fill("eve@example.com");
+  await stranger.getByLabel("Password").fill(password);
+  await stranger.getByRole("button", { name: "Sign up" }).click();
+
+  await expect(stranger.getByRole("alert")).toHaveText("Sign-up needs an invite.");
+  await stranger.close();
+});
+
+test.describe("OAuth buttons", () => {
+  test("show only the providers the server enabled", async ({ page }) => {
+    await page.route("**/api/auth-providers", (route) =>
+      route.fulfill({ json: { providers: ["github"] } }),
+    );
+    await page.goto("/sign-in");
+
+    await expect(page.getByRole("button", { name: "Continue with GitHub" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+  });
+
+  test("are absent when no provider is enabled", async ({ page }) => {
+    await page.goto("/sign-in");
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+
+    await expect(page.getByRole("button", { name: /Continue with/ })).toHaveCount(0);
+  });
+
+  test("start the provider flow for the one that was clicked", async ({ page }) => {
+    await page.route("**/api/auth-providers", (route) =>
+      route.fulfill({ json: { providers: ["google"] } }),
+    );
+    let asked = "";
+    await page.route("**/api/auth/sign-in/social", (route) => {
+      asked = route.request().postData() ?? "";
+      return route.fulfill({ json: { url: "/sign-up", redirect: true } });
+    });
+    await page.goto("/sign-in");
+
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+
+    await expect(page).toHaveURL(/\/sign-up/);
+    expect(JSON.parse(asked)).toMatchObject({ provider: "google", callbackURL: "/" });
+  });
+});
+
+test("a sign-in in a fresh browser lands on one of the User's Companies", async ({
+  page,
+  browser,
+}) => {
+  await signUp(page, "Ada", "ada@example.com");
+  await createCompany(page, "Acme Robotics");
+  await createCompany(page, "Globex");
+
+  // This browser has no remembered Company and its new session has no active one.
+  const fresh = await browser.newPage();
+  await fresh.goto("/sign-in");
+  await signIn(fresh, "ada@example.com");
+
+  await expect(fresh).toHaveURL(/\/(acme-robotics|globex)$/);
+  await expect(fresh.getByRole("button", { name: "Company" })).toBeVisible();
+  await fresh.close();
 });

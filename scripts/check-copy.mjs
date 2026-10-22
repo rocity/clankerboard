@@ -4,6 +4,7 @@
 // - GLOSSARY.md: no _Avoid_ term in user-facing sentences. A term the glossary
 //   avoids for one concept can be right for another (`owner` is also a Company
 //   Role), so scripts/copy-allowlist.json lists the phrases where it is fine.
+// - Tailwind class lists are not copy and are skipped (see `isClassList`).
 // - GLOSSARY.md again: no _Avoid_ term in the Agent names test fixtures pass to
 //   createAgent, since they read as Agent names. Other test strings are left to review.
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -124,8 +125,53 @@ function jsxText(code) {
   return found;
 }
 
+/**
+ * Tailwind class lists are not copy. `items-center`, `bg-card`, and `data-[state=open]:...`
+ * would trip the _Avoid_ terms (item, card, state) in every component. A string is a
+ * class list when every word is lowercase utility syntax and either carries a Tailwind
+ * marker (`-`, `:`, `[`, `/`) or is one of the bare utilities below. Prose has capitals
+ * or plain English words, so it still gets checked.
+ */
+const bareUtilities = new Set([
+  "absolute",
+  "antialiased",
+  "block",
+  "border",
+  "contents",
+  "container",
+  "fixed",
+  "flex",
+  "grid",
+  "group",
+  "grow",
+  "hidden",
+  "inline",
+  "isolate",
+  "italic",
+  "lowercase",
+  "outline",
+  "peer",
+  "relative",
+  "rounded",
+  "shadow",
+  "shrink",
+  "static",
+  "sticky",
+  "table",
+  "transition",
+  "truncate",
+  "underline",
+  "uppercase",
+]);
+const utilityWord = /^[!@a-z0-9_:\-[\]/.%#()&>*=,'"$+~^|]+$/;
+const isClassList = (text) =>
+  text
+    .trim()
+    .split(/\s+/)
+    .every((word) => utilityWord.test(word) && (/[-:[/]/.test(word) || bareUtilities.has(word)));
+
 /** Sentences, not identifiers: copy has at least two words. */
-const isProse = (text) => /[A-Za-z]{2,}\s+[A-Za-z]{2,}/.test(text);
+const isProse = (text) => /[A-Za-z]{2,}\s+[A-Za-z]{2,}/.test(text) && !isClassList(text);
 
 function unallowed(text, term) {
   let rest = text;
