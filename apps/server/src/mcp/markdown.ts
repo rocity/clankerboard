@@ -18,12 +18,24 @@ export function actorLabel(actor: McpActorView) {
   return `${actor.name} (agent${actor.revoked ? ", revoked" : ""})`;
 }
 
+/** "3 pts", or null when the Estimate is blank. */
+function points(estimate: number | null) {
+  return estimate === null ? null : `${estimate} pts`;
+}
+
 /**
- * One line per Ticket: `**CB-3** [task, To Do, medium] Title (assignee: Ada)`.
- * Leave the Status out where the line already sits under its Status.
+ * One line per Ticket: `**CB-3** [task, To Do, medium, 3 pts] Title (assignee: Ada)`.
+ * Leave the Status out where the line already sits under its Status. A blank
+ * Estimate adds nothing.
  */
 export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
-  const facts = [ticket.type, ...(status ? [statusLabels[ticket.status]] : []), ticket.priority];
+  const estimate = points(ticket.estimate);
+  const facts = [
+    ticket.type,
+    ...(status ? [statusLabels[ticket.status]] : []),
+    ticket.priority,
+    ...(estimate ? [estimate] : []),
+  ];
   const assignee = ticket.assignee ? `assignee: ${actorLabel(ticket.assignee)}` : "unassigned";
   return `**${ticket.key}** [${facts.join(", ")}] ${ticket.title} (${assignee})`;
 }
@@ -34,6 +46,7 @@ export function ticketMarkdown(ticket: McpTicketView) {
     `Type: ${ticket.type}`,
     `Status: ${statusLabels[ticket.status]}`,
     `Priority: ${ticket.priority}`,
+    `Estimate: ${points(ticket.estimate) ?? "none"}`,
     `Assignee: ${ticket.assignee ? actorLabel(ticket.assignee) : "unassigned"}`,
     `Parent: ${ticket.parent ? `**${ticket.parent.key}** [${ticket.parent.type}] ${ticket.parent.title}` : "none"}`,
     `Created by: ${actorLabel(ticket.createdBy)}`,

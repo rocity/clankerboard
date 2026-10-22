@@ -40,6 +40,8 @@ export const ticketView = z.object({
   status: ticketStatus,
   priority: ticketPriority,
   rank: z.string(),
+  /** Points from 0 to 100, or null when blank. */
+  estimate: z.number().int().nullable(),
   parent: z.object({ key: z.string(), title: z.string(), type: ticketType }).nullable(),
   assignee: actorView.nullable(),
   createdBy: actorView,

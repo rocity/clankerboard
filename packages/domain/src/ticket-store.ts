@@ -115,6 +115,7 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     status: row.status,
     priority: row.priority,
     rank: row.rank,
+    estimate: row.estimate,
     parent: (row.parentId && parents.get(row.parentId)) || null,
     assignee: actor(assignees[i] ?? null),
     createdBy: actor(creators[i] ?? null) as ActorView,
