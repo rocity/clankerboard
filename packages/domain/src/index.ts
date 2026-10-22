@@ -1,5 +1,6 @@
 export type { Db } from "@clankerboard/db";
 export * from "./activity";
+export * from "./activity-backlog";
 export * from "./actors";
 export * from "./agents";
 export * from "./archive";

@@ -75,7 +75,7 @@ export function createApp(deps: AppDeps) {
   const auth = createAuth({ domain, config, logger: deps.logger });
   // One instance, so `/api` and `/mcp` spend from the same per-key bucket.
   const authenticated = authenticate(auth, domain, new RateLimiter(config.rateLimit, deps.clock));
-  const streams = new StreamManager(domain);
+  const streams = new StreamManager(domain, { backlogLimit: config.streamBacklogLimit });
   deps.shutdown?.addEventListener("abort", () => streams.closeAll(), { once: true });
 
   const api = new Hono<AppEnv>()

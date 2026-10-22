@@ -1,4 +1,5 @@
 import { schema, type Tx } from "@clankerboard/db";
+import { sql } from "drizzle-orm";
 import { type ActorRef, actorColumns, refOf } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
 
@@ -39,10 +40,17 @@ export type RecordActivity = (input: {
   payload?: Record<string, unknown>;
 }) => Promise<ActivityEvent>;
 
+// Namespaces the per-Company advisory lock, so it can't collide with another use.
+const activityLockSpace = 0x41435456; // "ACTV"
+
 /**
  * Runs a change in one transaction with a recorder that writes Activity
  * credited to the acting Actor. The recorded Activity is published only after
  * the transaction commits, and never if it rolls back.
+ *
+ * Changes in one Company run one at a time, so Activity ids commit in id
+ * order. Otherwise a slow change could commit id 40 after a client already
+ * saw 41, and a reconnect from 41 would never send 40.
  */
 export async function withActivity<T>(
   { db, clock, events }: DomainDeps,
@@ -52,6 +60,10 @@ export async function withActivity<T>(
   const recorded: ActivityEvent[] = [];
   const actor = refOf(ctx.actor);
   const result = await db.transaction(async (tx) => {
+    // Taken before the change locks any row, so it can't deadlock with one.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${activityLockSpace}, hashtext(${ctx.companyId}))`,
+    );
     const record: RecordActivity = async (input) => {
       const { userId, agentId } = actorColumns(actor);
       const [row] = await tx

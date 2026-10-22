@@ -1,5 +1,6 @@
 import {
   type ActivityEvent,
+  activityBacklog,
   type CompanyContext,
   type DomainDeps,
   streamedActivity,
@@ -22,11 +23,18 @@ export type StreamSink = {
 export class StreamManager {
   private readonly streams = new Set<LiveStream>();
 
-  constructor(private readonly deps: DomainDeps) {}
+  constructor(
+    private readonly deps: DomainDeps,
+    private readonly options: { backlogLimit: number },
+  ) {}
 
-  /** Starts pushing the Company's Activity to `sink`, as `ctx` may see it. */
-  open(ctx: CompanyContext, sink: StreamSink, log: Logger): LiveStream {
+  /**
+   * Starts pushing the Company's Activity to `sink`, as `ctx` may see it.
+   * With `lastEventId`, first sends what came after it.
+   */
+  open(ctx: CompanyContext, sink: StreamSink, log: Logger, lastEventId?: string): LiveStream {
     const stream = new LiveStream(this.deps, ctx, sink, log, () => this.streams.delete(stream));
+    if (lastEventId) stream.catchUp(lastEventId, this.options.backlogLimit);
     this.streams.add(stream);
     return stream;
   }
@@ -47,6 +55,8 @@ export class LiveStream {
   private queue: Promise<void> = Promise.resolve();
   private readonly unsubscribe: () => void;
   private readonly stopTicking: () => void;
+  // The last id the catch-up sent. Live events up to it are duplicates.
+  private caughtUpThrough = 0;
 
   constructor(
     private readonly deps: DomainDeps,
@@ -59,7 +69,7 @@ export class LiveStream {
       this.resolveClosed = resolve;
     });
     this.unsubscribe = deps.events.subscribe(ctx.companyId, (event) =>
-      this.enqueue(() => this.send(event)),
+      this.enqueue(() => this.sendLive(event)),
     );
     this.stopTicking = deps.clock.every(keepaliveMs, () => this.enqueue(() => this.tick()));
   }
@@ -71,6 +81,37 @@ export class LiveStream {
     this.stopTicking();
     this.onClose();
     this.resolveClosed();
+  }
+
+  /**
+   * Sends the Activity after `lastEventId` from the database, ahead of every
+   * live event queued behind it, or a single `resync` event when there is too
+   * much of it. Called right after subscribing, so nothing published in
+   * between is missed.
+   */
+  catchUp(lastEventId: string, backlogLimit: number) {
+    // Anything but an Activity id leaves the client's position unknown.
+    const afterId = /^\d{1,15}$/.test(lastEventId) ? Number(lastEventId) : null;
+    this.enqueue(async () => {
+      const backlog = await activityBacklog(this.deps, this.ctx, afterId, backlogLimit);
+      if (backlog.kind === "refetch") {
+        // The client refetches everything up to here, so the id is where its
+        // next reconnect resumes, and live events up to it are covered.
+        await this.sink.event({ id: String(backlog.latestId), event: "resync", data: "{}" });
+        this.caughtUpThrough = backlog.latestId;
+        return;
+      }
+      for (const event of backlog.events) {
+        await this.send(event);
+        this.caughtUpThrough = event.id;
+      }
+    });
+  }
+
+  private async sendLive(event: ActivityEvent) {
+    // Committed before the backlog was read, so the backlog already sent it.
+    if (event.id <= this.caughtUpThrough) return;
+    await this.send(event);
   }
 
   private enqueue(task: () => Promise<void>) {

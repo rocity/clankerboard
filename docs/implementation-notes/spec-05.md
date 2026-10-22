@@ -27,3 +27,27 @@ Deliberate choices made while implementing Spec 05 (Realtime Updates). Reviewers
 - **Disconnects:** the stream closes (unsubscribes, stops its keepalive) when the response body is cancelled or the request signal aborts.
 - **No bound on a slow client's queue:** a client that stops reading stalls its own chain and its events pile up in memory. Other streams are unaffected. A cap (for example, close the stream and let the client resync) can come with 05-02.
 - **Tests** (`apps/server/test/stream.test.ts`) read the stream in-process through `openStream` in the harness, and make changes through REST and MCP. "Nothing crossed" is shown with a keepalive tick as a sentinel: it queues behind every event already published, so a stream reaching it next had nothing else coming.
+
+## 05-02 Catch-up and resync
+
+- **Out-of-order Activity ids: advisory lock, not a replay window.** `withActivity` takes `pg_advisory_xact_lock(<activity namespace>, hashtext(companyId))` as its transaction's first statement, so changes in one Company run one at a time and Activity ids commit in id order.
+  - A window before `Last-Event-ID` can't bound how late a slow commit lands, and it re-sends ids the client already has, which AC2 forbids unless the client de-duplicates.
+  - Taken at the start, not at the first `record`. A lock taken mid-change, after the change already holds row locks, could deadlock with another change waiting on those rows.
+  - Cost: Activity-writing changes in one Company serialize, including ones that end up recording nothing (a no-op update). Reads and changes in other Companies are not affected (a hash collision only serializes two unrelated Companies). Fine for v1 board write rates.
+  - The lock lives in Postgres, so it still holds with several replicas (the LISTEN/NOTIFY follow-up).
+- **The stream's queue is the live buffer.** `StreamManager.open` with a `Last-Event-ID` enqueues the catch-up right after subscribing, so every live event published from then on queues behind it, and nothing can be published in between (it is all synchronous).
+  - After the catch-up, a live event with an id at or below the last one the catch-up sent is dropped as already sent. A high-water mark rather than a set of sent ids, which is exact because of the lock. The mark is set only by the catch-up, never by live events.
+- **Backlog read:** `activityBacklog` (`packages/domain/src/activity-backlog.ts`) reads the Company's Activity after the id, oldest first, through the `(companyId, id)` index, and shapes each row as the bus would have published it. Each row then goes through `streamedActivity` like a live event: same permission check, snapshot read as current state.
+  - `ticketKey` is rebuilt from the Ticket's Project key and number (Project keys never change), or from `payload.ticketKey` for `ticket.deleted`.
+  - Gaps are expected: hard deletes cascade their Ticket's or Project's Activity away, so a replay never sends `project.deleted` and never sends Activity of a Ticket deleted since.
+- **Backlog limit:** `STREAM_BACKLOG_LIMIT` (`AppConfig.streamBacklogLimit`), default 500, at least 0. Zero means any missed Activity gets `resync`. It counts the Company's Activity rows before the permission filter. The query fetches limit + 1 rows to tell "exactly the limit" from "over it".
+- **`resync` carries an id:** the Company's latest Activity id when the backlog was read, with data `{}`. Unlike 05-03's `unauthorized`, which has none.
+  - The browser's `EventSource` adopts it as its last event id. After refetching, the client's next reconnect resumes from there instead of hitting the same oversized gap and resyncing forever.
+  - Live events up to that id are dropped, since the refetch (made after the client receives `resync`) already reflects them. Live events after it carry on as usual.
+  - Data is `{}` because browsers do not dispatch an SSE event with empty data.
+- **Odd `Last-Event-ID` values:** anything but a whole number of up to 15 digits gets `resync`, because the client's position is unknown. An empty header counts as a fresh connect (browsers send none before their first id). An id beyond the newest Activity replays nothing.
+- **Retention:** all Activity is kept (spec Out of Scope), so the "id older than retained Activity" case can't happen yet. When pruning lands, `activityBacklog` must also return `refetch` for an id below the oldest kept row.
+- **Tests** live in `apps/server/test/stream-replay.test.ts`, apart from `stream.test.ts`, so 05-02 and 05-03 could land in parallel.
+  - A second tab that never disconnects is the independent record of what the reconnecting tab missed.
+  - A `HeldEventBus` holds publishes back, to force the race where a change has committed (so the backlog has it) but its publish reaches the new subscription only after the catch-up.
+  - The out-of-order case stalls a Comment after its Activity id is allocated: an outside transaction holds its Project row `FOR UPDATE`, which the Activity's foreign-key check waits on. The test polls `pg_stat_activity` for lock waiters rather than sleeping. Without the advisory lock, the later-numbered change commits first, the tab sees it, and the reconnect never sends the Comment.

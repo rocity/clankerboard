@@ -25,6 +25,7 @@ export function streamRoutes(deps: DomainDeps, streams: StreamManager) {
           },
         },
         c.var.log,
+        c.req.header("last-event-id"),
       );
       sse.onAbort(() => stream.close());
       c.req.raw.signal.addEventListener("abort", () => stream.close());
