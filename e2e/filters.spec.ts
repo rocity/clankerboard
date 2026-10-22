@@ -7,6 +7,8 @@ import {
   createProject,
   createTeam,
   createTicket,
+  linkTickets,
+  moveTicket,
   scrollsSideways,
   signUp,
 } from "./helpers";
@@ -326,6 +328,96 @@ test.describe("each filter", () => {
   });
 });
 
+test.describe("Blocked Tickets", () => {
+  /** PLAT-1 blocks PLAT-2. PLAT-1 and PLAT-3 both block PLAT-4. */
+  async function seedBlocked(page: Page) {
+    await openBoard(page);
+    for (const title of ["Design the schema", "Build the API", "Write the docs", "Ship it"]) {
+      await createTicket(page, { projectKey: "PLAT", title });
+    }
+    await linkTickets(page, "PLAT-1", "blocks", "PLAT-2");
+    await linkTickets(page, "PLAT-4", "blocked_by", "PLAT-1");
+    await linkTickets(page, "PLAT-3", "blocks", "PLAT-4");
+  }
+
+  const marker = (page: Page, title: string) =>
+    page.getByRole("article", { name: title }).getByRole("img", { name: /^Blocked by/ });
+
+  test("a Blocked card names its open blockers and an unblocked card shows nothing", async ({
+    page,
+  }) => {
+    await seedBlocked(page);
+    await showBoard(page);
+    await expectTitles(page, ["Design the schema", "Build the API", "Write the docs", "Ship it"]);
+
+    await expect(marker(page, "Ship it")).toHaveAccessibleName("Blocked by 2 tickets");
+    await expect(marker(page, "Ship it")).toHaveAttribute("title", "Blocked by 2 tickets");
+    await expect(marker(page, "Ship it")).toContainText("Blocked");
+    await expect(marker(page, "Build the API")).toHaveAccessibleName("Blocked by 1 ticket");
+    await expect(marker(page, "Design the schema")).toHaveCount(0);
+    await expect(marker(page, "Write the docs")).toHaveCount(0);
+    await expect(page.getByRole("article", { name: "Write the docs" })).not.toContainText(
+      "Blocked",
+    );
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+
+  test("shows only Blocked Tickets or hides them, and the URL holds the choice", async ({
+    page,
+  }) => {
+    await seedBlocked(page);
+    await showBoard(page);
+    await openFilters(page);
+    await expect(select(page, "Blocked")).toHaveValue("");
+
+    await select(page, "Blocked").selectOption({ label: "Only blocked" });
+    await expectTitles(page, ["Build the API", "Ship it"]);
+    expect(params(page)).toEqual({ blocked: "only" });
+
+    await select(page, "Blocked").selectOption({ label: "Hide blocked" });
+    await expectTitles(page, ["Design the schema", "Write the docs"]);
+    expect(params(page)).toEqual({ blocked: "hide" });
+
+    // A reload keeps the view, and the filter combines with the others.
+    await page.reload();
+    await expectTitles(page, ["Design the schema", "Write the docs"]);
+    await openFilters(page);
+    await expect(select(page, "Blocked")).toHaveValue("hide");
+    await page.getByRole("searchbox", { name: "Search" }).fill("docs");
+    await expectTitles(page, ["Write the docs"]);
+    expect(params(page)).toEqual({ blocked: "hide", q: "docs" });
+
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await expectTitles(page, ["Design the schema", "Build the API", "Write the docs", "Ship it"]);
+    expect(params(page)).toEqual({});
+  });
+
+  test("a filtered board drops a Ticket that is no longer Blocked, and takes one that is", async ({
+    page,
+  }) => {
+    await seedBlocked(page);
+    await showBoard(page, "?blocked=only");
+    await expectTitles(page, ["Build the API", "Ship it"]);
+
+    // PLAT-2's only blocker is done. PLAT-4 still waits on PLAT-3.
+    await moveTicket(page, "PLAT-1", "done");
+    await expectTitles(page, ["Ship it"]);
+
+    await showBoard(page, "?blocked=hide");
+    await expectTitles(page, ["Design the schema", "Build the API", "Write the docs"]);
+    await moveTicket(page, "PLAT-1", "todo");
+    await expectTitles(page, ["Design the schema", "Write the docs"]);
+  });
+
+  test("an unknown Blocked value in the URL shows every Ticket", async ({ page }) => {
+    await seedBlocked(page);
+    await showBoard(page, "?blocked=maybe");
+    await expectTitles(page, ["Design the schema", "Build the API", "Write the docs", "Ship it"]);
+    await openFilters(page);
+    await expect(select(page, "Blocked")).toHaveValue("");
+  });
+});
+
 test.describe("archived Tickets", () => {
   async function seedArchived(page: Page) {
     await openBoard(page);
@@ -515,6 +607,7 @@ test.describe("on a phone and on a desktop", () => {
       ["Type", select(page, "Type")],
       ["Epic", select(page, "Epic")],
       ["Team", select(page, "Team")],
+      ["Blocked", select(page, "Blocked")],
       ["Show archived", page.getByText("Show archived")],
       ["Clear filters", page.getByRole("button", { name: "Clear filters" })],
       ["Restore", page.getByRole("button", { name: /^Restore/ })],

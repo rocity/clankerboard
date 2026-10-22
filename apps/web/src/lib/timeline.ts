@@ -28,6 +28,15 @@ function describeChange(field: string, change: Change) {
     case "parent":
       if (!to) return `removed the parent ${from ?? ""}`.trim();
       return from ? `changed the parent from ${from} to ${to}` : `set the parent to ${to}`;
+    case "estimate": {
+      // Estimates are numbers, and zero is a size, so only null means blank.
+      const before = typeof change.from === "number" ? change.from : null;
+      const after = typeof change.to === "number" ? change.to : null;
+      if (after === null) return "cleared the estimate";
+      return before === null
+        ? `set the estimate to ${after}`
+        : `changed the estimate from ${before} to ${after}`;
+    }
     default:
       return `changed the ${field}`;
   }

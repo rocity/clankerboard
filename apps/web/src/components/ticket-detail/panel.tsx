@@ -179,6 +179,7 @@ export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props)
             onStatus={(status) => run(() => mutations.move.mutateAsync(status))}
             onType={(type) => run(() => mutations.update.mutateAsync({ type }))}
             onPriority={(priority) => run(() => mutations.update.mutateAsync({ priority }))}
+            onEstimate={(estimate) => run(() => mutations.update.mutateAsync({ estimate }))}
             onParent={(parentKey) => run(() => mutations.update.mutateAsync({ parentKey }))}
             onAssignee={(assignee) => run(() => mutations.assign.mutateAsync(assignee))}
           />
