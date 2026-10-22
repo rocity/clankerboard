@@ -5,3 +5,4 @@ dist/
 *.tsbuildinfo
 test-results/
 playwright-report/
+.claude/worktrees/

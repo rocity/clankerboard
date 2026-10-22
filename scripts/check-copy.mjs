@@ -4,6 +4,8 @@
 // - GLOSSARY.md: no _Avoid_ term in user-facing sentences. A term the glossary
 //   avoids for one concept can be right for another (`owner` is also a Company
 //   Role), so scripts/copy-allowlist.json lists the phrases where it is fine.
+// - GLOSSARY.md again: no _Avoid_ term in the Agent names test fixtures pass to
+//   createAgent, since they read as Agent names. Other test strings are left to review.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -152,6 +154,22 @@ for (const dir of sourceDirs) {
             `${where(line)}: "${term.word}" (GLOSSARY.md avoids it for ${term.concept}) in "${text.trim()}"`,
           );
         }
+      }
+    }
+  }
+}
+
+const agentFixture = /createAgent\(\s*[^,()]+,\s*(["'`])([^"'`]*)\1/g;
+for (const file of sourceFiles(join(root, "apps/server/test"))) {
+  const source = readFileSync(file, "utf8");
+  for (const match of source.matchAll(agentFixture)) {
+    const name = match[2] ?? "";
+    const line = source.slice(0, match.index).split("\n").length;
+    for (const term of terms) {
+      if (unallowed(name, term)) {
+        problems.push(
+          `${relative(root, file)}:${line}: "${term.word}" (GLOSSARY.md avoids it for ${term.concept}) in Agent name "${name}"`,
+        );
       }
     }
   }

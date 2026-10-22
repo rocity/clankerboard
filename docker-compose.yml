@@ -1,3 +1,7 @@
+# A fixed project name, so every git worktree shares one db-test container
+# instead of each trying to start its own on the same port.
+name: clankerboard
+
 services:
   app:
     build: .

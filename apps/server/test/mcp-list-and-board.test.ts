@@ -113,9 +113,9 @@ describe("list_tickets", () => {
     const t = buildTestApp();
     const { owner, client } = await setup(t);
     const as = owner.request;
-    const bob = await createAgent(owner, "Bob-bot");
+    const bob = await createAgent(owner, "Bob-Agent");
     await createTicket(as, { projectKey: "CB", title: "Owner's" }); // CB-1
-    await createTicket(as, { projectKey: "CB", title: "Bot's" }); // CB-2
+    await createTicket(as, { projectKey: "CB", title: "Bob's" }); // CB-2
     await createTicket(as, { projectKey: "CB", title: "Nobody's" }); // CB-3
     await assign(as, "CB-1", { type: "user", id: owner.user.id });
     await assign(as, "CB-2", { type: "agent", id: bob.id });
@@ -134,7 +134,7 @@ describe("list_tickets", () => {
     expect(await keys(userHandle)).toEqual(["CB-1"]);
     expect(await keys(userHandle?.toUpperCase())).toEqual(["CB-1"]);
     expect(await keys(agentHandle)).toEqual(["CB-2"]);
-    expect(await keys("bob-bot")).toEqual(["CB-2"]);
+    expect(await keys("bob-agent")).toEqual(["CB-2"]);
 
     const unknown = await client.callTool({
       name: "list_tickets",

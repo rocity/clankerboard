@@ -32,3 +32,9 @@ On first use, the Drizzle adapter compares `packages/db/src/schema.ts` with what
 - **Where the Invite token comes from:**
   - Email sign-up sends it in the `x-invite-token` header.
   - OAuth sign-up carries it in the `cb_invite` cookie, because it arrives on a redirect.
+
+## Sessions and the clock
+
+- **Better Auth reads the real clock, not the injected `Clock`.** It sets `sessions.expires_at` 7 days from the real now and extends it as the session is used. The test `FakeClock` starts at 2026-01-01, so no API call brings an expiry within reach of `FakeClock.advance`.
+- **To test expiry:** write `sessions.expires_at` directly in the database, then check the effect through the API (as `apps/server/test/stream-revocation.test.ts` does).
+- **Read expiry fresh from `sessions`** rather than caching the value seen at sign-in, since Better Auth moves it forward.

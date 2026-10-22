@@ -16,6 +16,11 @@
   { "term": "owner", "phrase": "one owner", "reason": "owner is a Company Role" },
   { "term": "owner", "phrase": "owner's role", "reason": "owner is a Company Role" },
   { "term": "owner", "phrase": "Pick owner", "reason": "owner is a Company Role" },
+  {
+    "term": "owner",
+    "phrase": "Owner-Agent",
+    "reason": "Test fixture: the Agent of the User with the owner Role"
+  },
   { "term": "member", "phrase": "or member", "reason": "member is a Company and Team Role" },
   {
     "term": "slug",
