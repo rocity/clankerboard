@@ -3,6 +3,8 @@ import {
   activityBacklog,
   type CompanyContext,
   type DomainDeps,
+  isSessionLive,
+  type Revocation,
   streamedActivity,
 } from "@clankerboard/domain";
 import type { Logger } from "../logger";
@@ -10,9 +12,16 @@ import type { Logger } from "../logger";
 /** How often an idle stream sends a comment, so proxies don't time it out. */
 export const keepaliveMs = 20_000;
 
+/** The `unauthorized` event's data, shaped like a 401 response body. */
+const sessionExpired = { error: "Your session expired. Sign in again." };
+
 /** Where one open stream writes. The route backs it with an SSE response. */
 export type StreamSink = {
-  event(message: { id: string; event: string; data: string }): Promise<void>;
+  /**
+   * `id` is an Activity id, which the client sends back as Last-Event-ID. It
+   * is left off a message that must not move it, such as `unauthorized`.
+   */
+  event(message: { id?: string; event: string; data: string }): Promise<void>;
   comment(text: string): Promise<void>;
 };
 
@@ -26,14 +35,24 @@ export class StreamManager {
   constructor(
     private readonly deps: DomainDeps,
     private readonly options: { backlogLimit: number },
-  ) {}
+  ) {
+    deps.events.subscribeRevocations((revocation) => this.revoke(revocation));
+  }
 
   /**
-   * Starts pushing the Company's Activity to `sink`, as `ctx` may see it.
-   * With `lastEventId`, first sends what came after it.
+   * Starts pushing the Company's Activity to `sink`, as `ctx` may see it. A
+   * stream opened with a session (`sessionId`) ends once the session expires.
+   * With `lastEventId`, it first sends what came after it.
    */
-  open(ctx: CompanyContext, sink: StreamSink, log: Logger, lastEventId?: string): LiveStream {
-    const stream = new LiveStream(this.deps, ctx, sink, log, () => this.streams.delete(stream));
+  open(
+    ctx: CompanyContext,
+    sink: StreamSink,
+    log: Logger,
+    { sessionId, lastEventId }: { sessionId?: string; lastEventId?: string } = {},
+  ): LiveStream {
+    const stream = new LiveStream(this.deps, ctx, sink, log, sessionId, () =>
+      this.streams.delete(stream),
+    );
     if (lastEventId) stream.catchUp(lastEventId, this.options.backlogLimit);
     this.streams.add(stream);
     return stream;
@@ -42,6 +61,22 @@ export class StreamManager {
   /** Ends every open stream, so the server can stop. */
   closeAll() {
     for (const stream of [...this.streams]) stream.close();
+  }
+
+  /**
+   * Ends the streams that lost access. A removed User's streams end along with
+   * those of their Agents, which act with the User's permissions.
+   */
+  private revoke({ companyId, actor }: Revocation) {
+    for (const stream of [...this.streams]) {
+      const { ctx } = stream;
+      if (ctx.companyId !== companyId) continue;
+      const revoked =
+        actor.type === "user"
+          ? ctx.userId === actor.userId
+          : ctx.actor.type === "agent" && ctx.actor.agentId === actor.agentId;
+      if (revoked) stream.close();
+    }
   }
 }
 
@@ -63,6 +98,7 @@ export class LiveStream {
     readonly ctx: CompanyContext,
     private readonly sink: StreamSink,
     private readonly log: Logger,
+    private readonly sessionId: string | undefined,
     private readonly onClose: () => void,
   ) {
     this.closed = new Promise((resolve) => {
@@ -129,6 +165,11 @@ export class LiveStream {
   }
 
   private async tick() {
+    if (this.sessionId && !(await isSessionLive(this.deps, this.sessionId))) {
+      await this.sink.event({ event: "unauthorized", data: JSON.stringify(sessionExpired) });
+      this.close();
+      return;
+    }
     await this.sink.comment("keepalive");
   }
 

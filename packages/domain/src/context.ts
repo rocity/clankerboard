@@ -60,6 +60,21 @@ export type CompanyContext = {
 };
 
 /**
+ * Whether the session still exists and has not expired by `clock`. Read fresh
+ * each time, since Better Auth extends a session's expiry as it is used.
+ */
+export async function isSessionLive(
+  { db, clock }: Pick<DomainDeps, "db" | "clock">,
+  sessionId: string,
+): Promise<boolean> {
+  const [session] = await db
+    .select({ expiresAt: schema.sessions.expiresAt })
+    .from(schema.sessions)
+    .where(eq(schema.sessions.id, sessionId));
+  return session !== undefined && session.expiresAt > clock.now();
+}
+
+/**
  * Resolves the User's active Company, checking they still belong to it. A
  * stale or foreign Company id resolves to null.
  */

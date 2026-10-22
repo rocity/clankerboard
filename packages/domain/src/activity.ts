@@ -1,7 +1,7 @@
 import { schema, type Tx } from "@clankerboard/db";
 import { sql } from "drizzle-orm";
 import { type ActorRef, actorColumns, refOf } from "./actors";
-import type { CompanyContext, DomainDeps } from "./context";
+import type { Actor, CompanyContext, DomainDeps } from "./context";
 
 /** One Activity, as stored and as published to the event bus. */
 export type ActivityEvent = {
@@ -19,6 +19,14 @@ export type ActivityEvent = {
 export type ActivityListener = (event: ActivityEvent) => void;
 
 /**
+ * An Actor lost access to a Company: a removed member (`user`), or a revoked
+ * Agent or one of its keys (`agent`). Published after the change commits.
+ */
+export type Revocation = { companyId: string; actor: Actor };
+
+export type RevocationListener = (revocation: Revocation) => void;
+
+/**
  * Where Activity goes after its transaction commits, and where the live stream
  * reads it from. The in-process bus is the v1 implementation; one backed by
  * Postgres LISTEN/NOTIFY can replace it without changing either side.
@@ -30,6 +38,9 @@ export type EventBus = {
    * in publish order. Returns the function that unsubscribes it.
    */
   subscribe(companyId: string, listener: ActivityListener): () => void;
+  publishRevocation(revocation: Revocation): void;
+  /** Calls `listener` with every Revocation, in any Company, from now on. */
+  subscribeRevocations(listener: RevocationListener): () => void;
 };
 
 export type RecordActivity = (input: {
