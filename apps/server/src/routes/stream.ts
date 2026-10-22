@@ -25,6 +25,7 @@ export function streamRoutes(deps: DomainDeps, streams: StreamManager) {
           },
         },
         c.var.log,
+        { sessionId: c.var.agent ? undefined : c.var.sessionUser?.sessionId },
       );
       sse.onAbort(() => stream.close());
       c.req.raw.signal.addEventListener("abort", () => stream.close());

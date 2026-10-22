@@ -1,4 +1,10 @@
-import type { ActivityEvent, ActivityListener, EventBus } from "./activity";
+import type {
+  ActivityEvent,
+  ActivityListener,
+  EventBus,
+  Revocation,
+  RevocationListener,
+} from "./activity";
 
 /**
  * The v1 event bus: fans Activity out to subscribers in the same process.
@@ -8,6 +14,7 @@ import type { ActivityEvent, ActivityListener, EventBus } from "./activity";
  */
 export class InProcessEventBus implements EventBus {
   private readonly listeners = new Map<string, Set<ActivityListener>>();
+  private readonly revocationListeners = new Set<RevocationListener>();
 
   constructor(private readonly onListenerError: (error: unknown) => void = () => {}) {}
 
@@ -36,6 +43,24 @@ export class InProcessEventBus implements EventBus {
       if (company.size === 0 && this.listeners.get(companyId) === company) {
         this.listeners.delete(companyId);
       }
+    };
+  }
+
+  publishRevocation(revocation: Revocation) {
+    for (const listener of [...this.revocationListeners]) {
+      try {
+        listener(revocation);
+      } catch (error) {
+        this.onListenerError(error);
+      }
+    }
+  }
+
+  subscribeRevocations(listener: RevocationListener) {
+    const subscription: RevocationListener = (revocation) => listener(revocation);
+    this.revocationListeners.add(subscription);
+    return () => {
+      this.revocationListeners.delete(subscription);
     };
   }
 }

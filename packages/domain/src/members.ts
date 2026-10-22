@@ -85,7 +85,7 @@ export async function changeMemberRole(
 
 /** Removes a member, or lets the caller leave when `userId` is their own. */
 export async function removeMember(
-  { db, hooks }: DomainDeps,
+  { db, hooks, events }: DomainDeps,
   ctx: CompanyContext,
   userId: string,
 ): Promise<void> {
@@ -122,4 +122,6 @@ export async function removeMember(
       await hook(tx, { companyId: ctx.companyId, userId });
     }
   });
+  // After commit, so a removal that rolls back closes nothing.
+  events.publishRevocation({ companyId: ctx.companyId, actor: { type: "user", userId } });
 }

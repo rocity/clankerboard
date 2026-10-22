@@ -128,7 +128,7 @@ export async function renameAgent(
 
 /** Revokes the Agent and every one of its keys. */
 export async function revokeAgent(
-  { db, clock }: DomainDeps,
+  { db, clock, events }: DomainDeps,
   ctx: CompanyContext,
   agentId: string,
 ): Promise<AgentView> {
@@ -146,6 +146,7 @@ export async function revokeAgent(
       .set({ revokedAt: now })
       .where(and(eq(apiKeys.agentId, agentId), isNull(apiKeys.revokedAt)));
   });
+  events.publishRevocation({ companyId: ctx.companyId, actor: { type: "agent", agentId } });
   return findVisibleAgent(db, ctx, agentId);
 }
 
@@ -203,7 +204,7 @@ export async function listApiKeys(
 }
 
 export async function revokeApiKey(
-  { db, clock }: DomainDeps,
+  { db, clock, events }: DomainDeps,
   ctx: CompanyContext,
   agentId: string,
   keyId: string,
@@ -217,6 +218,7 @@ export async function revokeApiKey(
     .where(and(eq(apiKeys.id, keyId), eq(apiKeys.agentId, agentId)))
     .returning(keyColumns);
   if (!key) throw notFound();
+  events.publishRevocation({ companyId: ctx.companyId, actor: { type: "agent", agentId } });
   return key;
 }
 
