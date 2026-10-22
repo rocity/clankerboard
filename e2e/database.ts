@@ -31,7 +31,16 @@ export async function resetDatabase() {
     );
     if (rows.length > 0) {
       const tables = rows.map((r) => `"${r.tablename}"`).join(", ");
-      await client.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+      // The previous test's page may still have a stream or request finishing on the
+      // server, which can deadlock with the truncate. Postgres picks one side, so retry.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          await client.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+          break;
+        } catch (error) {
+          if ((error as { code?: string }).code !== "40P01" || attempt === 5) throw error;
+        }
+      }
     }
   } finally {
     await client.end();

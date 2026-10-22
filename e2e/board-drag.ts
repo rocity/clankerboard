@@ -8,7 +8,7 @@ export const lane = (page: Page, label: string) => page.getByRole("region", { na
 export type Drop = { status: string } | { ticket: Locator; half: "top" | "bottom" };
 
 /** The box of an element once it has stopped moving, for example after the board scrolled to it. */
-async function stableBox(locator: Locator) {
+export async function stableBox(locator: Locator) {
   let last = await locator.boundingBox();
   for (let i = 0; i < 40; i++) {
     await locator.page().waitForTimeout(50);

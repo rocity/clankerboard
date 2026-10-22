@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { lane, mouseDrag } from "./board-drag";
+import { lane, mouseDrag, stableBox } from "./board-drag";
 import { resetDatabase } from "./database";
 import {
   createCompany,
