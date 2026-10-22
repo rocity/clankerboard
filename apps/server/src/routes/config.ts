@@ -1,4 +1,4 @@
-import { type DomainDeps, isSignUpOpen } from "@clankerboard/domain";
+import { type DomainDeps, getPublicConfig } from "@clankerboard/domain";
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
 
@@ -8,7 +8,5 @@ import type { AppEnv } from "../env";
  * sign-up screen say up front when it needs an Invite.
  */
 export function configRoutes(deps: DomainDeps) {
-  return new Hono<AppEnv>().get("/config", async (c) =>
-    c.json({ publicUrl: deps.config.baseUrl, signUpOpen: await isSignUpOpen(deps) }),
-  );
+  return new Hono<AppEnv>().get("/config", async (c) => c.json(await getPublicConfig(deps)));
 }

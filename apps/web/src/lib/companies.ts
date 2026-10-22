@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
-import { stopStream } from "./live-stream";
+import { isStreamLive, stopStream } from "./live-stream";
 import { clearCompanyData, companiesQuery } from "./queries";
 
 const lastCompanyKey = "clankerboard-last-company";
@@ -43,6 +43,16 @@ let activeSlug: string | null = null;
  * null when the User is not in a Company with that slug.
  */
 export async function activateCompany(queryClient: QueryClient, slug: string) {
+  // Moving between pages of the Company already shown asks nothing. A live stream for it
+  // means the session has not moved: another tab's switch ends the stream, and the next
+  // visit (stream no longer live) re-asserts this Company below.
+  const known = queryClient
+    .getQueryData(companiesQuery.queryKey)
+    ?.companies.find((c) => c.slug === slug);
+  if (known && activeSlug === slug && isStreamLive(known.id)) {
+    rememberCompany(slug);
+    return known;
+  }
   const data = await queryClient.fetchQuery({ ...companiesQuery, staleTime: 0 });
   const company = data.companies.find((c) => c.slug === slug);
   if (!company) return null;

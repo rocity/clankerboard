@@ -199,6 +199,11 @@ export function ensureStream(queryClient: QueryClient, companyId: string) {
   return current.start();
 }
 
+/** Whether the stream for this Company is open and its Company was checked. */
+export function isStreamLive(companyId: string) {
+  return current?.companyId === companyId && current.status === "live";
+}
+
 /** Closes the tab's stream. With a Company, only if that is the one open. */
 export function stopStream(companyId?: string) {
   if (!current || (companyId && current.companyId !== companyId)) return;

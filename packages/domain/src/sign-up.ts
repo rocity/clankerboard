@@ -4,7 +4,7 @@ import { hasUsableInvite } from "./invites";
 
 export type SignUpAttempt = {
   email: string;
-  /** The token from an Invite link, when the person arrived through one. */
+  /** The token from an Invite link, when the User arrived through one. */
   inviteToken?: string;
 };
 

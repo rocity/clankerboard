@@ -468,6 +468,63 @@ test("switching Company switches the stream", async ({ page }) => {
   await globexAgent.close();
 });
 
+test("moving around inside a Company does not re-read the Company list or reopen the stream", async ({
+  page,
+}) => {
+  await watchStream(page);
+  await seedAcme(page, ["Ship the board"]);
+  await openBoard(page, ["Ship the board"]);
+  expect(await sources(page)).toBe(1);
+
+  const companyReads: string[] = [];
+  const switches: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (request.method() === "GET" && path === "/api/companies") companyReads.push(path);
+    if (request.method() === "PUT" && path === "/api/active-company") switches.push(path);
+  });
+
+  for (const name of ["Members", "Teams"]) {
+    await page.getByRole("link", { name, exact: true }).click();
+    await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+  }
+  await page.goBack();
+  await page.goBack();
+  await expect(ticketIn(page, "Backlog", "Ship the board")).toBeVisible();
+
+  expect(companyReads).toEqual([]);
+  expect(switches).toEqual([]);
+  expect(await sources(page)).toBe(1);
+  expect(await closed(page)).toBe(0);
+});
+
+test("switching Company never reads the old Project key against the new Company", async ({
+  page,
+}) => {
+  await signUp(page, "Ada", "ada@example.com");
+  await createCompany(page, "Acme Robotics");
+  await createProject(page, { name: "Platform", key: "PLAT" });
+  await createTicket(page, { projectKey: "PLAT", title: "Acme task" });
+  await createCompany(page, "Globex");
+  await createProject(page, { name: "Platform", key: "PLAT" });
+  await createTicket(page, { projectKey: "PLAT", title: "Globex task" });
+
+  await page.goto("/acme-robotics/projects/PLAT");
+  await expect(ticketIn(page, "Backlog", "Acme task")).toBeVisible();
+
+  // From the click until the Globex board is asked for, nothing may read a board.
+  const reads = boardReads(page);
+  await page.getByRole("button", { name: "Company" }).click();
+  await page.getByRole("menuitem", { name: "Globex" }).click();
+  await expect(page.getByRole("heading", { name: "Globex" })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(reads).toEqual([]);
+
+  await page.getByRole("link", { name: /Platform/ }).click();
+  await expect(ticketIn(page, "Backlog", "Globex task")).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(1);
+});
+
 test("a tab whose session moved to another Company stops following and offers a reload", async ({
   page,
   context,

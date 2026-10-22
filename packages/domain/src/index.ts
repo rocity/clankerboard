@@ -17,6 +17,7 @@ export * from "./members";
 export * from "./moves";
 export * from "./permissions";
 export * from "./projects";
+export * from "./public-config";
 export * from "./revocation";
 export * from "./sign-up";
 export * from "./streamed-activity";
