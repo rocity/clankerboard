@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
 import { ChevronLeft, UsersRound } from "lucide-react";
+import { AgentPromptDialog } from "@/components/agent-prompt-dialog";
 import { Board } from "@/components/board";
 import { BoardFilterBar } from "@/components/board-filter-bar";
 import { CreateTicketDialog } from "@/components/create-ticket-dialog";
@@ -69,7 +70,14 @@ function ProjectBoard() {
               </p>
             )}
           </div>
-          <CreateTicketDialog projectKey={projectKey} />
+          <div className="grid gap-2">
+            <AgentPromptDialog
+              companySlug={companySlug}
+              projectKey={projectKey}
+              projectName={project?.name ?? projectKey}
+            />
+            <CreateTicketDialog projectKey={projectKey} />
+          </div>
         </div>
       </div>
       <BoardFilterBar

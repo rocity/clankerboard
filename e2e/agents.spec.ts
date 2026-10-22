@@ -95,7 +95,7 @@ test("a new key is shown once, with setup snippets for this server", async ({
   // The command is ready to paste, with this server's URL and the key.
   const command = dialog.getByRole("tabpanel");
   await expect(command).toContainText(
-    `claude mcp add --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer ${apiKey}"`,
+    `claude mcp add --scope user --transport http clankerboard ${baseURL}/mcp --header "Authorization: Bearer ${apiKey}"`,
   );
   await dialog.getByRole("button", { name: "Copy command" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`${baseURL}/mcp`);

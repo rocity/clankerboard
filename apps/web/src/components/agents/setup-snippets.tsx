@@ -43,11 +43,11 @@ export function SetupSnippets({ publicUrl, apiKey }: Props) {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="command" className="grid gap-3">
-        <Step>Run this in your project.</Step>
+        <Step>Run this once. Every Claude Code session on this machine gets the board.</Step>
         <Snippet text={addCommand(publicUrl, apiKey)} label="Copy command" wrap />
       </TabsContent>
       <TabsContent value="file" className="grid gap-3">
-        <Step>Add this to .mcp.json in your project. It is safe to commit.</Step>
+        <Step>For one project only, add this to its .mcp.json. It is safe to commit.</Step>
         <Snippet text={mcpJson(publicUrl)} label="Copy .mcp.json" />
         <Step>Then set the key where Claude Code runs.</Step>
         <Snippet text={exportLine(apiKey)} label="Copy export" wrap />
