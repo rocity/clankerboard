@@ -1,0 +1,118 @@
+import type { TicketType } from "@clankerboard/shared";
+import { BookOpen, Bot, Bug, CircleCheck, type LucideIcon, Zap } from "lucide-react";
+import type { TicketData } from "@/lib/board";
+import { cn } from "@/lib/utils";
+
+const typeIcons: Record<TicketType, { icon: LucideIcon; label: string }> = {
+  epic: { icon: Zap, label: "Epic" },
+  story: { icon: BookOpen, label: "Story" },
+  task: { icon: CircleCheck, label: "Task" },
+  bug: { icon: Bug, label: "Bug" },
+};
+
+export function TypeIcon({ type, className }: { type: TicketType; className?: string }) {
+  const { icon: Icon, label } = typeIcons[type];
+  return <Icon role="img" aria-label={label} className={cn("size-3.5 shrink-0", className)} />;
+}
+
+function initials(name: string) {
+  const letters = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]);
+  return letters.join("").toUpperCase() || "?";
+}
+
+/** Only these priorities are worth a badge. Low and medium are the quiet default. */
+const loudPriorities = {
+  high: {
+    label: "High",
+    className: "bg-orange-500/15 text-orange-800 dark:bg-orange-400/20 dark:text-orange-200",
+  },
+  urgent: {
+    label: "Urgent",
+    className: "bg-destructive/15 text-destructive dark:bg-destructive/25",
+  },
+} as const;
+
+function Assignee({ assignee }: { assignee: NonNullable<TicketData["assignee"]> }) {
+  const name = assignee.revoked ? `${assignee.name} (revoked)` : assignee.name;
+  if (assignee.type === "agent") {
+    return (
+      <span
+        data-testid="assignee"
+        className="flex min-w-0 max-w-[65%] items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-2.5 pl-2 text-xs font-medium text-primary"
+      >
+        <Bot role="img" aria-label="Agent" className="size-4 shrink-0" />
+        <span className="truncate">{name}</span>
+      </span>
+    );
+  }
+  return (
+    <span
+      data-testid="assignee"
+      className="flex min-w-0 max-w-[65%] items-center gap-1.5 text-xs text-muted-foreground"
+    >
+      <span
+        aria-hidden
+        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-medium text-secondary-foreground"
+      >
+        {initials(assignee.name)}
+      </span>
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+/**
+ * A Ticket on the board. A pure function of the Ticket: the title leads on its
+ * own line, the Ticket Key and Type are a quiet identifier above it, priority
+ * shows only when high or urgent, and the Assignee holds the bottom right
+ * corner, with a bot icon for an Agent. It has no behavior of its own, so the
+ * drag handle and the link to the detail panel wrap it.
+ */
+export function TicketSummary({ ticket }: { ticket: TicketData }) {
+  const loud = ticket.priority === "high" || ticket.priority === "urgent" ? ticket.priority : null;
+
+  return (
+    <article
+      aria-label={ticket.title}
+      className="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border bg-card p-3 text-card-foreground shadow-sm dark:bg-secondary"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <TypeIcon type={ticket.type} />
+          <span className="font-mono">{ticket.key}</span>
+        </div>
+        {loud && (
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+              loudPriorities[loud].className,
+            )}
+          >
+            {loudPriorities[loud].label}
+          </span>
+        )}
+      </div>
+      <h3 className="text-base leading-snug font-semibold [overflow-wrap:anywhere] md:text-sm">
+        {ticket.title}
+      </h3>
+      {(ticket.parent || ticket.assignee) && (
+        <div className="flex items-center justify-between gap-2">
+          {ticket.parent ? (
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
+              <TypeIcon type={ticket.parent.type} />
+              <span className="shrink-0 font-mono">{ticket.parent.key}</span>
+              <span className="truncate">{ticket.parent.title}</span>
+            </div>
+          ) : (
+            <span />
+          )}
+          {ticket.assignee && <Assignee assignee={ticket.assignee} />}
+        </div>
+      )}
+    </article>
+  );
+}

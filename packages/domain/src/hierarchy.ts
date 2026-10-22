@@ -1,15 +1,5 @@
-import type { TicketType } from "@clankerboard/shared";
+import { parentTypesAllowed as parentsAllowed, type TicketType } from "@clankerboard/shared";
 import { invalid } from "./errors";
-
-// The hierarchy rules, in one place for REST and MCP alike. Epic sits on top,
-// a Story or Bug may sit under an Epic, and a Task under an Epic or a Story,
-// so the deepest chain is Epic, Story, Task.
-const parentsAllowed: Record<TicketType, TicketType[]> = {
-  epic: [],
-  story: ["epic"],
-  bug: ["epic"],
-  task: ["epic", "story"],
-};
 
 const withArticle = (type: TicketType) => `${type === "epic" ? "an" : "a"} ${type}`;
 

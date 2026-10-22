@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expireInvites, resetDatabase } from "./database";
 import {
   createCompany,
+  createProject,
   inviteByApi,
   joinByApi,
   password,
@@ -34,6 +35,7 @@ test("flow 2: invite by copied link, accept in a fresh browser, and land in the 
 }) => {
   await signUp(page, "Grace", "grace@example.com");
   await createCompany(page, "Acme Robotics");
+  await createProject(page, { name: "Platform", key: "PLAT" });
 
   // The owner invites from the members page and copies the link.
   await page.goto("/acme-robotics/members");
@@ -63,6 +65,8 @@ test("flow 2: invite by copied link, accept in a fresh browser, and land in the 
   // The second User is in the Company, and sees what Grace sees.
   await expect(invitee.page).toHaveURL("/acme-robotics");
   await expect(invitee.page.getByRole("heading", { name: "Acme Robotics" })).toBeVisible();
+  await expect(invitee.page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(invitee.page.getByText("Platform")).toBeVisible();
   await invitee.page.getByRole("link", { name: "Members" }).click();
   await expect(
     invitee.page.getByRole("listitem").filter({ hasText: "grace@example.com" }),

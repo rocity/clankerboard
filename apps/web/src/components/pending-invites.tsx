@@ -74,7 +74,7 @@ function InviteRow({
           <Badge variant="secondary">{roleLabel(invite.role)}</Badge>
           {invite.teamName && <Badge variant="outline">{invite.teamName}</Badge>}
           {expired ? (
-            <Badge variant="warning">Expired</Badge>
+            <Badge variant="destructive">Expired</Badge>
           ) : (
             <span>Expires {expiryDate(invite.expiresAt)}</span>
           )}

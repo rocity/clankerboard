@@ -78,6 +78,9 @@ test("an owner changes a Role and removes a User", async ({ page, browser }) => 
   await expect(dialog).toContainText("Cy");
   await dialog.getByRole("button", { name: "Remove" }).click();
 
+  // Rows are hidden from the accessibility tree while the dialog is open.
+  await expect(dialog).toBeHidden();
+  await expect(row(page, "bob@example.com")).toBeVisible();
   await expect(row(page, "cy@example.com")).toHaveCount(0);
   expect(await memberRoles(page)).not.toHaveProperty(["cy@example.com"]);
 

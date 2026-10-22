@@ -72,19 +72,20 @@ function MemberRow({ member, me }: { member: Member; me: Props["me"] }) {
 
       <div className="flex items-center gap-2">
         {mayChangeRole ? (
-          <NativeSelect
-            aria-label={`Role for ${member.name}`}
-            className="sm:w-32"
-            value={shownRole}
-            disabled={changeRole.isPending}
-            onChange={(event) => changeRole.mutate(event.target.value as CompanyRole)}
-          >
-            {roles.map((role) => (
-              <option key={role} value={role}>
-                {roleLabel(role)}
-              </option>
-            ))}
-          </NativeSelect>
+          <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
+            <NativeSelect
+              aria-label={`Role for ${member.name}`}
+              value={shownRole}
+              disabled={changeRole.isPending}
+              onChange={(event) => changeRole.mutate(event.target.value as CompanyRole)}
+            >
+              {roles.map((role) => (
+                <option key={role} value={role}>
+                  {roleLabel(role)}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
         ) : (
           <Badge variant="secondary">{roleLabel(member.role)}</Badge>
         )}

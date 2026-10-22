@@ -1,7 +1,7 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { ActorView } from "@clankerboard/shared";
-import { inArray } from "drizzle-orm";
-import type { Actor } from "./context";
+import { asc, eq, inArray } from "drizzle-orm";
+import type { Actor, CompanyContext, DomainDeps } from "./context";
 
 /** A pointer to an Actor, as stored in a pair of User and Agent columns. */
 export type ActorRef = { type: "user" | "agent"; id: string };
@@ -67,4 +67,31 @@ export async function resolveActors(db: Db | Tx, refs: (ActorRef | null)[]) {
     if (!view) throw new Error(`actor ${keyOf(ref)} not found`);
     return view;
   };
+}
+
+/**
+ * Every User and Agent of the Company, by name and kind only, for assignee
+ * pickers and filters. Any Role may read it, and so may an Agent: the board
+ * already shows every Assignee, and no email or owner is exposed. Revoked
+ * Agents stay, marked revoked, because Tickets they held still name them.
+ */
+export async function listActors({ db }: DomainDeps, ctx: CompanyContext): Promise<ActorView[]> {
+  const { users, memberships, agents } = schema;
+  const members = await db
+    .select({ id: users.id, name: users.name })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(eq(memberships.companyId, ctx.companyId))
+    .orderBy(asc(users.name), asc(users.id));
+  const companyAgents = await db
+    .select({ id: agents.id, name: agents.name, revokedAt: agents.revokedAt })
+    .from(agents)
+    .where(eq(agents.companyId, ctx.companyId))
+    .orderBy(asc(agents.name), asc(agents.id));
+  return [
+    ...members.map((u): ActorView => ({ type: "user", ...u, revoked: false })),
+    ...companyAgents.map(
+      ({ revokedAt, ...a }): ActorView => ({ type: "agent", ...a, revoked: revokedAt !== null }),
+    ),
+  ];
 }
