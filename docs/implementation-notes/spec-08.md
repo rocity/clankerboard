@@ -18,7 +18,7 @@ Deliberate choices made while implementing Spec 08 (Rebrand to Agent Kanban). Re
 
 ## 08-03 Retire the codename
 
-The spec's amendment reversed 08-01's choice to keep identifiers on the codename. [ADR 0009](../adr/0009-product-is-agent-kanban-everywhere.md) was rewritten in place, since it was never released.
+The spec's amendment reversed 08-01's choice to keep identifiers on the codename. [ADR 0010](../adr/0010-product-is-agent-kanban-everywhere.md) was rewritten in place, since it was never released.
 
 - **Which test guards each renamed identifier.**
   - MCP server name `agentkanban` (`apps/server/src/mcp/server.ts`, `serverName` in `apps/web/src/lib/agent-setup.ts`): the server-name test in `mcp.test.ts`, and the `claude mcp add ... agentkanban ...` assertions in `e2e/board.spec.ts` and `e2e/agents.spec.ts`.
@@ -26,8 +26,9 @@ The spec's amendment reversed 08-01's choice to keep identifiers on the codename
   - `agentkanban://projects/{key}/board`: the MCP board resource tests on the server side, and a new assertion in the Agent prompt dialog spec (`e2e/board.spec.ts`) on the prompt side.
   - `agentkanban-theme`: `e2e/theme.spec.ts`, which seeds and reads the key, so the inline script in `index.html` is covered too.
   - `agentkanban-last-company`, the package scope, Docker and database names, and test MCP client names: no dedicated test. The landing logic, every import, and the test harness depend on them.
-- **ADR 0009 file renamed.** Its old slug said identifiers keep the codename, which is now false, so it is `0009-product-is-agent-kanban-everywhere.md`.
-- **Codename in docs only as history.** `docs/self-hosting.md` gives the upgrade steps without spelling the old names, pointing at ADR 0009 for them, so the repo sweep (`git grep -i` for the codename) returns only the glossary's _Avoid_ entry and the ADR's history section.
+- **ADR 0010 file renamed.** Its old slug said identifiers keep the codename, which is now false, so it is `0010-product-is-agent-kanban-everywhere.md`.
+- **ADR renumbered from 0009 to 0010.** The spec asked for 0009, but Spec 07's Blocked ADR reached main first under 0009.
+- **Codename in docs only as history.** `docs/self-hosting.md` gives the upgrade steps without spelling the old names, pointing at ADR 0010 for them, so the repo sweep (`git grep -i` for the codename) returns only the glossary's _Avoid_ entry and the ADR's history section.
 - **Test fixtures renamed to "Agent Kanban".** The Projects named after the codename in `projects.test.ts` and `mcp-*.test.ts`, and the fixture title in `web-shell.test.ts`, now use "Agent Kanban". The space breaks nothing. The Project Key stays `CB`, which is fixture data, not the codename.
 - **Copy allowlist entry removed.** The Agent prompt now names `agentkanban://`, which no _Avoid_ term matches.
 - **Self-hosted upgrade moves the data by dump and restore.** Renaming the Compose project also renames the data volume, and Postgres only applies `POSTGRES_USER` and `POSTGRES_DB` on an empty volume. `pg_dump --no-owner --no-privileges` into the fresh `agentkanban` database avoids owner statements that name the old role.

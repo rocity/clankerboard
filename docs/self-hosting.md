@@ -30,7 +30,7 @@ The live stream runs in the app process. With more than one replica, a change ma
 
 ## Upgrading to the Agent Kanban names
 
-This release renames every identifier from the old codename to `agentkanban` ([ADR 0009](adr/0009-product-is-agent-kanban-everywhere.md) lists the old names). There is no compatibility path, so an existing deployment takes these steps once.
+This release renames every identifier from the old codename to `agentkanban` ([ADR 0010](adr/0010-product-is-agent-kanban-everywhere.md) lists the old names). There is no compatibility path, so an existing deployment takes these steps once.
 
 1. **Update the database credentials.** The Compose project, database name, user, and password are now all `agentkanban`. The new project name also means a new data volume, so the upgraded deployment starts empty unless you move the data. Dump it from the running deployment, then restore it into the new one before the app starts:
 

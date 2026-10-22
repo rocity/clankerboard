@@ -5,7 +5,7 @@ A self-hosted task board where humans and AI agents work side by side on the sam
 ## Product
 
 **Agent Kanban**:
-The product's name, used in all user-facing copy. Identifiers use `agentkanban` (`AGENTKANBAN_` for environment variables), such as the MCP server name and `AGENTKANBAN_API_KEY` (see ADR 0009).
+The product's name, used in all user-facing copy. Identifiers use `agentkanban` (`AGENTKANBAN_` for environment variables), such as the MCP server name and `AGENTKANBAN_API_KEY` (see ADR 0010).
 _Avoid_: Clankerboard
 
 ## Tenancy
