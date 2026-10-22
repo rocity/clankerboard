@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTestApp,
+  CapturingEventBus,
   createAgent,
   createApiKey,
   createCompany,
@@ -48,14 +49,13 @@ describe("Comments", () => {
   });
 
   it("records each Comment as Activity", async () => {
-    const t = buildTestApp();
-    const { owner, bearer } = await setup(t);
+    const events = new CapturingEventBus();
+    const t = buildTestApp({ deps: { events } });
+    const { bearer } = await setup(t);
 
     await comment(bearer, "CB-1", "Done.");
 
-    const res = await owner.request("/api/tickets/CB-1/activity");
-    const { activity } = (await res.json()) as { activity: object[] };
-    expect(activity.at(-1)).toMatchObject({
+    expect(events.published.at(-1)).toMatchObject({
       kind: "comment.added",
       actor: { type: "agent" },
       payload: { commentId: expect.any(String) },

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityOf,
   buildTestApp,
   CapturingEventBus,
   createAgent,
@@ -15,10 +16,7 @@ import {
 const post = (as: Fetch, path: string, body?: object) =>
   as(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 
-async function kinds(as: Fetch, key: string) {
-  const res = await as(`/api/tickets/${key}/activity`);
-  return ((await res.json()) as { activity: { kind: string; payload: object }[] }).activity;
-}
+const kinds = activityOf;
 
 /** CB with Epic CB-1, its Stories CB-2 and CB-3, and a loose Task CB-4. */
 async function setup(t: TestApp) {

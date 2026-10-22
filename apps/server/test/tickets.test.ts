@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityOf,
   buildTestApp,
   CapturingEventBus,
   createAgent,
@@ -7,22 +8,8 @@ import {
   createCompany,
   createProject,
   createTicket,
-  type Fetch,
   type TestApp,
 } from "./harness";
-
-type Activity = {
-  id: number;
-  kind: string;
-  actor: { type: string; id: string; name: string };
-  ticketKey: string | null;
-  payload: Record<string, unknown>;
-};
-
-async function activityOf(as: Fetch, key: string) {
-  const res = await as(`/api/tickets/${key}/activity`);
-  return ((await res.json()) as { activity: Activity[] }).activity;
-}
 
 async function setup(t: TestApp) {
   const { owner } = await createCompany(t, { name: "Acme" });
@@ -123,7 +110,6 @@ describe("Tickets", () => {
       expect.objectContaining({
         kind: "ticket.created",
         actor: expect.objectContaining({ type: "user", id: owner.user.id }),
-        ticketKey: "CB-1",
       }),
       expect.objectContaining({
         kind: "ticket.updated",

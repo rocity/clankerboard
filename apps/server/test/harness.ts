@@ -264,6 +264,22 @@ export async function createApiKey(
   return { key, secret, bearer: t.bearer(secret) };
 }
 
+export type ActivityJson = {
+  type: "activity";
+  id: number;
+  kind: string;
+  actor: { type: string; id: string; name: string };
+  payload: Record<string, unknown>;
+};
+
+/** The Activity entries of a Ticket's timeline, oldest first. Comments are left out. */
+export async function activityOf(as: Fetch, key: string): Promise<ActivityJson[]> {
+  const res = await as(`/api/tickets/${key}/timeline`);
+  if (res.status !== 200) throw new Error(`timeline failed: ${await res.text()}`);
+  const { timeline } = (await res.json()) as { timeline: { type: string }[] };
+  return timeline.filter((item): item is ActivityJson => item.type === "activity");
+}
+
 /** Creates a Project as any caller, session or bearer. */
 export async function createProject(
   as: Fetch,

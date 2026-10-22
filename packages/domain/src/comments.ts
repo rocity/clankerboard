@@ -4,7 +4,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorView, actorColumns, refFromColumns, refOf, resolveActors } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
-import { findTicket, ticketKeyOf } from "./tickets";
+import { findTicket, ticketActivity } from "./ticket-store";
 
 export type CommentView = {
   id: string;
@@ -25,6 +25,12 @@ export type TimelineItem =
     };
 
 const { comments, activities } = schema;
+
+/** Joins a Comment to the comment.added Activity that recorded it. */
+const recordedBy = and(
+  eq(activities.kind, "comment.added"),
+  eq(comments.id, sql`${activities.payload}->>'commentId'`),
+);
 
 export async function addComment(
   deps: DomainDeps,
@@ -49,13 +55,7 @@ export async function addComment(
       })
       .returning();
     if (!row) throw new Error("comment insert returned nothing");
-    await record({
-      projectId: ticket.projectId,
-      ticketId: ticket.id,
-      ticketKey: ticketKeyOf(ticket),
-      kind: "comment.added",
-      payload: { commentId: row.id },
-    });
+    await record(ticketActivity(ticket, "comment.added", { commentId: row.id }));
     const actor = await resolveActors(tx, [author]);
     return {
       id: row.id,
@@ -82,13 +82,7 @@ export async function getTimeline(
       comment: comments,
     })
     .from(activities)
-    .leftJoin(
-      comments,
-      and(
-        eq(activities.kind, "comment.added"),
-        eq(comments.id, sql`${activities.payload}->>'commentId'`),
-      ),
-    )
+    .leftJoin(comments, recordedBy)
     .where(eq(activities.ticketId, ticket.id))
     .orderBy(asc(activities.id));
 
@@ -123,14 +117,27 @@ export async function getTimeline(
 
 /** A Ticket's Comments, oldest first. */
 export async function listComments(
-  deps: DomainDeps,
+  { db }: DomainDeps,
   ctx: CompanyContext,
   key: string,
 ): Promise<CommentView[]> {
-  const timeline = await getTimeline(deps, ctx, key);
-  return timeline.flatMap((item) =>
-    item.type === "comment"
-      ? [{ id: item.id, author: item.author, body: item.body, createdAt: item.createdAt }]
-      : [],
+  const ticket = await findTicket(db, ctx, key);
+  // Ordered by the Activity that recorded each Comment, so equal timestamps
+  // still come back in the order they were written.
+  const rows = await db
+    .select({ comment: comments })
+    .from(comments)
+    .innerJoin(activities, recordedBy)
+    .where(eq(comments.ticketId, ticket.id))
+    .orderBy(asc(activities.id));
+  const refs = rows.map(({ comment }) =>
+    refFromColumns(comment.authorUserId, comment.authorAgentId),
   );
+  const actor = await resolveActors(db, refs);
+  return rows.map(({ comment }, i) => ({
+    id: comment.id,
+    author: actor(refs[i] ?? null) as ActorView,
+    body: comment.body,
+    createdAt: comment.createdAt,
+  }));
 }

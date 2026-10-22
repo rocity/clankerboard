@@ -128,7 +128,6 @@ describe("Listing Tickets", () => {
 
     expect(await keys(owner.request, "projectKey=CB")).not.toContain("CB-4");
     expect(await keys(owner.request, "projectKey=CB&archived=include")).toContain("CB-4");
-    expect(await keys(owner.request, "archived=only")).toEqual(["CB-4"]);
   });
 
   it("pages with a stable cursor and no overlap", async () => {

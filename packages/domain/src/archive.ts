@@ -1,19 +1,19 @@
-import { schema, type Tx } from "@clankerboard/db";
+import type { Tx } from "@clankerboard/db";
 import { eq } from "drizzle-orm";
 import { type RecordActivity, withActivity } from "./activity";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, notFound } from "./errors";
+import { conflict } from "./errors";
 import { assertMayArchive, assertMayHardDelete } from "./permissions";
 import {
   findTicket,
+  saveTicket,
   type TicketRow,
   type TicketView,
+  ticketActivity,
   ticketColumns,
   ticketKeyOf,
-  ticketView,
-} from "./tickets";
-
-const { tickets } = schema;
+  tickets,
+} from "./ticket-store";
 
 /** Clears the Parent of every child, recording each detachment. Returns their keys. */
 async function detachChildren(tx: Tx, parent: TicketRow, record: RecordActivity) {
@@ -49,20 +49,9 @@ export async function archiveTicket(
     if (row.archivedAt) throw conflict("This ticket is already archived.");
     const now = deps.clock.now();
     const detached = await detachChildren(tx, row, record);
-    const [updated] = await tx
-      .update(tickets)
-      .set({ archivedAt: now, updatedAt: now })
-      .where(eq(tickets.id, row.id))
-      .returning(ticketColumns);
-    if (!updated) throw notFound();
-    await record({
-      projectId: row.projectId,
-      ticketId: row.id,
-      ticketKey: ticketKeyOf(row),
-      kind: "ticket.archived",
-      payload: { detached },
-    });
-    return ticketView(tx, { ...updated, projectKey: row.projectKey });
+    const view = await saveTicket(tx, row, { archivedAt: now, updatedAt: now });
+    await record(ticketActivity(row, "ticket.archived", { detached }));
+    return view;
   });
 }
 
@@ -76,19 +65,9 @@ export async function restoreTicket(
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
     if (!row.archivedAt) throw conflict("This ticket isn't archived.");
-    const [updated] = await tx
-      .update(tickets)
-      .set({ archivedAt: null, updatedAt: deps.clock.now() })
-      .where(eq(tickets.id, row.id))
-      .returning(ticketColumns);
-    if (!updated) throw notFound();
-    await record({
-      projectId: row.projectId,
-      ticketId: row.id,
-      ticketKey: ticketKeyOf(row),
-      kind: "ticket.restored",
-    });
-    return ticketView(tx, { ...updated, projectKey: row.projectKey });
+    const view = await saveTicket(tx, row, { archivedAt: null, updatedAt: deps.clock.now() });
+    await record(ticketActivity(row, "ticket.restored"));
+    return view;
   });
 }
 

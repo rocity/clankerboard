@@ -10,7 +10,6 @@ import {
   getTimeline,
   listChildren,
   listComments,
-  listTicketActivity,
   listTickets,
   moveTicket,
   restoreTicket,
@@ -20,19 +19,15 @@ import {
   addCommentInput,
   assignTicketInput,
   createTicketInput,
+  listChildrenQuery,
   listTicketsQuery,
   moveTicketInput,
   updateTicketInput,
 } from "@clankerboard/shared";
 import { Hono } from "hono";
-import { z } from "zod";
 import type { AppEnv } from "../env";
 import { requireCompany } from "../middleware/authenticate";
 import { json, query } from "../validate";
-
-const childrenQuery = z.object({
-  archived: z.enum(["exclude", "include"], { error: "Use archived=include." }).default("exclude"),
-});
 
 export function ticketRoutes(deps: DomainDeps) {
   return new Hono<AppEnv>()
@@ -97,15 +92,10 @@ export function ticketRoutes(deps: DomainDeps) {
     .get("/tickets/:key/timeline", async (c) => {
       return c.json({ timeline: await getTimeline(deps, c.var.company, c.req.param("key")) });
     })
-    .get("/tickets/:key/children", query(childrenQuery), async (c) => {
+    .get("/tickets/:key/children", query(listChildrenQuery), async (c) => {
       const children = await listChildren(deps, c.var.company, c.req.param("key"), {
         includeArchived: c.req.valid("query").archived === "include",
       });
       return c.json({ children });
-    })
-    .get("/tickets/:key/activity", async (c) => {
-      return c.json({
-        activity: await listTicketActivity(deps, c.var.company, c.req.param("key")),
-      });
     });
 }

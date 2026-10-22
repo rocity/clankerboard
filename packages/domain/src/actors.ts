@@ -28,6 +28,10 @@ export function refFromColumns(userId: string | null, agentId: string | null): A
   return null;
 }
 
+export function sameActor(a: ActorRef | null, b: ActorRef | null) {
+  return a?.type === b?.type && a?.id === b?.id;
+}
+
 const keyOf = (ref: ActorRef) => `${ref.type}:${ref.id}`;
 
 /** Looks up names for many Actors in two queries. */

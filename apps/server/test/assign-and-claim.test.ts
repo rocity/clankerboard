@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityOf,
   buildTestApp,
   createAgent,
   createApiKey,
@@ -80,8 +81,7 @@ describe("Assign", () => {
 
     await assign(agentOne, "CB-1", { type: "user", id: bob.user.id });
 
-    const res = await owner.request("/api/tickets/CB-1/activity");
-    const { activity } = (await res.json()) as { activity: object[] };
+    const activity = await activityOf(owner.request, "CB-1");
     expect(activity.at(-1)).toMatchObject({
       kind: "ticket.assigned",
       actor: { type: "agent", id: first.id },
@@ -186,8 +186,7 @@ describe("Claim", () => {
 
     await claim(agentTwo, "CB-1");
 
-    const res = await owner.request("/api/tickets/CB-1/activity");
-    const { activity } = (await res.json()) as { activity: object[] };
+    const activity = await activityOf(owner.request, "CB-1");
     expect(activity.at(-1)).toMatchObject({
       kind: "ticket.claimed",
       actor: { type: "agent", id: second.id },

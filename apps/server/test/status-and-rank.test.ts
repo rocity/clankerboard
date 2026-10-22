@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityOf,
   buildTestApp,
   createAgent,
   createApiKey,
@@ -171,10 +172,7 @@ describe("Status and rank", () => {
 
     await move(bearer, "CB-1", { status: "review" });
 
-    const res = await owner.request("/api/tickets/CB-1/activity");
-    const { activity } = (await res.json()) as {
-      activity: { kind: string; actor: { type: string }; payload: object }[];
-    };
+    const activity = await activityOf(owner.request, "CB-1");
     expect(activity.at(-1)).toMatchObject({
       kind: "ticket.moved",
       actor: { type: "agent" },

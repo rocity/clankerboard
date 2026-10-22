@@ -95,10 +95,28 @@ export const addCommentInput = z.object({
     .max(20_000, { error: "Comments can be up to 20,000 characters." }),
 });
 
-/** Who a list is narrowed to: nobody, any Agent, any User, or one Actor. */
-export const assigneeFilter = z.string().regex(/^(unassigned|agents|users|user:.+|agent:.+)$/, {
-  error: "Filter assignees by unassigned, agents, users, user:<id>, or agent:<id>.",
-});
+export type AssigneeFilter =
+  | { kind: "unassigned" | "agents" | "users" }
+  | { kind: "actor"; actor: { type: "user" | "agent"; id: string } };
+
+/** Who a list is narrowed to: nobody, any Agent, any User, or one Actor, as `user:<id>`. */
+export const assigneeFilter = z
+  .string()
+  .regex(/^(unassigned|agents|users|user:.+|agent:.+)$/, {
+    error: "Filter assignees by unassigned, agents, users, user:<id>, or agent:<id>.",
+  })
+  .transform((value): AssigneeFilter => {
+    if (value === "unassigned" || value === "agents" || value === "users") return { kind: value };
+    const [type, ...id] = value.split(":");
+    return { kind: "actor", actor: { type: type as "user" | "agent", id: id.join(":") } };
+  });
+
+/** Archived Tickets are left out unless asked for. */
+export const archivedFilter = z
+  .enum(["exclude", "include"], { error: "Use archived=include." })
+  .default("exclude");
+
+export const listChildrenQuery = z.object({ archived: archivedFilter });
 
 export const listTicketsQuery = z.object({
   projectKey: projectKey.optional(),
@@ -110,9 +128,7 @@ export const listTicketsQuery = z.object({
   teamId: z.string().min(1).optional(),
   /** Free text over title and description. */
   q: z.string().trim().max(200).optional(),
-  archived: z
-    .enum(["exclude", "include", "only"], { error: "Use archived=include or archived=only." })
-    .default("exclude"),
+  archived: archivedFilter,
   limit: z.coerce
     .number(limitError)
     .int(limitError)

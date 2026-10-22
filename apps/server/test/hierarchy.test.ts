@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityOf,
   buildTestApp,
   createAgent,
   createApiKey,
@@ -237,10 +238,7 @@ describe("Ticket hierarchy", () => {
       body: JSON.stringify({ parentKey: null }),
     });
 
-    const res = await owner.request(`/api/tickets/${story.key}/activity`);
-    const { activity } = (await res.json()) as {
-      activity: { kind: string; payload: { changes?: object } }[];
-    };
+    const activity = await activityOf(owner.request, story.key);
     expect(activity.slice(1).map((a) => a.payload.changes)).toEqual([
       { parent: { from: null, to: epic.key } },
       { parent: { from: epic.key, to: null } },
