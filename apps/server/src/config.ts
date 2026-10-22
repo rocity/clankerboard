@@ -25,6 +25,8 @@ export type AppConfig = {
   openSignup: boolean;
   /** How long an Invite link stays valid. */
   inviteTtlMs: number;
+  /** How long a Done Ticket stays on the MCP board resource after its last change. */
+  boardDoneWindowMs: number;
   /** Email is sent only when this is set. */
   smtp?: SmtpConfig;
   /** Per-API-Key request budget. Session requests are not limited. */
@@ -55,6 +57,8 @@ export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
     authSecret: env.AUTH_SECRET || undefined,
     openSignup: env.OPEN_SIGNUP === "true",
     inviteTtlMs: numberFrom(env, "INVITE_TTL_HOURS", 7 * 24, { min: 1 }) * 60 * 60 * 1000,
+    boardDoneWindowMs:
+      numberFrom(env, "BOARD_DONE_WINDOW_DAYS", 14, { min: 0 }) * 24 * 60 * 60 * 1000,
     rateLimit: {
       // Under 1 would turn every request away.
       capacity: numberFrom(env, "RATE_LIMIT_CAPACITY", 120, { min: 1 }),

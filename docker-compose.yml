@@ -11,6 +11,8 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       OPEN_SIGNUP: ${OPEN_SIGNUP:-false}
       INVITE_TTL_HOURS: ${INVITE_TTL_HOURS:-168}
+      # Done Tickets drop off the MCP board resource this many days after their last change.
+      BOARD_DONE_WINDOW_DAYS: ${BOARD_DONE_WINDOW_DAYS:-14}
       # Per-API-Key token bucket: burst size and requests earned back per second.
       RATE_LIMIT_CAPACITY: ${RATE_LIMIT_CAPACITY:-120}
       RATE_LIMIT_REFILL_PER_SECOND: ${RATE_LIMIT_REFILL_PER_SECOND:-2}

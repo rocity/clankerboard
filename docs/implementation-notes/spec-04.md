@@ -16,3 +16,16 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **`list_projects`** returns only Project Key, name, and Team, to save context.
 - **Read-only tools** carry `readOnlyHint: true`.
 - **Version:** from `apps/server/package.json`, which now has a `version` (0.1.0). The bundle inlines it.
+
+## 04-04 list_tickets and board resource
+
+- **Urgency order without touching REST:** `listTickets` takes an optional `{ order, doneSince }` beside the query. `order: "urgency"` sorts (Status, priority descending, rank, number, id); the default `board` keeps the REST order (Status, rank, number, id). It is not a query parameter, so `/api/tickets` is unchanged.
+- **Cursors carry their order:** a cursor from one order is "That page cursor is not valid." in the other. The urgency keyset is spelled out with `or`/`and`, since priority sorts the other way from the rest.
+- **list_tickets input** reuses `listTicketsQuery` fields. Archived Tickets are always excluded (no `archived` input), and `teamId` is not offered. The limit defaults to 20 and caps at 100, below REST's 50 and 200, to save context.
+- **Assignee filter** takes the REST forms (`unassigned`, `agents`, `users`, `user:<id>`, `agent:<id>`) plus `me` for the calling Agent. Filtering by Agent name or User email is not offered yet.
+- **Output** is a summary per Ticket (key, title, type, status, priority, assignee, parent), not the full view, and the Markdown ends with the next cursor when there is one.
+- **Board resource:**
+  - Same urgency order as `list_tickets`, so both agent views agree. It reads every page, so the board is never cut off.
+  - "Old" Done means `updatedAt` before the window, so a Done Ticket edited recently stays. The window is `BOARD_DONE_WINDOW_DAYS` (default 14), in `AppConfig.boardDoneWindowMs`.
+  - The template's list callback offers one board per Project, so clients can browse boards.
+  - Errors are protocol errors, not tool errors: unknown, malformed, and other-Company Project Keys are `ResourceNotFoundError` with "Not found." (the SDK sends it as -32602 with the uri). Other DomainErrors are invalid params; anything else is logged and "Something went wrong.".

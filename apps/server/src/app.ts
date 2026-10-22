@@ -91,7 +91,10 @@ export function createApp(deps: AppDeps) {
     .all("/api/auth/organization/*", (c) => c.json({ error: "Not found." }, 404))
     .on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
     .route("/api", api)
-    .route("/", mcpRoutes(domain, authenticated));
+    .route(
+      "/",
+      mcpRoutes(domain, authenticated, { board: { doneWindowMs: config.boardDoneWindowMs } }),
+    );
 
   app.all("/api/*", (c) => c.json({ error: "Not found." }, 404));
   if (deps.config.webDistDir) app.route("/", webRoutes(deps.config.webDistDir));

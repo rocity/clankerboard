@@ -4,7 +4,7 @@ import { Hono, type MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../env";
 import type { Logger } from "../logger";
-import { createMcpServer } from "./server";
+import { createMcpServer, type McpConfig } from "./server";
 
 /** What the route hands the SDK, which passes it to the server factory untouched. */
 type McpCaller = { company: CompanyContext; log: Logger };
@@ -14,11 +14,15 @@ type McpCaller = { company: CompanyContext; log: Logger };
  * fresh MCP server acting as that Agent (ADR-0002). Both the 2026-07-28
  * revision and the 2025 handshake are served. Session cookies are never read.
  */
-export function mcpRoutes(deps: DomainDeps, authenticate: MiddlewareHandler<AppEnv>) {
+export function mcpRoutes(
+  deps: DomainDeps,
+  authenticate: MiddlewareHandler<AppEnv>,
+  config: McpConfig,
+) {
   const handler = createMcpHandler(({ authInfo }) => {
     const caller = authInfo?.extra?.caller as McpCaller | undefined;
     if (!caller) throw new Error("MCP request reached the server without an authenticated Agent");
-    return createMcpServer({ deps, ctx: caller.company, log: caller.log });
+    return createMcpServer({ deps, ctx: caller.company, log: caller.log }, config);
   });
 
   return new Hono<AppEnv>().all("/mcp", requireBearer, authenticate, async (c) => {

@@ -92,6 +92,7 @@ export function buildTestApp(
     authSecret: "test-secret-test-secret-test-secret",
     openSignup: true,
     inviteTtlMs: 7 * 24 * 60 * 60 * 1000,
+    boardDoneWindowMs: 14 * 24 * 60 * 60 * 1000,
     rateLimit: { capacity: 1000, refillPerSecond: 1000 },
     ...overrides.config,
   };
