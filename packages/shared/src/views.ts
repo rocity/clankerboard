@@ -42,6 +42,10 @@ export const ticketView = z.object({
   rank: z.string(),
   /** Points from 0 to 100, or null when blank. */
   estimate: z.number().int().nullable(),
+  /** At least one Ticket blocking this one is neither Done nor archived. */
+  blocked: z.boolean(),
+  /** How many Tickets blocking this one are neither Done nor archived. */
+  blockedByCount: z.number().int(),
   parent: z.object({ key: z.string(), title: z.string(), type: ticketType }).nullable(),
   assignee: actorView.nullable(),
   createdBy: actorView,

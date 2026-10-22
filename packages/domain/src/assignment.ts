@@ -1,6 +1,6 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { AssignTicketInput } from "@clankerboard/shared";
-import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, not, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorRef, actorColumns, refFromColumns, refOf, sameActor } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
@@ -9,6 +9,8 @@ import {
   bottomRank,
   findTicket,
   findTicketById,
+  isBlocked,
+  openBlockers,
   saveTicket,
   type TicketView,
   ticketActivity,
@@ -16,6 +18,7 @@ import {
   tickets,
   ticketView,
 } from "./ticket-store";
+import { listInWords } from "./words";
 
 const { memberships, agents, users } = schema;
 
@@ -141,6 +144,7 @@ export async function claimTicket(
           isNull(tickets.assigneeAgentId),
           isNull(tickets.archivedAt),
           ne(tickets.status, "done"),
+          not(isBlocked()),
         ),
       )
       .returning(ticketColumns);
@@ -154,7 +158,9 @@ export async function claimTicket(
           assignee: holder.assignee,
         });
       }
-      throw conflict("Done tickets can't be claimed.");
+      if (current.status === "done") throw conflict("Done tickets can't be claimed.");
+      const blockers = (await openBlockers(tx, [row.id])).get(row.id) ?? [];
+      throw conflict(`${holder.key} is blocked by ${listInWords(blockers)}.`, { blockers });
     }
 
     await record(

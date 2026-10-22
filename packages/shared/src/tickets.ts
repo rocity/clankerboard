@@ -165,6 +165,11 @@ export const listTicketsQuery = z.object({
   /** Free text over title and description. */
   q: z.string().trim().max(200).optional(),
   archived: archivedFilter,
+  /** Only Blocked Tickets (true) or only unblocked ones (false). */
+  blocked: z
+    .enum(["true", "false"], { error: "Use blocked=true or blocked=false." })
+    .transform((value) => value === "true")
+    .optional(),
   limit: z.coerce
     .number(limitError)
     .int(limitError)

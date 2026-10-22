@@ -9,6 +9,7 @@ import {
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { type RecordActivity, withActivity } from "./activity";
 import { type ActorView, actorColumns, refFromColumns, refOf, resolveActors } from "./actors";
+import { watchBlocked } from "./blocked";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, invalid, notFound } from "./errors";
 import { canSeeProject } from "./permissions";
@@ -20,6 +21,7 @@ import {
   ticketKeyOf,
   tickets,
 } from "./ticket-store";
+import { listInWords } from "./words";
 
 export type { TicketLinkView };
 
@@ -150,12 +152,6 @@ async function assertNoCycle(tx: Tx, ctx: CompanyContext, blocker: TicketRow, bl
   );
 }
 
-/** "CB-1", "CB-1 and CB-2", "CB-1, CB-2, and CB-3". */
-function listInWords(items: string[]) {
-  if (items.length <= 2) return items.join(" and ");
-  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
-}
-
 /** Links `key` to `input.target`, recording `ticket.linked` on both Tickets. */
 export async function linkTickets(
   deps: DomainDeps,
@@ -172,6 +168,8 @@ export async function linkTickets(
     const existing = await linkBetween(tx, ctx, ticket, target);
     if (existing) throw conflict(`${describe(existing, ticket, target)}.`);
     const [blocker, blocked] = input.kind === "blocked_by" ? [target, ticket] : [ticket, target];
+    const recordFlips =
+      input.kind === "relates_to" ? null : await watchBlocked(tx, [blocked.id], blocker);
     if (input.kind !== "relates_to") await assertNoCycle(tx, ctx, blocker, blocked);
     const creator = actorColumns(refOf(ctx.actor));
     // Relates to is stored once per pair, lesser id first by Postgres's own comparison.
@@ -194,6 +192,7 @@ export async function linkTickets(
       .returning();
     if (!inserted) throw new Error("ticket_links insert returned nothing");
     await recordBothSides(record, "ticket.linked", inserted, ticket, target);
+    await recordFlips?.(record, "linked");
     const [view] = await linkViews(tx, ctx, ticket.id, [inserted]);
     if (!view) throw notFound();
     return view;
@@ -227,8 +226,13 @@ export async function unlinkTickets(
     const [ticket, target] = await lockPair(tx, ctx, key, targetKey);
     const link = await linkBetween(tx, ctx, ticket, target);
     if (!link) throw notFound(`${ticketKeyOf(ticket)} and ${ticketKeyOf(target)} aren't linked.`);
+    const [blocker, blocked] =
+      link.fromTicketId === ticket.id ? [ticket, target] : [target, ticket];
+    const recordFlips =
+      link.kind === "blocks" ? await watchBlocked(tx, [blocked.id], blocker) : null;
     await tx.delete(ticketLinks).where(eq(ticketLinks.id, link.id));
     await recordBothSides(record, "ticket.unlinked", link, ticket, target);
+    await recordFlips?.(record, "unlinked");
   });
 }
 

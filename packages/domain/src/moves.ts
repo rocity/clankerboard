@@ -2,6 +2,7 @@ import type { Db, Tx } from "@clankerboard/db";
 import { type MoveTicketInput, statusLabels, type TicketStatus } from "@clankerboard/shared";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { withActivity } from "./activity";
+import { watchDependents } from "./blocked";
 import type { CompanyContext, DomainDeps } from "./context";
 import { conflict, invalid } from "./errors";
 import { rankAt } from "./rank";
@@ -65,6 +66,9 @@ export async function moveTicket(
       placeIn(siblings, status, input),
     );
 
+    // Only a move into or out of Done can flip a dependent.
+    const recordFlips =
+      (row.status === "done") !== (status === "done") ? await watchDependents(tx, row) : null;
     const view = await saveTicket(tx, row, { status, rank, updatedAt: deps.clock.now() });
     await record(
       ticketActivity(row, "ticket.moved", {
@@ -72,6 +76,7 @@ export async function moveTicket(
         to: { status, rank },
       }),
     );
+    await recordFlips?.(record, status === "done" ? "done" : "reopened");
     return view;
   });
 }

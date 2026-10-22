@@ -342,9 +342,10 @@ describe("Ticket Links", () => {
       await link(as, "CB-1", kind, "CB-2");
       await as("/api/tickets/CB-2/links/CB-1", { method: "DELETE" });
 
+      // Blocked transitions are recorded too; blocked.test.ts covers those.
       const recorded = async (key: string) =>
         (await activityOf(owner.request, key))
-          .slice(1)
+          .filter((a) => a.kind === "ticket.linked" || a.kind === "ticket.unlinked")
           .map((a) => [a.kind, a.payload, a.actor.type, a.actor.id]);
       expect(await recorded("CB-1")).toEqual([
         ["ticket.linked", { kind, ticket: "CB-2" }, actor, actorId],
