@@ -1,28 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { schema } from "@clankerboard/db";
+import type { CommentView, TimelineItem } from "@clankerboard/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorView, actorColumns, refFromColumns, refOf, resolveActors } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
 import { findTicket, ticketActivity } from "./ticket-store";
 
-export type CommentView = {
-  id: string;
-  author: ActorView;
-  body: string;
-  createdAt: Date;
-};
-
-export type TimelineItem =
-  | ({ type: "comment"; activityId: number } & CommentView)
-  | {
-      type: "activity";
-      id: number;
-      kind: string;
-      actor: ActorView;
-      payload: Record<string, unknown>;
-      createdAt: Date;
-    };
+export type { CommentView, TimelineItem };
 
 const { comments, activities } = schema;
 

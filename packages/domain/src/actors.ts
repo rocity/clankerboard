@@ -1,12 +1,13 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
+import type { ActorView } from "@clankerboard/shared";
 import { inArray } from "drizzle-orm";
 import type { Actor } from "./context";
 
 /** A pointer to an Actor, as stored in a pair of User and Agent columns. */
 export type ActorRef = { type: "user" | "agent"; id: string };
 
-/** An Actor as the API shows it. A revoked Agent keeps its name and is marked revoked. */
-export type ActorView = ActorRef & { name: string; revoked: boolean };
+/** An Actor as the API shows it. */
+export type { ActorView };
 
 export function refOf(actor: Actor): ActorRef {
   return actor.type === "user"

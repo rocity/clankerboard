@@ -1,0 +1,78 @@
+import { z } from "zod";
+import { ticketPriority, ticketStatus, ticketType } from "./tickets";
+
+// Response shapes for the board. The domain's view types are derived from
+// these, and Spec 04's MCP tools reuse them as output schemas. Timestamps are
+// Dates in code and ISO strings on the wire (`z.toJSONSchema(…, { io: "input" })`).
+
+export const timestamp = z.codec(z.iso.datetime(), z.date(), {
+  decode: (value) => new Date(value),
+  encode: (date) => date.toISOString(),
+});
+
+/** A User or an Agent. A revoked Agent keeps its name and is marked revoked. */
+export const actorView = z.object({
+  type: z.enum(["user", "agent"]),
+  id: z.string(),
+  name: z.string(),
+  revoked: z.boolean(),
+});
+export type ActorView = z.output<typeof actorView>;
+
+export const projectView = z.object({
+  id: z.string(),
+  key: z.string(),
+  name: z.string(),
+  team: z.object({ id: z.string(), name: z.string() }).nullable(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+export type ProjectView = z.output<typeof projectView>;
+
+export const ticketView = z.object({
+  id: z.string(),
+  key: z.string(),
+  projectKey: z.string(),
+  number: z.number().int(),
+  title: z.string(),
+  description: z.string(),
+  type: ticketType,
+  status: ticketStatus,
+  priority: ticketPriority,
+  rank: z.string(),
+  parent: z.object({ key: z.string(), title: z.string(), type: ticketType }).nullable(),
+  assignee: actorView.nullable(),
+  createdBy: actorView,
+  archivedAt: timestamp.nullable(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+export type TicketView = z.output<typeof ticketView>;
+
+export const ticketPage = z.object({
+  tickets: z.array(ticketView),
+  nextCursor: z.string().nullable(),
+});
+export type TicketPage = z.output<typeof ticketPage>;
+
+export const commentView = z.object({
+  id: z.string(),
+  author: actorView,
+  body: z.string(),
+  createdAt: timestamp,
+});
+export type CommentView = z.output<typeof commentView>;
+
+/** One entry of a Ticket's timeline: a Comment, or any other Activity. */
+export const timelineItem = z.discriminatedUnion("type", [
+  commentView.extend({ type: z.literal("comment"), activityId: z.number().int() }),
+  z.object({
+    type: z.literal("activity"),
+    id: z.number().int(),
+    kind: z.string(),
+    actor: actorView,
+    payload: z.record(z.string(), z.unknown()),
+    createdAt: timestamp,
+  }),
+]);
+export type TimelineItem = z.output<typeof timelineItem>;

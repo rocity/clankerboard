@@ -2,7 +2,7 @@
 // Company, shaping them for the API, and writing a change to one row. Not part
 // of the domain module's public surface.
 import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { TicketPriority, TicketStatus, TicketType } from "@clankerboard/shared";
+import type { TicketStatus, TicketView } from "@clankerboard/shared";
 import { and, asc, desc, eq, getTableColumns, inArray, isNull } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import type { RecordActivity } from "./activity";
@@ -10,24 +10,7 @@ import { type ActorView, refFromColumns, resolveActors } from "./actors";
 import type { CompanyContext } from "./context";
 import { invalid, notFound } from "./errors";
 
-export type TicketView = {
-  id: string;
-  key: string;
-  projectKey: string;
-  number: number;
-  title: string;
-  description: string;
-  type: TicketType;
-  status: TicketStatus;
-  priority: TicketPriority;
-  rank: string;
-  parent: { key: string; title: string; type: TicketType } | null;
-  assignee: ActorView | null;
-  createdBy: ActorView;
-  archivedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type { TicketView };
 
 export const { tickets, projects } = schema;
 

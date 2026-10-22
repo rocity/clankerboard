@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type Db, schema, type Tx } from "@clankerboard/db";
-import type { CreateProjectInput, UpdateProjectInput } from "@clankerboard/shared";
+import type { CreateProjectInput, ProjectView, UpdateProjectInput } from "@clankerboard/shared";
 import { and, asc, eq } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { changedFields } from "./changes";
@@ -9,14 +9,7 @@ import { conflict, isUniqueViolation, notFound } from "./errors";
 import { assertMayHardDelete } from "./permissions";
 import { findTeam } from "./teams";
 
-export type ProjectView = {
-  id: string;
-  key: string;
-  name: string;
-  team: { id: string; name: string } | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type { ProjectView };
 
 const { projects, teams } = schema;
 
