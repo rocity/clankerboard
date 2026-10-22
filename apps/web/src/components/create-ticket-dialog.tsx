@@ -8,6 +8,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { EstimateInput } from "@/components/estimate-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,6 +55,8 @@ export function CreateTicketDialog({ projectKey }: Props) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const parentKey = String(form.get("parent") ?? "");
+    // Left empty, the Estimate is blank. The shared schema refuses anything out of range.
+    const estimate = String(form.get("estimate") ?? "").trim();
     const parsed = createTicketInput.safeParse({
       projectKey,
       type,
@@ -61,6 +64,7 @@ export function CreateTicketDialog({ projectKey }: Props) {
       description: form.get("description"),
       priority: form.get("priority"),
       parentKey: parentKey || null,
+      estimate: estimate === "" ? null : Number(estimate),
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Enter a title.");
@@ -123,23 +127,29 @@ export function CreateTicketDialog({ projectKey }: Props) {
             <Label htmlFor="ticket-description">Description</Label>
             <Textarea id="ticket-description" name="description" />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="ticket-parent">Parent</Label>
-            {/* Keyed by type, so a Parent that no longer fits is dropped when the type changes. */}
-            <NativeSelect
-              key={type}
-              id="ticket-parent"
-              name="parent"
-              defaultValue=""
-              disabled={type === "epic"}
-            >
-              <option value="">No parent</option>
-              {parents.map((ticket) => (
-                <option key={ticket.key} value={ticket.key}>
-                  {ticket.key} {ticket.title}
-                </option>
-              ))}
-            </NativeSelect>
+          <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor="ticket-parent">Parent</Label>
+              {/* Keyed by type, so a Parent that no longer fits is dropped when the type changes. */}
+              <NativeSelect
+                key={type}
+                id="ticket-parent"
+                name="parent"
+                defaultValue=""
+                disabled={type === "epic"}
+              >
+                <option value="">No parent</option>
+                {parents.map((ticket) => (
+                  <option key={ticket.key} value={ticket.key}>
+                    {ticket.key} {ticket.title}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ticket-estimate">Estimate</Label>
+              <EstimateInput id="ticket-estimate" name="estimate" />
+            </div>
           </div>
           {error && (
             <p role="alert" className="text-sm text-destructive">

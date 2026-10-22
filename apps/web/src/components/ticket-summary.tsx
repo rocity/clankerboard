@@ -68,13 +68,16 @@ function Assignee({ assignee }: { assignee: NonNullable<TicketData["assignee"]> 
 /**
  * A Ticket on the board. A pure function of the Ticket: the title leads on its
  * own line, the Ticket Key and Type are a quiet identifier above it, priority
- * shows only when high or urgent, and the Assignee holds the bottom right
+ * shows only when high or urgent, the Estimate shows as a quiet "3 pts" only
+ * when set, and the Assignee holds the bottom right
  * corner, with a bot icon for an Agent. It has no behavior of its own, so the
  * drag handle and the link to the detail panel wrap it.
  */
 export function TicketSummary({ ticket }: { ticket: TicketData }) {
   const loud = ticket.priority === "high" || ticket.priority === "urgent" ? ticket.priority : null;
   const archived = ticket.archivedAt !== null;
+  // Zero is a size, so only blank (null) hides the badge.
+  const sized = ticket.estimate !== null;
 
   return (
     <article
@@ -91,7 +94,7 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
           <TypeIcon type={ticket.type} />
           <span className="font-mono">{ticket.key}</span>
         </div>
-        {(archived || loud) && (
+        {(archived || loud || sized) && (
           <div className="ml-auto flex items-center gap-1.5">
             {archived && (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -107,6 +110,14 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
                 )}
               >
                 {loudPriorities[loud].label}
+              </span>
+            )}
+            {sized && (
+              <span
+                data-testid="estimate"
+                className="shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums"
+              >
+                {ticket.estimate} pts
               </span>
             )}
           </div>
