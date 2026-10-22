@@ -21,6 +21,7 @@ import { authenticate } from "./middleware/authenticate";
 import { requestLogger } from "./middleware/request-logger";
 import { RateLimiter } from "./rate-limit";
 import { StreamManager } from "./realtime/streams";
+import { actorRoutes } from "./routes/actors";
 import { agentRoutes } from "./routes/agents";
 import { authProviderRoutes } from "./routes/auth-providers";
 import { companyRoutes } from "./routes/companies";
@@ -86,6 +87,7 @@ export function createApp(deps: AppDeps) {
     .route("/", memberRoutes(domain))
     .route("/", inviteRoutes(domain))
     .route("/", teamRoutes(domain))
+    .route("/", actorRoutes(domain))
     .route("/", agentRoutes(domain))
     .route("/", projectRoutes(domain))
     .route("/", ticketRoutes(domain))

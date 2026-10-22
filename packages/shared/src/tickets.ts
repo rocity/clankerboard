@@ -14,6 +14,18 @@ export const ticketPriority = z.enum(ticketPriorities, {
 });
 export type TicketType = z.infer<typeof ticketType>;
 
+/**
+ * The hierarchy rules, in one place for REST, MCP, and the UI's Parent picker.
+ * Epic sits on top, a Story or Bug may sit under an Epic, and a Task under an
+ * Epic or a Story, so the deepest chain is Epic, Story, Task.
+ */
+export const parentTypesAllowed: Record<TicketType, readonly TicketType[]> = {
+  epic: [],
+  story: ["epic"],
+  bug: ["epic"],
+  task: ["epic", "story"],
+};
+
 /** How each Status reads in copy, matching GLOSSARY.md. */
 export const statusLabels = {
   backlog: "Backlog",

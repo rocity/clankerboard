@@ -48,6 +48,8 @@ export const ticketView = z.object({
   updatedAt: timestamp,
 });
 export type TicketView = z.output<typeof ticketView>;
+/** A Ticket as it travels in JSON: timestamps are ISO strings. The web app's shape. */
+export type TicketWire = z.input<typeof ticketView>;
 
 export const ticketPage = z.object({
   tickets: z.array(ticketView),
