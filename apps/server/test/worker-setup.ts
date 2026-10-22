@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { createDatabase, type Database } from "@clankerboard/db";
 import { sql } from "drizzle-orm";
-import { afterAll, beforeEach } from "vitest";
-import { databaseUrl, recreateDatabase, templateDatabase, withAdmin } from "./test-db";
+import { afterAll, beforeEach, inject } from "vitest";
+import { databaseUrl, recreateDatabase, withAdmin } from "./test-db";
 
 const name = `cb_test_${randomUUID().replaceAll("-", "")}`;
-await withAdmin((client) => recreateDatabase(client, name, templateDatabase));
+await withAdmin((client) => recreateDatabase(client, name, inject("templateDatabase")));
 
 export const database: Database = createDatabase(databaseUrl(name));
 (globalThis as { __cbTestDatabase?: Database }).__cbTestDatabase = database;

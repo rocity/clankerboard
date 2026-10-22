@@ -4,7 +4,11 @@ import pg from "pg";
 export const adminUrl =
   process.env.TEST_DATABASE_URL ?? "postgres://clankerboard:clankerboard@localhost:55432/postgres";
 
-export const templateDatabase = "cb_test_template";
+declare module "vitest" {
+  interface ProvidedContext {
+    templateDatabase: string;
+  }
+}
 
 export function databaseUrl(name: string) {
   const url = new URL(adminUrl);

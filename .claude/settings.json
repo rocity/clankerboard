@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_response.filePath // .tool_input.file_path // empty'); [ -n \"$f\" ] || exit 0; out=$(cd \"$CLAUDE_PROJECT_DIR\" && ./node_modules/.bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true \"$f\" 2>&1) || { echo \"$out\" >&2; exit 2; }",
+            "command": "f=$(jq -r '.tool_response.filePath // .tool_input.file_path // empty'); [ -n \"$f\" ] || exit 0; root=$(git -C \"$(dirname \"$f\")\" rev-parse --show-toplevel 2>/dev/null) || exit 0; [ -x \"$root/node_modules/.bin/biome\" ] || root=\"$CLAUDE_PROJECT_DIR\"; out=$(cd \"$root\" && ./node_modules/.bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true \"$f\" 2>&1) || { echo \"$out\" >&2; exit 2; }",
             "timeout": 30,
             "statusMessage": "Biome"
           }

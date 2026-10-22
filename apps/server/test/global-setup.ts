@@ -1,9 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { createDatabase, runMigrations } from "@clankerboard/db";
-import { adminUrl, databaseUrl, recreateDatabase, templateDatabase, withAdmin } from "./test-db";
+import type { TestProject } from "vitest/node";
+import { adminUrl, databaseUrl, recreateDatabase, withAdmin } from "./test-db";
 
 // Migrate a template database once per run. Each test file then gets its own
-// copy of it, so files can run in parallel without sharing state.
-export default async function setup() {
+// copy of it, so files can run in parallel without sharing state. The template
+// is named per run, so runs from several worktrees can share one Postgres.
+export default async function setup(project: TestProject) {
+  const templateDatabase = `cb_test_template_${randomUUID().replaceAll("-", "")}`;
   try {
     await withAdmin((client) => recreateDatabase(client, templateDatabase));
   } catch (error) {
@@ -22,4 +26,11 @@ export default async function setup() {
   } finally {
     await close();
   }
+  project.provide("templateDatabase", templateDatabase);
+
+  return async () => {
+    await withAdmin((client) =>
+      client.query(`DROP DATABASE IF EXISTS "${templateDatabase}" WITH (FORCE)`),
+    );
+  };
 }
