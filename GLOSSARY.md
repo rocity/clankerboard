@@ -92,3 +92,7 @@ _Avoid_: Note, log entry
 **Activity**:
 A recorded event on the board, such as a Ticket being created, assigned, or changing Status, credited to the Actor who caused it.
 _Avoid_: Event log, audit entry, history
+
+**Timeline**:
+A Ticket's Comments and Activity merged into one sequence, in the order they happened.
+_Avoid_: History, feed
