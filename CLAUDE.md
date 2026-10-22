@@ -2,7 +2,7 @@
 
 - Naming code, routes, tests or copy: use [GLOSSARY.md](./GLOSSARY.md) terms
 - Decisions: [docs/adr/](./docs/adr/). Better Auth gotchas: [docs/better-auth.md](./docs/better-auth.md)
-- Specs and tickets: `__private/Specs/`, `__private/Tickets/` (gitignored, local only). When a ticket and its spec disagree, stop and ask the user which is right
+- Specs and tickets: `__private/Specs/`, `__private/Tickets/` (gitignored, local only). When a ticket and its spec disagree, or a spec assumption proves false against the code, stop and ask the user which is right
 - Tests need the test database: `pnpm db:test:up`. Full check: `pnpm check`
 - Implementing a spec: record each deliberate choice a reviewer might question in `docs/implementation-notes/spec-NN.md`
 

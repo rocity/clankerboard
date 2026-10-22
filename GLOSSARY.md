@@ -42,7 +42,10 @@ _Avoid_: Token, secret
 
 **Project**:
 A container of Tickets within a Company, optionally owned by a Team.
-_Avoid_: Board, space, repo
+_Avoid_: Space, repo
+
+**Board**:
+The view of a Project's Tickets grouped by Status. It is how Users and Agents see a Project, not the Project itself.
 
 **Ticket**:
 A unit of tracked work. Every Ticket has a Ticket Type and may have a parent Ticket.
