@@ -21,6 +21,8 @@ export type BoardFilters = {
   teamId?: string;
   /** `include` adds archived Tickets to the live ones. The list has no archived-only filter. */
   archived?: "include";
+  /** `true` for only Blocked Tickets, `false` for only unblocked ones. */
+  blocked?: "true" | "false";
 };
 
 /** What a Ticket cannot say about itself: the Team of its Project, when known. */
@@ -48,6 +50,7 @@ export function ticketMatchesFilters(
   if (filters.priority && ticket.priority !== filters.priority) return false;
   if (filters.assignee && !assigneeMatches(ticket.assignee, filters.assignee)) return false;
   if (filters.parentKey && ticket.parent?.key !== filters.parentKey.toUpperCase()) return false;
+  if (filters.blocked && String(ticket.blocked) !== filters.blocked) return false;
   if (filters.teamId && projectTeamId !== undefined && projectTeamId !== filters.teamId) {
     return false;
   }

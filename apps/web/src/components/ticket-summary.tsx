@@ -1,5 +1,5 @@
 import type { TicketType } from "@clankerboard/shared";
-import { Archive, BookOpen, Bot, Bug, CircleCheck, type LucideIcon, Zap } from "lucide-react";
+import { Archive, BookOpen, Bot, Bug, CircleCheck, Lock, type LucideIcon, Zap } from "lucide-react";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
@@ -66,10 +66,30 @@ function Assignee({ assignee }: { assignee: NonNullable<TicketData["assignee"]> 
 }
 
 /**
+ * Says a Ticket can't start yet. Outlined, unlike the filled priority badges, so
+ * the two never read as one scale. The label and the hover text count the open
+ * blockers.
+ */
+function BlockedMarker({ count }: { count: number }) {
+  const label = `Blocked by ${count} ${count === 1 ? "ticket" : "tickets"}`;
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className="flex shrink-0 items-center gap-1 rounded-full border border-amber-600/60 px-2 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-300/60 dark:text-amber-200"
+    >
+      <Lock aria-hidden className="size-3" />
+      Blocked
+    </span>
+  );
+}
+
+/**
  * A Ticket on the board. A pure function of the Ticket: the title leads on its
- * own line, the Ticket Key and Type are a quiet identifier above it, priority
- * shows only when high or urgent, the Estimate shows as a quiet "3 pts" only
- * when set, and the Assignee holds the bottom right
+ * own line, the Ticket Key and Type are a quiet identifier above it, Blocked
+ * and priority (only high or urgent) sit beside them, the Estimate shows as a
+ * quiet "3 pts" only when set, and the Assignee holds the bottom right
  * corner, with a bot icon for an Agent. It has no behavior of its own, so the
  * drag handle and the link to the detail panel wrap it.
  */
@@ -94,7 +114,7 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
           <TypeIcon type={ticket.type} />
           <span className="font-mono">{ticket.key}</span>
         </div>
-        {(archived || loud || sized) && (
+        {(archived || ticket.blocked || loud || sized) && (
           <div className="ml-auto flex items-center gap-1.5">
             {archived && (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -102,6 +122,7 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
                 Archived
               </span>
             )}
+            {ticket.blocked && <BlockedMarker count={ticket.blockedByCount} />}
             {loud && (
               <span
                 className={cn(
