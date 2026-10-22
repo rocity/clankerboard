@@ -5,6 +5,7 @@ The reviewer applies every rule below to each diff. These rules need judgement. 
 ## Language
 
 - **Use GLOSSARY.md terms everywhere:** code names, routes, test titles, comments, and user-facing copy. Flag every _Avoid_ term.
+  - `scripts/check-copy.mjs` already blocks _Avoid_ terms in user-facing strings, with exceptions in `scripts/copy-allowlist.json`. Review code names, routes, test titles, and comments, and check that each new allowlist entry really is a different concept.
 - **Exceptions:**
   - `member` is a Company Role and a Team Role. Flag it only where it means a User.
   - `token` is fine for a rate-limit bucket token or an Invite link token. Flag it where it means an API Key.

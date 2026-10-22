@@ -38,7 +38,7 @@ export function App() {
       <Page title="Sign up">
         <AuthForm mode="sign-up" onDone={signedIn} />
         <p>
-          Have an account? <a href="/sign-in">Sign in</a>
+          Signed up before? <a href="/sign-in">Sign in</a>
         </p>
       </Page>
     );

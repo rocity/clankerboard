@@ -165,7 +165,7 @@ export async function createInvite(
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(and(eq(memberships.companyId, ctx.companyId), eq(users.email, input.email)));
-  if (member && !teamId) throw conflict("That person is already a member.");
+  if (member && !teamId) throw conflict("That user already belongs to this company.");
   if (member && teamId && (await teamRoleOf(db, teamId, member.userId))) {
     throw conflict("Already on this team.");
   }

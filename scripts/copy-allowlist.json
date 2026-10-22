@@ -1,0 +1,25 @@
+[
+  {
+    "term": "link",
+    "phrase": "invite link",
+    "reason": "An Invite produces a link; not a Parent link"
+  },
+  { "term": "link", "phrase": "Copy link", "reason": "The Invite link" },
+  { "term": "link", "phrase": "emailed the link", "reason": "The Invite link" },
+  { "term": "link", "phrase": "This link expires", "reason": "The Invite link" },
+  {
+    "term": "owner",
+    "phrase": "agent's owner",
+    "reason": "A User owns an Agent (GLOSSARY.md, Agent)"
+  },
+  { "term": "owner", "phrase": "an owner", "reason": "owner is a Company Role" },
+  { "term": "owner", "phrase": "one owner", "reason": "owner is a Company Role" },
+  { "term": "owner", "phrase": "owner's role", "reason": "owner is a Company Role" },
+  { "term": "owner", "phrase": "Pick owner", "reason": "owner is a Company Role" },
+  { "term": "member", "phrase": "or member", "reason": "member is a Company and Team Role" },
+  {
+    "term": "slug",
+    "phrase": "slug",
+    "reason": "Companies have slugs; the avoid is for Project Keys"
+  }
+]

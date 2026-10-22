@@ -82,7 +82,7 @@ export function InvitePage({ me, onJoined }: Props) {
             className="link"
             onClick={() => setMode(mode === "sign-up" ? "sign-in" : "sign-up")}
           >
-            {mode === "sign-up" ? "I already have an account" : "I need an account"}
+            {mode === "sign-up" ? "I've signed up before" : "I'm new here"}
           </button>
         </>
       )}

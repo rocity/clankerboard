@@ -86,7 +86,7 @@ describe("Company Invites", () => {
     expect(plainCopy(`${mail?.subject} ${mail?.text}`)).toBe(true);
   });
 
-  it("lets an invitee without an account sign up and join, even with open sign-up off", async () => {
+  it("lets a new invitee sign up and join, even with open sign-up off", async () => {
     const t = buildTestApp({ config: { openSignup: false } });
     const { company, owner } = await createCompany(t, { name: "Acme" });
     const { body } = await invite(owner, { email: "bob@example.com", role: "admin" });
@@ -115,7 +115,7 @@ describe("Company Invites", () => {
     await expect(signUpWithInvite(t, "mallory@example.com", body.link)).rejects.toThrow(/403/);
   });
 
-  it("adds the Membership to an invitee's existing account", async () => {
+  it("adds the Membership to an invitee who is already a User", async () => {
     const t = buildTestApp();
     const { owner } = await createCompany(t, { name: "Acme" });
     const { owner: bob } = await createCompany(t, { name: "Bob's Shop" });
@@ -307,7 +307,7 @@ describe("Company Invites", () => {
     const duplicate = await invite(owner, { email: "CY@example.com" });
 
     expect(member.res.status).toBe(409);
-    expect(member.body).toEqual({ error: "That person is already a member." });
+    expect(member.body).toEqual({ error: "That user already belongs to this company." });
     expect(duplicate.res.status).toBe(409);
     expect(duplicate.body).toEqual({ error: "That email already has a pending invite." });
   });
