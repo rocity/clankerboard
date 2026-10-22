@@ -1,8 +1,9 @@
 import { moveTicket } from "@clankerboard/domain";
-import { ticketKey, ticketStatus, ticketView } from "@clankerboard/shared";
+import { ticketKey, ticketStatus } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { defineTool } from "../tool";
+import { mcpTicketView, ticketWithEmails } from "../views";
 
 export const moveTicketTool = defineTool({
   name: "move_ticket",
@@ -12,11 +13,12 @@ export const moveTicketTool = defineTool({
     key: ticketKey.describe("The ticket key, such as CB-42."),
     status: ticketStatus.describe("backlog, todo, in_progress, review, or done."),
   }),
-  output: z.object({ ticket: ticketView }),
+  output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false },
-  async run({ key, status }, { deps, ctx }) {
+  async run({ key, status }, env) {
     // No place given, so the domain puts it at the bottom.
-    const ticket = await moveTicket(deps, ctx, key, { status });
+    const moved = await moveTicket(env.deps, env.ctx, key, { status });
+    const ticket = await ticketWithEmails(env, moved);
     return { data: { ticket }, markdown: ticketMarkdown(ticket) };
   },
 });

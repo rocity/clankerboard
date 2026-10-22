@@ -1,8 +1,9 @@
 import { createTicket } from "@clankerboard/domain";
-import { createTicketInput, ticketView } from "@clankerboard/shared";
+import { createTicketInput } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { defineTool } from "../tool";
+import { mcpTicketView, ticketWithEmails } from "../views";
 
 const { shape } = createTicketInput;
 
@@ -18,10 +19,10 @@ export const createTicketTool = defineTool({
     priority: shape.priority.describe("low, medium, high, or urgent. Defaults to medium."),
     parentKey: shape.parentKey.describe("The parent's ticket key, such as CB-7."),
   }),
-  output: z.object({ ticket: ticketView }),
+  output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false },
-  async run(input, { deps, ctx }) {
-    const ticket = await createTicket(deps, ctx, input);
+  async run(input, env) {
+    const ticket = await ticketWithEmails(env, await createTicket(env.deps, env.ctx, input));
     return { data: { ticket }, markdown: ticketMarkdown(ticket) };
   },
 });

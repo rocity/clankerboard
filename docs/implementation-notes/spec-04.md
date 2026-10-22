@@ -31,7 +31,7 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 
 - **`assign_ticket` takes one string handle** (or null), not a typed `{ type, id }`. The domain's new `findAssignee` matches the email of a User in the Company first, then an Agent's name, both ignoring case. The User wins if an Agent happens to be named the same as their email.
 - **Unknown handles** (no such User or Agent, a User outside the Company, another Company's Agent) all read `No user or agent matches "<handle>".`, so nothing leaks across Companies. A revoked Agent is found, then refused by Assign's own rule ("That agent was revoked.").
-- **Emails are not in tool output yet:** Ticket views show a User's name, not email, so an agent learns an email from its human. Revisit if agents need to hand off to someone they only saw by name.
+- **User emails are in MCP output** (see "Review fixes" below), so an agent can pass a User it read about straight to `assign_ticket`.
 - **Claim errors are the domain's copy** ("CB-3 is already held by Claude-2."), unchanged. The description tells the agent to pick another Ticket on failure.
 - **Annotations:** `claim_ticket` is not idempotent (a second call fails); `assign_ticket` is.
 
@@ -40,7 +40,7 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **Urgency order without touching REST:** `listTickets` takes an optional `{ order, doneSince }` beside the query. `order: "urgency"` sorts (Status, priority descending, rank, number, id); the default `board` keeps the REST order (Status, rank, number, id). It is not a query parameter, so `/api/tickets` is unchanged.
 - **Cursors carry their order:** a cursor from one order is "That page cursor is not valid." in the other. The urgency keyset is spelled out with `or`/`and`, since priority sorts the other way from the rest.
 - **list_tickets input** reuses `listTicketsQuery` fields. Archived Tickets are always excluded (no `archived` input), and `teamId` is not offered. The limit defaults to 20 and caps at 100, below REST's 50 and 200, to save context.
-- **Assignee filter** takes the REST forms (`unassigned`, `agents`, `users`, `user:<id>`, `agent:<id>`) plus `me` for the calling Agent. Filtering by Agent name or User email (as `assign_ticket` accepts through `findAssignee`) is not offered yet.
+- **Assignee filter** takes the REST forms (`unassigned`, `agents`, `users`, `user:<id>`, `agent:<id>`) plus `me` for the calling Agent, and any other value as a User email or Agent name through `findAssignee`, like `assign_ticket` (see "Review fixes" below).
 - **Output** is a summary per Ticket (key, title, type, status, priority, assignee, parent), not the full view, and the Markdown ends with the next cursor when there is one.
 - **Board resource:**
   - Same urgency order as `list_tickets`, so both agent views agree. It reads every page, so the board is never cut off.
@@ -55,3 +55,12 @@ Deliberate choices made while implementing Spec 04 (MCP Endpoint). Reviewers: tr
 - **The board resource is not named in tool descriptions.** Its URI contains "board", which the copy check rejects in prose (GLOSSARY: Project, avoid Board). Its own description says to read it before claiming, and clients list it from resources/templates.
 - **The tool list test is exact:** it lists the nine v1 tools and checks that no name mentions delete, archive, restore, or remove, so a new tool has to update the test on purpose.
 - **The smoke is a vitest test** (`apps/server/test/mcp-agent-loop.test.ts`), so it always runs in `pnpm test` (and CI) over the in-process app. It follows the idea.md prompt: orient, list unassigned To Do bugs, Claim the top one, comment, move to Review, reading the board resource after each step. A second case runs two agents at once and checks they Claim different bugs, as idea.md's two-agent test asks. Which agent loses the race is not asserted, since either order is valid.
+
+## Review fixes
+
+- **Emails only in MCP views:** `mcp/views.ts` extends the shared views (`mcpActorView` adds `email`, null for Agents) and `withEmails` fills them with one `memberEmails` query per tool call. The shared `actorView` and every REST response are unchanged. Markdown labels a User as "Ada (ada@example.com)".
+- **Former members show no email.** `memberEmails` only returns Users still in the Company, which matches what `findAssignee` can resolve, so MCP never shows an email it can't act on.
+- **list_tickets Assignee filter:** `me` first, then the REST forms, then anything else goes to `findAssignee`. So an Agent named `agents` or `me` can't be filtered by name; filter by `agent:<id>`. An unknown handle is a tool error ("No user or agent matches ..."), not an empty list, so a typo isn't mistaken for no work.
+- **One Ticket summary shape** (`ticketSummary` in views.ts) for list_tickets, get_ticket children, and `ticketLine`. It includes the Parent, which is redundant for get_ticket's children but keeps one shape.
+- **The board uses `ticketLine` without the Status**, since each Ticket sits under its Status heading.
+- **The claim conflict message names the holder without an email.** It is the domain's copy, shared with REST.

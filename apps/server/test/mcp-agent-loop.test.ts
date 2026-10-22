@@ -66,6 +66,18 @@ describe("MCP tool list", () => {
     expect(claim).toMatch(/claim fails.*pick another ticket/);
   });
 
+  it("says list_tickets and assign_ticket take a user's email or an agent's name", async () => {
+    const t = buildTestApp();
+    const { client } = await setup(t);
+
+    const { tools } = await client.listTools();
+
+    for (const name of ["list_tickets", "assign_ticket"]) {
+      const description = tools.find((tool) => tool.name === name)?.description;
+      expect(description, name).toMatch(/user's email.*agent's name/);
+    }
+  });
+
   it("walks the agent through the loop: orient, claim, comment, move to review", async () => {
     const t = buildTestApp();
     const { client } = await setup(t);

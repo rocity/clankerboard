@@ -121,6 +121,39 @@ describe("MCP assign_ticket", () => {
     expect(textOf(cleared)).toContain("Assignee: unassigned");
   });
 
+  it("assigns a user by the email another tool showed", async () => {
+    const t = buildTestApp();
+    const { owner, one } = await setup(t);
+    const client = await t.mcpClient(one.secret);
+
+    await owner.request("/api/tickets/CB-1/comments", {
+      method: "POST",
+      body: JSON.stringify({ body: "Over to you." }),
+    });
+
+    // The owner created CB-1 and commented, so get_ticket names them twice.
+    const read = await client.callTool({ name: "get_ticket", arguments: { key: "CB-1" } });
+    const { ticket, comments } = read.structuredContent as {
+      ticket: { createdBy: { email: string } };
+      comments: { author: { email: string } }[];
+    };
+    expect(ticket.createdBy.email).toBe(owner.user.email);
+    expect(comments[0]?.author.email).toBe(owner.user.email);
+    expect(textOf(read)).toContain(`Created by: ${owner.user.name} (${owner.user.email})`);
+    expect(textOf(read)).toContain(`### ${owner.user.name} (${owner.user.email}), `);
+
+    const result = await client.callTool({
+      name: "assign_ticket",
+      arguments: { key: "CB-1", assignee: ticket.createdBy.email },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({
+      ticket: { assignee: { type: "user", id: owner.user.id, email: owner.user.email } },
+    });
+    expect(textOf(result)).toContain(`Assignee: ${owner.user.name} (${owner.user.email})`);
+  });
+
   it("credits the assignment to the Agent", async () => {
     const t = buildTestApp();
     const { owner, first, one } = await setup(t);

@@ -1,30 +1,40 @@
-import { listTickets, refOf } from "@clankerboard/domain";
-import { assigneeFilter, listTicketsQuery, ticketPage, ticketView } from "@clankerboard/shared";
+import { findAssignee, listTickets, refOf } from "@clankerboard/domain";
+import {
+  type AssigneeFilter,
+  assigneeFilter,
+  listTicketsQuery,
+  ticketPage,
+} from "@clankerboard/shared";
 import { z } from "zod";
 import { bulletList, ticketLine } from "../markdown";
-import { defineTool } from "../tool";
-
-const ticketSummary = ticketView.pick({
-  key: true,
-  title: true,
-  type: true,
-  status: true,
-  priority: true,
-  assignee: true,
-  parent: true,
-});
+import { defineTool, type ToolEnv } from "../tool";
+import { summarize, ticketSummary, withEmails } from "../views";
 
 const limitError = { error: "Limits are whole numbers from 1 to 100." };
+const assigneeError = "Give me, unassigned, agents, users, a user's email, or an agent's name.";
+
+/**
+ * "me" is the calling Agent. The REST forms (unassigned, agents, users,
+ * user:<id>, agent:<id>) come next, and anything else is a handle, as
+ * assign_ticket takes it.
+ */
+async function assigneeFilterOf({ deps, ctx }: ToolEnv, handle: string): Promise<AssigneeFilter> {
+  if (handle === "me") return { kind: "actor", actor: refOf(ctx.actor) };
+  const named = assigneeFilter.safeParse(handle);
+  if (named.success) return named.data;
+  return { kind: "actor", actor: await findAssignee(deps, ctx, handle) };
+}
 
 const input = listTicketsQuery
   .pick({ projectKey: true, status: true, type: true, priority: true, q: true, cursor: true })
   .extend({
-    // "me" is the calling Agent, so it can find its own work without knowing its id.
     assignee: z
-      .union([z.literal("me"), assigneeFilter])
+      .string({ error: assigneeError })
+      .trim()
+      .min(1, { error: assigneeError })
       .optional()
       .describe(
-        "Who the tickets are assigned to: me, unassigned, agents, users, user:<id>, or agent:<id>.",
+        "Who the tickets are assigned to: me, unassigned, agents, users, a user's email, or an agent's name.",
       ),
     parentKey: listTicketsQuery.shape.parentKey.describe(
       "Only children of this ticket key, such as CB-42.",
@@ -43,36 +53,31 @@ const input = listTicketsQuery
 export const listTicketsTool = defineTool({
   name: "list_tickets",
   description:
-    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, assignee, parent ticket key, or text. With status todo and assignee unassigned, the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
+    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, parent ticket key, text, or assignee (me, a user's email, or an agent's name, as tool output shows them). With status todo and assignee unassigned, the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
   input,
   output: z.object({
     tickets: z.array(ticketSummary),
     nextCursor: ticketPage.shape.nextCursor,
   }),
   annotations: { readOnlyHint: true },
-  async run({ assignee, ...filter }, { deps, ctx }) {
+  async run({ assignee, ...filter }, env) {
+    const { deps, ctx } = env;
     const page = await listTickets(
       deps,
       ctx,
       {
         ...filter,
-        assignee: assignee === "me" ? { kind: "actor", actor: refOf(ctx.actor) } : assignee,
+        assignee: assignee === undefined ? undefined : await assigneeFilterOf(env, assignee),
         archived: "exclude",
       },
       { order: "urgency" },
     );
-    const tickets = page.tickets.map(
-      ({ key, title, type, status, priority, assignee, parent }) => ({
-        key,
-        title,
-        type,
-        status,
-        priority,
-        assignee,
-        parent,
-      }),
+    const tickets = (await withEmails(env, { tickets: page.tickets })).tickets.map(summarize);
+    let markdown = bulletList(
+      "Tickets",
+      tickets.map((ticket) => ticketLine(ticket)),
+      "No tickets match.",
     );
-    let markdown = bulletList("Tickets", tickets.map(ticketLine), "No tickets match.");
     if (page.nextCursor) markdown += `\n\nMore tickets match. Next cursor: ${page.nextCursor}`;
     return { data: { tickets, nextCursor: page.nextCursor }, markdown };
   },

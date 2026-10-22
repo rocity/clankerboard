@@ -1,6 +1,6 @@
 import { type Db, schema, type Tx } from "@clankerboard/db";
 import type { AssignTicketInput } from "@clankerboard/shared";
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { type ActorRef, actorColumns, refFromColumns, refOf, sameActor } from "./actors";
 import type { CompanyContext, DomainDeps } from "./context";
@@ -65,6 +65,24 @@ export async function findAssignee(
     .where(and(eq(agents.companyId, ctx.companyId), eq(sql`lower(${agents.name})`, needle)));
   if (agent) return { type: "agent", id: agent.id };
   throw new DomainError("not_found", `No user or agent matches "${handle.trim()}".`);
+}
+
+/**
+ * The emails of the given Users who belong to this Company, by User id: the
+ * handles `findAssignee` takes. Former members are left out.
+ */
+export async function memberEmails(
+  { db }: DomainDeps,
+  ctx: CompanyContext,
+  userIds: string[],
+): Promise<Map<string, string>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ id: users.id, email: users.email })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(and(eq(memberships.companyId, ctx.companyId), inArray(users.id, userIds)));
+  return new Map(rows.map((row) => [row.id, row.email]));
 }
 
 export async function assignTicket(

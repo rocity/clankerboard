@@ -14,8 +14,9 @@ import {
   ResourceNotFoundError,
   ResourceTemplate,
 } from "@modelcontextprotocol/server";
-import { actorLabel } from "../markdown";
+import { ticketLine } from "../markdown";
 import type { ToolEnv } from "../tool";
+import { withEmails } from "../views";
 
 export type BoardConfig = {
   /** How long a Done Ticket stays on the board after its last change. */
@@ -59,7 +60,8 @@ export function registerBoardResource(server: McpServer, env: ToolEnv, config: B
   );
 }
 
-async function boardMarkdown({ deps, ctx }: ToolEnv, config: BoardConfig, key: string) {
+async function boardMarkdown(env: ToolEnv, config: BoardConfig, key: string) {
+  const { deps, ctx } = env;
   const parsedKey = projectKey.safeParse(key);
   if (!parsedKey.success) throw notFound();
   const project = await getProject(deps, ctx, parsedKey.data);
@@ -78,15 +80,13 @@ async function boardMarkdown({ deps, ctx }: ToolEnv, config: BoardConfig, key: s
     cursor = page.nextCursor ?? undefined;
   } while (cursor);
 
+  const shown = (await withEmails(env, { tickets })).tickets;
   const days = Math.round(config.doneWindowMs / day);
   const window = `${days === 1 ? "the last day" : `the last ${days} days`}`;
   const sections = ticketStatuses.map((status) => {
-    const lines = tickets
+    const lines = shown
       .filter((ticket) => ticket.status === status)
-      .map((t) => {
-        const assignee = t.assignee ? `assignee: ${actorLabel(t.assignee)}` : "unassigned";
-        return `- **${t.key}** [${t.type}, ${t.priority}] ${t.title} (${assignee})`;
-      });
+      .map((ticket) => `- ${ticketLine(ticket, { status: false })}`);
     const note = status === "done" ? `Changed in ${window}.` : null;
     const empty = status === "done" ? `No tickets changed in ${window}.` : "No tickets.";
     const body = lines.length === 0 ? empty : [note, lines.join("\n")].filter(Boolean).join("\n\n");

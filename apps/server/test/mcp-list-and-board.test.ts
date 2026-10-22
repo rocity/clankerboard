@@ -87,6 +87,63 @@ describe("list_tickets", () => {
     expect(await keys({ q: "crash" })).toEqual(["CB-2"]);
   });
 
+  it("names a User Assignee by email, and an Agent by name", async () => {
+    const t = buildTestApp();
+    const { owner, agent, client } = await setup(t);
+    const as = owner.request;
+    await createTicket(as, { projectKey: "CB", title: "Mine" }); // CB-1
+    await createTicket(as, { projectKey: "CB", title: "Theirs" }); // CB-2
+    await assign(as, "CB-1", { type: "user", id: owner.user.id });
+    await assign(as, "CB-2", { type: "agent", id: agent.id });
+
+    const result = await client.callTool({ name: "list_tickets", arguments: {} });
+
+    expect(result.structuredContent).toMatchObject({
+      tickets: [
+        { key: "CB-1", assignee: { type: "user", email: owner.user.email } },
+        { key: "CB-2", assignee: { type: "agent", name: "Claude-1", email: null } },
+      ],
+    });
+    expect(textOf(result)).toContain(
+      `**CB-1** [task, Backlog, medium] Mine (assignee: ${owner.user.name} (${owner.user.email}))`,
+    );
+  });
+
+  it("filters by the user email or agent name another tool showed", async () => {
+    const t = buildTestApp();
+    const { owner, client } = await setup(t);
+    const as = owner.request;
+    const bob = await createAgent(owner, "Bob-bot");
+    await createTicket(as, { projectKey: "CB", title: "Owner's" }); // CB-1
+    await createTicket(as, { projectKey: "CB", title: "Bot's" }); // CB-2
+    await createTicket(as, { projectKey: "CB", title: "Nobody's" }); // CB-3
+    await assign(as, "CB-1", { type: "user", id: owner.user.id });
+    await assign(as, "CB-2", { type: "agent", id: bob.id });
+
+    const all = await client.callTool({ name: "list_tickets", arguments: {} });
+    type Shown = { tickets: { key: string; assignee: { name: string; email: string | null } }[] };
+    const shown = (all.structuredContent as Shown).tickets;
+    const userHandle = shown.find((ticket) => ticket.key === "CB-1")?.assignee.email;
+    const agentHandle = shown.find((ticket) => ticket.key === "CB-2")?.assignee.name;
+    const keys = async (assignee: unknown) => {
+      const result = await client.callTool({ name: "list_tickets", arguments: { assignee } });
+      expect(result.isError, textOf(result)).toBeFalsy();
+      return (result.structuredContent as Listed).tickets.map((ticket) => ticket.key);
+    };
+
+    expect(await keys(userHandle)).toEqual(["CB-1"]);
+    expect(await keys(userHandle?.toUpperCase())).toEqual(["CB-1"]);
+    expect(await keys(agentHandle)).toEqual(["CB-2"]);
+    expect(await keys("bob-bot")).toEqual(["CB-2"]);
+
+    const unknown = await client.callTool({
+      name: "list_tickets",
+      arguments: { assignee: "nobody" },
+    });
+    expect(unknown.isError).toBe(true);
+    expect(textOf(unknown)).toBe('No user or agent matches "nobody".');
+  });
+
   it("returns 20 Tickets by default, and a cursor walks the rest in order", async () => {
     const t = buildTestApp();
     const { owner, client } = await setup(t);
@@ -198,7 +255,7 @@ describe("board resource", () => {
         "## Backlog",
         "",
         "- **CB-1** [epic, medium] Plan it (unassigned)",
-        `- **CB-3** [task, low] Write docs (assignee: ${owner.user.name})`,
+        `- **CB-3** [task, low] Write docs (assignee: ${owner.user.name} (${owner.user.email}))`,
         "",
         "## To Do",
         "",

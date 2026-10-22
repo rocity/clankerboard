@@ -1,8 +1,9 @@
 import { updateTicket } from "@clankerboard/domain";
-import { ticketKey, ticketView, updateTicketInput } from "@clankerboard/shared";
+import { ticketKey, updateTicketInput } from "@clankerboard/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
 import { defineTool } from "../tool";
+import { mcpTicketView, ticketWithEmails } from "../views";
 
 const { shape } = updateTicketInput;
 
@@ -20,10 +21,11 @@ export const updateTicketTool = defineTool({
       "The parent's ticket key, such as CB-7, or null to clear it.",
     ),
   }),
-  output: z.object({ ticket: ticketView }),
+  output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-  async run({ key, ...input }, { deps, ctx }) {
-    const ticket = await updateTicket(deps, ctx, key, input);
+  async run({ key, ...input }, env) {
+    const updated = await updateTicket(env.deps, env.ctx, key, input);
+    const ticket = await ticketWithEmails(env, updated);
     return { data: { ticket }, markdown: ticketMarkdown(ticket) };
   },
 });
