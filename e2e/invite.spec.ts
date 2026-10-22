@@ -143,6 +143,39 @@ test("an invitee who has signed up before signs in on the Invite page and joins"
   await invitee.context.close();
 });
 
+test("OAuth from an Invite page never sends the Invite token to the auth server, and the page still knows the Invite on return", async ({
+  page,
+  browser,
+}) => {
+  await signUp(page, "Grace", "grace@example.com");
+  await createCompany(page, "Acme Robotics");
+  const { link } = await inviteByApi(page, "linus@example.com");
+  const token = link.split("#")[1] ?? "";
+  expect(token).not.toBe("");
+
+  const invitee = await freshContext(browser, page);
+  await invitee.page.route("**/api/auth-providers", (route) =>
+    route.fulfill({ json: { providers: ["google"] } }),
+  );
+  let asked = "";
+  // Better Auth sends the browser back to the callbackURL it was given.
+  await invitee.page.route("**/api/auth/sign-in/social", (route) => {
+    asked = route.request().postData() ?? "";
+    const { callbackURL } = JSON.parse(asked) as { callbackURL: string };
+    return route.fulfill({ json: { url: callbackURL, redirect: true } });
+  });
+  await invitee.page.goto(link);
+  await invitee.page.getByRole("button", { name: "Continue with Google" }).click();
+
+  await expect(invitee.page).toHaveURL(/\/invite/);
+  // The callback URL is stored by Better Auth and echoed in a redirect, so it must not hold the token.
+  expect(asked).not.toContain(token);
+  // The page found its Invite again from the cookie the server also reads for OAuth sign-up.
+  await expect(invitee.page.getByRole("heading", { name: "Join Acme Robotics" })).toBeVisible();
+  await expect(invitee.page.getByLabel("Email")).toHaveValue("linus@example.com");
+  await invitee.context.close();
+});
+
 test("a signed-in invitee joins with one click, and the wrong User can sign out", async ({
   page,
   browser,

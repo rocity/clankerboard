@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ApiError, api, errorMessage, unwrap } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { resetActiveCompany } from "@/lib/companies";
+import { clearInviteCookie, readInviteCookie, saveInviteCookie } from "@/lib/invite-cookie";
 import { roleLabel } from "@/lib/members";
 import { sessionQuery } from "@/lib/queries";
 
@@ -22,8 +23,10 @@ const isBadLink = (error: unknown) =>
 function InvitePage() {
   // The token lives in the URL fragment, so it never reaches server logs. Reading it
   // from the router keeps the page in step when a second Invite link replaces the first.
+  // After an OAuth round trip the page is back on /invite with no fragment (the callback
+  // URL must not carry the token), so the cookie left before leaving stands in for it.
   const hash = useRouterState({ select: (state) => state.location.hash });
-  const token = hash.replace(/^#/, "");
+  const token = hash.replace(/^#/, "") || readInviteCookie();
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: user } = useQuery(sessionQuery);
@@ -40,8 +43,7 @@ function InvitePage() {
     setAcceptError(null);
     try {
       await unwrap(api["invite-links"].accept.$post({ json: { token } }));
-      // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not in every browser yet.
-      document.cookie = "cb_invite=; path=/; max-age=0";
+      clearInviteCookie();
       queryClient.clear();
       await router.navigate({ to: "/" });
     } catch (err) {
@@ -127,13 +129,7 @@ function InvitePage() {
               headers={{ "x-invite-token": token }}
               onDone={accept}
             />
-            <OAuthButtons
-              callbackURL={`/invite#${token}`}
-              beforeRedirect={() => {
-                // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not in every browser yet.
-                document.cookie = `cb_invite=${encodeURIComponent(token)}; path=/; max-age=3600; samesite=lax`;
-              }}
-            />
+            <OAuthButtons callbackURL="/invite" beforeRedirect={() => saveInviteCookie(token)} />
             <Button
               type="button"
               variant="link"

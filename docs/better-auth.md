@@ -32,6 +32,7 @@ On first use, the Drizzle adapter compares `packages/db/src/schema.ts` with what
 - **Where the Invite token comes from:**
   - Email sign-up sends it in the `x-invite-token` header.
   - OAuth sign-up carries it in the `cb_invite` cookie, because it arrives on a redirect.
+  - Never put it in the `callbackURL` of `signIn.social`. Better Auth stores that URL with the OAuth state and sends it back in a redirect, so the token would sit in the database in plaintext. The Invite page asks for `/invite` and reads the token from the cookie on return.
 
 ## Sessions and the clock
 
