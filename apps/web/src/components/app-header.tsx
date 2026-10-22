@@ -1,3 +1,4 @@
+import { productName } from "@clankerboard/shared";
 import { Link } from "@tanstack/react-router";
 import { SquareKanban } from "lucide-react";
 import { Brand } from "@/components/brand";
@@ -13,7 +14,7 @@ export function AppHeader({ companySlug }: { companySlug: string }) {
         <Link
           to="/$companySlug"
           params={{ companySlug }}
-          aria-label="Clankerboard"
+          aria-label={productName}
           className="flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:size-auto"
         >
           <span className="hidden md:block">

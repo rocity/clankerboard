@@ -3,6 +3,7 @@ export * from "./companies";
 export * from "./invites";
 export * from "./members";
 export * from "./permissions";
+export * from "./product";
 export * from "./projects";
 export * from "./rank";
 export * from "./roles";

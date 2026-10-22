@@ -1,3 +1,4 @@
+import { productName } from "@clankerboard/shared";
 import type { RateLimitConfig } from "./rate-limit";
 
 export type OAuthCredentials = { clientId: string; clientSecret: string };
@@ -76,7 +77,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): ServerEnv {
           password: env.SMTP_PASSWORD || undefined,
           from:
             env.SMTP_FROM ||
-            `Clankerboard <no-reply@${new URL(env.BASE_URL || "http://localhost").hostname}>`,
+            `${productName} <no-reply@${new URL(env.BASE_URL || "http://localhost").hostname}>`,
         }
       : undefined,
     oauth: {

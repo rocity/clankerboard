@@ -1,3 +1,5 @@
+import { productName } from "@clankerboard/shared";
+
 /** The environment variable the `.mcp.json` snippet reads the key from. */
 export const keyEnvVar = "CLANKERBOARD_API_KEY";
 
@@ -54,7 +56,7 @@ type AgentPromptInput = {
  */
 export function agentPrompt({ publicUrl, companySlug, projectKey, projectName }: AgentPromptInput) {
   const base = publicUrl.replace(/\/+$/, "");
-  return `You will work on Tickets in the Clankerboard project "${projectName}" (Project Key ${projectKey}) through the "${serverName}" MCP server. The humans you work with watch the board live at ${base}/${companySlug}/projects/${projectKey}.
+  return `You will work on Tickets in the ${productName} project "${projectName}" (Project Key ${projectKey}) through the "${serverName}" MCP server. The humans you work with watch the board live at ${base}/${companySlug}/projects/${projectKey}.
 
 ## 1. Connect
 Check that the ${serverName} MCP tools (list_tickets, get_ticket, claim_ticket, and the rest) are available. If they are not:
