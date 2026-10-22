@@ -1,22 +1,29 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { AuthForm } from "@/components/auth-form";
 import { AuthLayout } from "@/components/auth-layout";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
-import { api, errorMessage, unwrap } from "@/lib/api";
+import { ApiError, api, errorMessage, unwrap } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+import { resetActiveCompany } from "@/lib/companies";
+import { roleLabel } from "@/lib/members";
 import { sessionQuery } from "@/lib/queries";
-
-// The token lives in the URL fragment, so it never reaches server logs.
-const tokenFromHash = () => window.location.hash.slice(1);
 
 export const Route = createFileRoute("/invite")({
   component: InvitePage,
 });
 
+/** A link the server will not honor: not valid, revoked, used, or expired. */
+const isBadLink = (error: unknown) =>
+  error instanceof ApiError && [400, 404, 410].includes(error.status);
+
 function InvitePage() {
-  const token = tokenFromHash();
+  // The token lives in the URL fragment, so it never reaches server logs. Reading it
+  // from the router keeps the page in step when a second Invite link replaces the first.
+  const hash = useRouterState({ select: (state) => state.location.hash });
+  const token = hash.replace(/^#/, "");
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: user } = useQuery(sessionQuery);
@@ -30,6 +37,7 @@ function InvitePage() {
   });
 
   async function accept() {
+    setAcceptError(null);
     try {
       await unwrap(api["invite-links"].accept.$post({ json: { token } }));
       // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not in every browser yet.
@@ -41,64 +49,111 @@ function InvitePage() {
     }
   }
 
-  const error = lookup.error ? errorMessage(lookup.error) : acceptError;
-  const invite = lookup.data?.invite;
+  async function signOut() {
+    await authClient.signOut();
+    queryClient.clear();
+    resetActiveCompany();
+    setAcceptError(null);
+    await queryClient.invalidateQueries(sessionQuery);
+  }
+
+  if (lookup.isPending) {
+    return (
+      <AuthLayout signedIn={!!user}>
+        <p className="text-center text-sm text-muted-foreground">Loading.</p>
+      </AuthLayout>
+    );
+  }
+
+  if (lookup.error) {
+    return (
+      <AuthLayout signedIn={!!user}>
+        <div className="grid gap-4 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">{errorMessage(lookup.error)}</h1>
+          {isBadLink(lookup.error) && (
+            <p className="text-sm text-muted-foreground">Ask whoever invited you for a new one.</p>
+          )}
+          <Button asChild variant="outline" className="h-11">
+            <Link to="/">Go home</Link>
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  const invite = lookup.data.invite;
 
   return (
-    <AuthLayout>
+    <AuthLayout signedIn={!!user}>
       <div className="grid gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Join a company</h1>
-        {error && (
+        <h1 className="text-2xl font-semibold tracking-tight">Join {invite.companyName}</h1>
+
+        <section
+          aria-label="Invite details"
+          className="rounded-xl border bg-card p-4 text-sm text-card-foreground shadow-sm"
+        >
+          <dl className="grid gap-3">
+            <Detail label="Company" value={invite.companyName} />
+            {invite.teamName && <Detail label="Team" value={invite.teamName} />}
+            <Detail label="Role" value={roleLabel(invite.role)} />
+            <Detail label="Invited by" value={invite.inviterName} />
+          </dl>
+        </section>
+
+        {acceptError && (
           <p role="alert" className="text-sm text-destructive">
-            {error}
+            {acceptError}
           </p>
         )}
-        {invite && (
-          <>
-            <p>
-              {invite.inviterName} invited you to join{" "}
-              {invite.teamName ? (
-                <>
-                  the {invite.teamName} team at <strong>{invite.companyName}</strong>.
-                </>
-              ) : (
-                <>
-                  <strong>{invite.companyName}</strong> as {invite.role}.
-                </>
-              )}
+
+        {user ? (
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">
+              Signed in as <span className="font-medium text-foreground">{user.email}</span>.
             </p>
-            {user ? (
-              <Button className="h-11" onClick={accept}>
-                Accept invite
-              </Button>
-            ) : (
-              <>
-                <AuthForm
-                  mode={mode}
-                  email={invite.email}
-                  headers={{ "x-invite-token": token }}
-                  onDone={accept}
-                />
-                <OAuthButtons
-                  callbackURL={`/invite#${token}`}
-                  beforeRedirect={() => {
-                    // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not in every browser yet.
-                    document.cookie = `cb_invite=${encodeURIComponent(token)}; path=/; max-age=3600; samesite=lax`;
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-11"
-                  onClick={() => setMode(mode === "sign-up" ? "sign-in" : "sign-up")}
-                >
-                  {mode === "sign-up" ? "I've signed up before" : "I'm new here"}
-                </Button>
-              </>
-            )}
+            <Button className="h-11" onClick={accept}>
+              Join {invite.companyName}
+            </Button>
+            <Button type="button" variant="ghost" className="h-11" onClick={signOut}>
+              Sign out
+            </Button>
+          </div>
+        ) : (
+          <>
+            <AuthForm
+              key={mode}
+              mode={mode}
+              email={invite.email}
+              headers={{ "x-invite-token": token }}
+              onDone={accept}
+            />
+            <OAuthButtons
+              callbackURL={`/invite#${token}`}
+              beforeRedirect={() => {
+                // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not in every browser yet.
+                document.cookie = `cb_invite=${encodeURIComponent(token)}; path=/; max-age=3600; samesite=lax`;
+              }}
+            />
+            <Button
+              type="button"
+              variant="link"
+              className="h-11"
+              onClick={() => setMode(mode === "sign-up" ? "sign-in" : "sign-up")}
+            >
+              {mode === "sign-up" ? "I've signed up before" : "I'm new here"}
+            </Button>
           </>
         )}
       </div>
     </AuthLayout>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium">{value}</dd>
+    </div>
   );
 }

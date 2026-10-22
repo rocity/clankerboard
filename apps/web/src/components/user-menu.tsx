@@ -12,16 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { resetActiveCompany } from "@/lib/companies";
+import { initials } from "@/lib/initials";
 import { sessionQuery } from "@/lib/queries";
-
-function initials(name: string) {
-  const letters = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]);
-  return letters.join("").toUpperCase() || "?";
-}
 
 export function UserMenu() {
   const queryClient = useQueryClient();

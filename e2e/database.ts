@@ -10,6 +10,17 @@ export const e2eDatabaseUrl = (() => {
   return url.toString();
 })();
 
+/** Moves every Invite's expiry into the past, since the e2e server runs on the real clock. */
+export async function expireInvites() {
+  const client = new pg.Client({ connectionString: e2eDatabaseUrl });
+  await client.connect();
+  try {
+    await client.query("update invites set expires_at = now() - interval '1 day'");
+  } finally {
+    await client.end();
+  }
+}
+
 /** Empties every table so each test starts on a fresh instance. */
 export async function resetDatabase() {
   const client = new pg.Client({ connectionString: e2eDatabaseUrl });

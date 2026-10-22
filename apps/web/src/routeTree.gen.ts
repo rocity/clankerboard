@@ -15,6 +15,7 @@ import { Route as InviteRouteImport } from './routes/invite'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as CompanySlugIndexRouteImport } from './routes/$companySlug/index'
+import { Route as CompanySlugMembersRouteImport } from './routes/$companySlug/members'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const CompanySlugIndexRoute = CompanySlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CompanySlugRouteRoute,
 } as any)
+const CompanySlugMembersRoute = CompanySlugMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug': typeof CompanySlugIndexRoute
 }
 export interface FileRoutesById {
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/invite': typeof InviteRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -79,9 +88,16 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/members'
     | '/$companySlug/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/invite' | '/sign-in' | '/sign-up' | '/$companySlug'
+  to:
+    | '/'
+    | '/invite'
+    | '/sign-in'
+    | '/sign-up'
+    | '/$companySlug/members'
+    | '/$companySlug'
   id:
     | '__root__'
     | '/'
@@ -89,6 +105,7 @@ export interface FileRouteTypes {
     | '/invite'
     | '/sign-in'
     | '/sign-up'
+    | '/$companySlug/members'
     | '/$companySlug/'
   fileRoutesById: FileRoutesById
 }
@@ -144,14 +161,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugIndexRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/members': {
+      id: '/$companySlug/members'
+      path: '/members'
+      fullPath: '/$companySlug/members'
+      preLoaderRoute: typeof CompanySlugMembersRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
   }
 }
 
 interface CompanySlugRouteRouteChildren {
+  CompanySlugMembersRoute: typeof CompanySlugMembersRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
 }
 
 const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
+  CompanySlugMembersRoute: CompanySlugMembersRoute,
   CompanySlugIndexRoute: CompanySlugIndexRoute,
 }
 
