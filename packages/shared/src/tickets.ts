@@ -6,6 +6,9 @@ export const ticketStatuses = ["backlog", "todo", "in_progress", "review", "done
 export const ticketPriorities = ["low", "medium", "high", "urgent"] as const;
 /** How a Ticket Link is stored. `blocked_by` is only an input: it is stored as the reverse Blocks row. */
 export const ticketLinkKinds = ["blocks", "relates_to"] as const;
+/** A Ticket Link's kind as seen from one of its Tickets, in the order Links are grouped. */
+export const ticketLinkViewKinds = ["blocked_by", "blocks", "relates_to"] as const;
+export type TicketLinkViewKind = (typeof ticketLinkViewKinds)[number];
 
 export const ticketType = z.enum(ticketTypes, { error: "Pick epic, story, task, or bug." });
 export const ticketStatus = z.enum(ticketStatuses, {
@@ -100,6 +103,13 @@ export const moveTicketInput = z.object({
   position: z.number(positionError).int(positionError).min(0, positionError).optional(),
 });
 export type MoveTicketInput = z.infer<typeof moveTicketInput>;
+
+/** Links the Ticket in the path to `target`. `blocked_by` is stored as `target` blocks it. */
+export const linkTicketsInput = z.object({
+  kind: z.enum(ticketLinkViewKinds, { error: "Pick blocks, blocked_by, or relates_to." }),
+  target: ticketKey,
+});
+export type LinkTicketsInput = z.infer<typeof linkTicketsInput>;
 
 export const actorRefInput = z.object(
   {
