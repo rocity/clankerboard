@@ -28,21 +28,6 @@ function titlesIn(page: Page, label: string) {
     .evaluateAll((els) => els.map((el) => el.querySelector("h3")?.textContent ?? ""));
 }
 
-/** The titles of a Status as drawn, top to bottom. While a Ticket is held, the drawing differs from the list's order. */
-function titlesAsDrawn(page: Page, label: string) {
-  return lane(page, label)
-    .getByRole("article")
-    .evaluateAll((els) =>
-      els
-        .map((el) => ({
-          top: el.getBoundingClientRect().top,
-          title: el.querySelector("h3")?.textContent ?? "",
-        }))
-        .sort((a, b) => a.top - b.top)
-        .map((e) => e.title),
-    );
-}
-
 /** The titles of a Status in the server's own order. */
 async function serverTitles(page: Page, status: string) {
   return (await listTickets(page, "PLAT")).filter((t) => t.status === status).map((t) => t.title);
@@ -58,56 +43,8 @@ async function openBoard(page: Page, titles: string[] = []) {
   if (titles.length > 0) await expect(page.getByRole("article")).toHaveCount(titles.length);
 }
 
-/** Where a held Ticket is let go: on a Status, or on the top or bottom half of a Ticket. */
+/** Where a held Ticket is let go: on a Status, or on the top or bottom edge of a Ticket. */
 type Drop = { status: string } | { ticket: Locator; half: "top" | "bottom" };
-
-type Pointer = {
-  down(x: number, y: number): Promise<void>;
-  move(x: number, y: number): Promise<void>;
-  up(): Promise<void>;
-};
-
-function mousePointer(page: Page): Pointer {
-  return {
-    down: async (x, y) => {
-      await page.mouse.move(x, y);
-      await page.mouse.down();
-    },
-    move: async (x, y) => page.mouse.move(x, y, { steps: 6 }),
-    up: async () => page.mouse.up(),
-  };
-}
-
-/** Touch events need the browser's own protocol: Playwright only offers taps. */
-async function touchPointer(page: Page): Promise<Pointer> {
-  const session = await page.context().newCDPSession(page);
-  let at = { x: 0, y: 0 };
-  const send = (type: string, points: { x: number; y: number }[]) =>
-    session.send("Input.dispatchTouchEvent", { type, touchPoints: points });
-  return {
-    down: async (x, y) => {
-      at = { x, y };
-      await send("touchStart", [at]);
-      // Hold still: the drag only starts after a short press, so a swipe can scroll.
-      await page.waitForTimeout(400);
-    },
-    move: async (x, y) => {
-      const steps = 8;
-      const from = at;
-      for (let i = 1; i <= steps; i++) {
-        at = { x: from.x + ((x - from.x) * i) / steps, y: from.y + ((y - from.y) * i) / steps };
-        await send("touchMove", [at]);
-        await page.waitForTimeout(16);
-      }
-    },
-    up: async () => send("touchEnd", []),
-  };
-}
-
-const center = (box: { x: number; y: number; width: number; height: number }) => ({
-  x: box.x + box.width / 2,
-  y: box.y + box.height / 2,
-});
 
 /** The box of an element once it has stopped moving, for example after the board scrolled to it. */
 async function stableBox(locator: Locator) {
@@ -118,58 +55,59 @@ async function stableBox(locator: Locator) {
     if (box && last && box.x === last.x && box.y === last.y) return box;
     last = box;
   }
-  throw new Error("The Ticket keeps moving.");
+  throw new Error("The element keeps moving.");
 }
 
 /**
- * Picks the Ticket up, carries it to the drop (scrolling the board by holding it
- * at the edge when the drop is off screen), and lets go.
+ * Drags a Ticket with the mouse and lets go. The browser's own drag and drop
+ * runs, so the pointer carries it. When the drop is off screen (a phone shows
+ * one Status at a time) the pointer rests at the edge until the board has
+ * scrolled to it.
  */
-async function carry(page: Page, pointer: Pointer, source: Locator, drop: Drop) {
+async function mouseDrag(page: Page, source: Locator, drop: Drop) {
   await source.scrollIntoViewIfNeeded();
   const from = await stableBox(source);
-  const start = center(from);
-  await pointer.down(start.x, start.y);
-  await pointer.move(start.x + 12, start.y + 12);
+  const startX = from.x + from.width / 2;
+  const startY = from.y + from.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 12, startY + 12, { steps: 4 });
 
   const target = "status" in drop ? lane(page, drop.status) : drop.ticket;
   const screen = page.viewportSize()?.width ?? 1280;
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 120; i++) {
     const box = await target.boundingBox();
     if (!box) throw new Error("The drop target is not on the page.");
     const visible = Math.min(box.x + box.width, screen) - Math.max(box.x, 0);
     if (visible >= Math.min(box.width, 160)) break;
-    await pointer.move(box.x > screen / 2 ? screen - 6 : 6, start.y);
-    await page.waitForTimeout(60);
+    await page.mouse.move(box.x > screen / 2 ? screen - 6 : 6, startY, { steps: 2 });
+    await page.waitForTimeout(25);
   }
-
-  const box = await target.boundingBox();
-  if (!box) throw new Error("The drop target is not on the page.");
+  // Leave the edge at once, or the board keeps scrolling past the target.
+  const phone = screen < 768;
+  const keepClear = (x: number) =>
+    phone ? Math.min(Math.max(x, screen * 0.35), screen * 0.65) : x;
+  const rough = await target.boundingBox();
+  if (phone && rough) {
+    await page.mouse.move(keepClear(rough.x + rough.width / 2), startY, { steps: 2 });
+  }
+  await page.waitForTimeout(200);
+  const box = await stableBox(target);
   const left = Math.max(box.x, 0);
-  const x = left + (Math.min(box.x + box.width, screen) - left) / 2;
-  let y = box.y + box.height / 2;
-  if ("ticket" in drop) y = drop.half === "top" ? box.y + 6 : box.y + box.height - 6;
-  else y = Math.min(box.y + 60, box.y + box.height - 6);
-  await pointer.move(x, y);
-  await page.waitForTimeout(150);
-  if (screenshots)
+  const x = keepClear(left + (Math.min(box.x + box.width, screen) - left) / 2);
+  let y = Math.min(box.y + 60, box.y + box.height - 6);
+  if ("ticket" in drop) y = drop.half === "top" ? box.y + 8 : box.y + box.height - 8;
+  await page.mouse.move(x, y, { steps: 8 });
+  // The browser reports the first position over a drop target late, so keep moving a little.
+  for (let i = 1; i <= 3; i++) {
+    await page.waitForTimeout(60);
+    await page.mouse.move(x + i, y);
+  }
+  if (screenshots) {
     await page.screenshot({ path: `${screenshots}/held-${test.info().project.name}.png` });
-  await pointer.up();
-  // A new drag cannot start until the dropped Ticket has settled.
-  await expect(page.getByTestId("drag-overlay")).toHaveCount(0);
+  }
+  await page.mouse.up();
 }
-
-/** Focuses a Ticket and holds it with the spacebar, once the arrow keys listen. */
-async function holdWithKeyboard(page: Page, key: string) {
-  await page.getByRole("listitem").filter({ hasText: key }).focus();
-  await page.keyboard.press("Space");
-  // The first announcement says the Ticket is held. The arrow keys listen a moment later.
-  await expect(page.getByText(new RegExp(`^${key} is over`))).toBeAttached();
-  await page.waitForTimeout(300);
-}
-
-const mouseDrag = (page: Page, source: Locator, drop: Drop) =>
-  carry(page, mousePointer(page), source, drop);
 
 const waitForMove = (page: Page) =>
   page.waitForResponse((r) => r.url().includes("/move") && r.request().method() === "POST");
@@ -250,19 +188,11 @@ test("drops between two Tickets of another Status, and sends both as neighbours"
   await page.reload();
   await expect(ticketIn(page, "To Do", "Two")).toBeVisible();
 
-  // The keyboard places the Ticket exactly, step by step, so the middle slot is not left to aim.
   const request = page.waitForRequest((r) => r.url().includes("/move"));
-  await holdWithKeyboard(page, "PLAT-1");
-  await page.keyboard.press("ArrowRight");
-  await expect.poll(() => titlesIn(page, "To Do")).toHaveLength(3);
-  for (let i = 0; i < 6; i++) {
-    await page.waitForTimeout(350);
-    const drawn = await titlesAsDrawn(page, "To Do");
-    if (drawn.join() === "Two,One,Three") break;
-    await page.keyboard.press(drawn.indexOf("One") === 0 ? "ArrowDown" : "ArrowUp");
-  }
-  await expect.poll(() => titlesAsDrawn(page, "To Do")).toEqual(["Two", "One", "Three"]);
-  await page.keyboard.press("Space");
+  await mouseDrag(page, ticketIn(page, "Backlog", "One"), {
+    ticket: ticketIn(page, "To Do", "Three"),
+    half: "top",
+  });
 
   expect((await request).postDataJSON()).toEqual({
     status: "todo",
@@ -383,53 +313,8 @@ test("a click is not a drag", async ({ page }) => {
   expect(moves).toBe(0);
 });
 
-test("moves a Ticket with the keyboard", async ({ page }) => {
-  await openBoard(page, ["A", "B"]);
-
-  const moved = waitForMove(page);
-  await holdWithKeyboard(page, "PLAT-2");
-  await page.keyboard.press("ArrowUp");
-  await page.waitForTimeout(250);
-  await page.keyboard.press("Space");
-  await moved;
-
-  await expect.poll(() => titlesIn(page, "Backlog")).toEqual(["B", "A"]);
-  expect(await serverTitles(page, "backlog")).toEqual(["B", "A"]);
-});
-
-test.describe("with touch", () => {
+test.describe("on a touch screen", () => {
   test.use({ hasTouch: true });
-
-  test("a long press picks a Ticket up and carries it to another Status", async ({ page }) => {
-    await openBoard(page, ["A", "B"]);
-    const pointer = await touchPointer(page);
-
-    const moved = waitForMove(page);
-    await carry(page, pointer, ticketIn(page, "Backlog", "B"), { status: "In Progress" });
-    await moved;
-
-    await expect(ticketIn(page, "In Progress", "B")).toBeVisible();
-    await expect.poll(() => titlesIn(page, "Backlog")).toEqual(["A"]);
-    await page.reload();
-    await expect(ticketIn(page, "In Progress", "B")).toBeVisible();
-    expect(await serverTitles(page, "in_progress")).toEqual(["B"]);
-    expect(await scrollsSideways(page)).toBe(false);
-  });
-
-  test("a touch reorder within a Status works", async ({ page }) => {
-    await openBoard(page, ["A", "B", "C"]);
-    const pointer = await touchPointer(page);
-
-    const moved = waitForMove(page);
-    await carry(page, pointer, ticketIn(page, "Backlog", "C"), {
-      ticket: ticketIn(page, "Backlog", "A"),
-      half: "top",
-    });
-    await moved;
-
-    await expect.poll(() => titlesIn(page, "Backlog")).toEqual(["C", "A", "B"]);
-    expect(await serverTitles(page, "backlog")).toEqual(["C", "A", "B"]);
-  });
 
   test("a quick swipe still scrolls the board and moves nothing", async ({ page }) => {
     await openBoard(page, ["A", "B"]);
@@ -484,39 +369,67 @@ test.describe("with touch", () => {
   });
 });
 
-test("a held Ticket stands out from its Status in both themes", async ({ page }) => {
-  await openBoard(page, ["Visible", "Other"]);
+test("a line shows where the Ticket will land, and the Ticket in hand is faded, in both themes", async ({
+  page,
+}) => {
+  await openBoard(page, ["Held", "Other"]);
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.reload();
-    const ticket = ticketIn(page, "Backlog", "Visible");
-    await ticket.scrollIntoViewIfNeeded();
-    const box = await ticket.boundingBox();
-    if (!box) throw new Error("The Ticket is not on screen.");
-    const start = center(box);
-    await page.mouse.move(start.x, start.y);
+    const source = ticketIn(page, "Backlog", "Held");
+    const target = await stableBox(ticketIn(page, "Backlog", "Other"));
+    const from = await stableBox(source);
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
     await page.mouse.down();
-    await page.mouse.move(start.x + 20, start.y + 40, { steps: 6 });
-    await page.waitForTimeout(250);
-
-    const held = page.getByTestId("drag-overlay").getByRole("article", { name: "Visible" });
-    await expect(held).toBeVisible();
-    const colors = await held.evaluate((node) => ({
-      card: getComputedStyle(node).backgroundColor,
+    await page.mouse.move(from.x + from.width / 2 + 12, from.y + 20, { steps: 4 });
+    const line = page.getByTestId("drop-indicator");
+    // The browser reports the first position over a Ticket a moment late, so keep the pointer moving.
+    let nudge = 0;
+    await expect(async () => {
+      nudge += 1;
+      await page.mouse.move(
+        target.x + target.width / 2 + (nudge % 3),
+        target.y + target.height - 8,
+        { steps: 2 },
+      );
+      await expect(line).toBeVisible({ timeout: 300 });
+    }).toPass();
+    await expect(line).toHaveAttribute("data-edge", "bottom");
+    const colors = await line.evaluate((node) => ({
+      line: getComputedStyle(node).backgroundColor,
       lane: getComputedStyle(node.closest("section") ?? document.body).backgroundColor,
-      page: getComputedStyle(document.body).backgroundColor,
     }));
-    expect(colors.card).not.toBe(colors.page);
-    expect(colors.card).not.toBe("rgba(0, 0, 0, 0)");
+    expect(colors.line).not.toBe(colors.lane);
+    expect(colors.line).not.toBe("rgba(0, 0, 0, 0)");
+    await expect(page.locator("[data-dragging]")).toHaveCount(1);
     if (screenshots) {
       await page.screenshot({
-        path: `${screenshots}/overlay-${scheme}-${test.info().project.name}.png`,
+        path: `${screenshots}/line-${scheme}-${test.info().project.name}.png`,
       });
     }
-    await page.keyboard.press("Escape");
+    // Dropped outside any Status, nothing moves.
+    await page.mouse.move(2, 2, { steps: 4 });
     await page.mouse.up();
-    // Escape cancels: nothing moved.
-    await expect.poll(() => titlesIn(page, "Backlog")).toEqual(["Visible", "Other"]);
-    await expect(page.getByTestId("drag-overlay")).toHaveCount(0);
+    await expect(page.getByTestId("drop-indicator")).toHaveCount(0);
+    await expect.poll(() => titlesIn(page, "Backlog")).toEqual(["Held", "Other"]);
   }
+});
+
+test("an archived Ticket cannot be dragged", async ({ page }) => {
+  await openBoard(page, ["Live", "Old"]);
+  const res = await page.request.post("/api/tickets/PLAT-2/archive");
+  expect(res.status()).toBe(200);
+  await page.goto("/acme-robotics/projects/PLAT?archived=true");
+  await expect(page.getByRole("article")).toHaveCount(2);
+  let moves = 0;
+  await page.route("**/api/tickets/*/move", (route) => {
+    moves += 1;
+    return route.continue();
+  });
+
+  await mouseDrag(page, ticketIn(page, "Backlog", "Old"), { status: "Review" });
+  await page.waitForTimeout(300);
+
+  expect(moves).toBe(0);
+  await expect(ticketIn(page, "Backlog", "Old")).toBeVisible();
 });

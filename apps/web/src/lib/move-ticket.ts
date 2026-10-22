@@ -2,7 +2,7 @@ import { rankAt, type TicketStatus } from "@clankerboard/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, errorMessage, unwrap } from "./api";
-import type { TicketData } from "./board";
+import type { TicketData, TicketsByStatus } from "./board";
 import { putTicket, ticketKeys } from "./tickets";
 
 /**
@@ -24,6 +24,35 @@ export type MoveOptions = {
    */
   filtered?: boolean;
 };
+
+/**
+ * Where a drop puts a Ticket, as a `Placement`, or null when it would not
+ * change anything. `overKey` is the Ticket it was dropped on, with the side of
+ * it (`edge`); without one the Ticket goes to the end of the Status. An
+ * archived Ticket is never a neighbour: the server ranks between live ones.
+ */
+export function placeTicket(
+  lanes: TicketsByStatus,
+  ticket: TicketData,
+  status: TicketStatus,
+  overKey: string | null,
+  edge: "top" | "bottom" | null,
+): Placement | null {
+  const others = lanes[status].filter((t) => t.key !== ticket.key);
+  const over = overKey === null ? -1 : others.findIndex((t) => t.key === overKey);
+  const index = over < 0 ? others.length : over + (edge === "top" ? 0 : 1);
+
+  if (status === ticket.status) {
+    const origin = lanes[status].findIndex((t) => t.key === ticket.key);
+    if (index === origin) return null;
+  }
+  const live = (t: TicketData | undefined) => (t && !t.archivedAt ? t : null);
+  let after: TicketData | null = null;
+  for (let i = index - 1; i >= 0 && !after; i--) after = live(others[i]);
+  let before: TicketData | null = null;
+  for (let i = index; i < others.length && !before; i++) before = live(others[i]);
+  return { status, after, before };
+}
 
 /** The keys of Tickets whose move request has not been answered yet. */
 const moving = new Set<string>();

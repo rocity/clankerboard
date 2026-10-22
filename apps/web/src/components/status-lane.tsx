@@ -1,9 +1,9 @@
+import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { statusLabels, type TicketStatus } from "@clankerboard/shared";
-import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Link, useParams } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { DraggableTicket, isTicketData } from "@/components/draggable-ticket";
 import { RestoreTicketButton } from "@/components/restore-ticket-button";
-import { SortableTicket } from "@/components/sortable-ticket";
 import { TicketSummary } from "@/components/ticket-summary";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,10 @@ import { cn } from "@/lib/utils";
 type Props = {
   status: TicketStatus;
   tickets: readonly TicketData[];
-  /** True while a held Ticket is over this Status. */
-  receiving?: boolean;
 };
 
-/** The droppable id of a Status. Ticket Keys never start with `status:`. */
-export const statusDropId = (status: TicketStatus) => `status:${status}`;
+/** What a Status answers as a drop target: a drop on it, not on a Ticket, goes to the end. */
+export type StatusDropData = { type: "status"; status: TicketStatus };
 
 /**
  * One Status of the board. On a phone it is nearly as wide as the screen, so a
@@ -24,14 +22,29 @@ export const statusDropId = (status: TicketStatus) => `status:${status}`;
  * `md` breakpoint the five Statuses share the row. The whole Status takes a
  * drop, so an empty one is as easy to hit as a full one.
  */
-export function StatusLane({ status, tickets, receiving }: Props) {
+export function StatusLane({ status, tickets }: Props) {
   const label = statusLabels[status];
-  const { setNodeRef } = useDroppable({ id: statusDropId(status) });
+  const ref = useRef<HTMLElement>(null);
+  const [receiving, setReceiving] = useState(false);
   const { companySlug, projectKey } = useParams({ from: "/$companySlug/projects/$projectKey" });
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    return dropTargetForElements({
+      element,
+      canDrop: ({ source }) => isTicketData(source.data),
+      getData: (): StatusDropData => ({ type: "status", status }),
+      onDragStart: () => setReceiving(true),
+      onDragEnter: () => setReceiving(true),
+      onDragLeave: () => setReceiving(false),
+      onDrop: () => setReceiving(false),
+    });
+  }, [status]);
 
   return (
     <section
-      ref={setNodeRef}
+      ref={ref}
       aria-label={label}
       data-status={status}
       data-receiving={receiving || undefined}
@@ -46,32 +59,30 @@ export function StatusLane({ status, tickets, receiving }: Props) {
           {tickets.length}
         </span>
       </header>
-      <SortableContext items={tickets.map((t) => t.key)} strategy={verticalListSortingStrategy}>
-        {tickets.length === 0 ? (
-          <p className="px-1 py-6 text-center text-sm text-muted-foreground">No tickets</p>
-        ) : (
-          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
-            {tickets.map((ticket) => (
-              <SortableTicket key={ticket.key} ticket={ticket}>
-                <Link
-                  to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
-                  params={{ companySlug, projectKey, ticketKey: ticket.key }}
-                  // The board's filters live in its search params, so opening a Ticket keeps them.
-                  search={(prev) => prev}
-                  // A link is dragged by the browser itself unless told otherwise, which would end our drag.
-                  draggable={false}
-                  className="block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  <TicketSummary ticket={ticket} />
-                </Link>
-                {ticket.archivedAt && (
-                  <RestoreTicketButton ticketKey={ticket.key} title={ticket.title} />
-                )}
-              </SortableTicket>
-            ))}
-          </ul>
-        )}
-      </SortableContext>
+      {tickets.length === 0 ? (
+        <p className="px-1 py-6 text-center text-sm text-muted-foreground">No tickets</p>
+      ) : (
+        <ul className="grid grid-cols-[minmax(0,1fr)]">
+          {tickets.map((ticket) => (
+            <DraggableTicket key={ticket.key} ticket={ticket}>
+              <Link
+                to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
+                params={{ companySlug, projectKey, ticketKey: ticket.key }}
+                // The board's filters live in its search params, so opening a Ticket keeps them.
+                search={(prev) => prev}
+                // The Ticket is the draggable, not its link: a dragged link would carry a URL instead.
+                draggable={false}
+                className="block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <TicketSummary ticket={ticket} />
+              </Link>
+              {ticket.archivedAt && (
+                <RestoreTicketButton ticketKey={ticket.key} title={ticket.title} />
+              )}
+            </DraggableTicket>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
