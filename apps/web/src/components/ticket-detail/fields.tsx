@@ -10,7 +10,8 @@ import {
 } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useRef, useState } from "react";
-import { EstimateInput } from "@/components/estimate-input";
+import { EstimateInput, ProgressInput } from "@/components/estimate-input";
+import { ProgressBar } from "@/components/progress-bar";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { actorsQuery } from "@/lib/actors";
@@ -59,19 +60,23 @@ function PickField({ id, label, value, disabled, className, onPick, children }: 
   );
 }
 
-type EstimateProps = {
+type NumberProps = {
+  id: string;
+  label: string;
   value: number | null;
-  /** Saves the Estimate. Resolves once the server has answered, whether or not it accepted. */
-  onSave: (estimate: number | null) => Promise<unknown>;
+  /** The input to type in: `EstimateInput` or `ProgressInput`. */
+  input: typeof EstimateInput;
+  /** Saves the number. Resolves once the server has answered, whether or not it accepted. */
+  onSave: (value: number | null) => Promise<unknown>;
 };
 
 /**
- * The Estimate, typed in and saved on Enter or when the field loses focus.
- * Emptying it clears the Estimate. Like the selects, it shows the draft while
- * the request is out, then goes back to what the server holds. The server
- * checks the range, so its own message is the one shown.
+ * The Estimate or the Progress, typed in and saved on Enter or when the field
+ * loses focus. Emptying it clears the value. Like the selects, it shows the
+ * draft while the request is out, then goes back to what the server holds.
+ * The server checks the range, so its own message is the one shown.
  */
-function EstimateField({ value, onSave }: EstimateProps) {
+function NumberField({ id, label, value, input: NumberInput, onSave }: NumberProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const saving = useRef(false);
   const shown = draft ?? (value === null ? "" : String(value));
@@ -95,11 +100,11 @@ function EstimateField({ value, onSave }: EstimateProps) {
 
   return (
     <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor="ticket-estimate" className="text-xs text-muted-foreground">
-        Estimate
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
       </Label>
-      <EstimateInput
-        id="ticket-estimate"
+      <NumberInput
+        id={id}
         value={shown}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={(event) => void save(event.currentTarget)}
@@ -121,17 +126,22 @@ type Props = {
   onType: (type: TicketType) => Promise<unknown>;
   onPriority: (priority: TicketPriority) => Promise<unknown>;
   onEstimate: (estimate: number | null) => Promise<unknown>;
+  onProgress: (progress: number | null) => Promise<unknown>;
   onParent: (parentKey: string | null) => Promise<unknown>;
   onAssignee: (assignee: AssigneePick) => Promise<unknown>;
 };
 
-/** The fields of a Ticket that are picked from a list, and the Estimate. Each saves on its own. */
+/**
+ * The fields of a Ticket that are picked from a list, the Estimate, and the
+ * Progress, which has a row of its own with its bar. Each saves on its own.
+ */
 export function TicketFields({
   ticket,
   onStatus,
   onType,
   onPriority,
   onEstimate,
+  onProgress,
   onParent,
   onAssignee,
 }: Props) {
@@ -191,7 +201,30 @@ export function TicketFields({
           </option>
         ))}
       </PickField>
-      <EstimateField value={ticket.estimate} onSave={onEstimate} />
+      <NumberField
+        id="ticket-estimate"
+        label="Estimate"
+        value={ticket.estimate}
+        input={EstimateInput}
+        onSave={onEstimate}
+      />
+      <div className="col-span-2 grid grid-cols-[7rem_minmax(0,1fr)] items-end gap-3 md:col-span-4">
+        <NumberField
+          id="ticket-progress"
+          label="Progress"
+          value={ticket.progress}
+          input={ProgressInput}
+          onSave={onProgress}
+        />
+        {/* The bar sits level with the field, so the row reads as one thing. */}
+        <div className="flex h-11 items-center md:h-9">
+          {ticket.progress === null ? (
+            <span className="text-sm text-muted-foreground">Not reported</span>
+          ) : (
+            <ProgressBar value={ticket.progress} className="w-full" />
+          )}
+        </div>
+      </div>
       <div className="col-span-2 grid gap-3 md:col-span-4">
         <PickField
           id="ticket-assignee"

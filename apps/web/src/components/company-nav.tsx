@@ -15,6 +15,9 @@ export function CompanyNav({ companySlug }: { companySlug: string }) {
         <Link to="/$companySlug/members" params={{ companySlug }} className={linkClass}>
           Members
         </Link>
+        <Link to="/$companySlug/labels" params={{ companySlug }} className={linkClass}>
+          Labels
+        </Link>
       </div>
     </nav>
   );

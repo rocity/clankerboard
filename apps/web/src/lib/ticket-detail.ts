@@ -2,6 +2,7 @@ import type { LinkTicketsInput, TicketStatus, UpdateTicketInput } from "@agentka
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 import type { TicketData } from "./board";
+import { refreshLabels } from "./labels";
 import { dropTicket, putTicket, ticketKeys } from "./tickets";
 
 // These three always refetch when the panel opens (the board's 30 second window
@@ -117,6 +118,8 @@ export function useTicketMutations(ticketKey: string, projectKey: string) {
         if (input.parentKey !== undefined) {
           void queryClient.invalidateQueries({ queryKey: ticketKeys.children(ticketKey) });
         }
+        // A new name created a Label, and every change moves the counts.
+        if (input.labels !== undefined) refreshLabels(queryClient);
       },
     }),
     /** Changes the Status. The Ticket goes to the bottom of it. */

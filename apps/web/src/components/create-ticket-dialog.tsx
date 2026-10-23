@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { EstimateInput } from "@/components/estimate-input";
+import { LabelsField } from "@/components/labels-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/api";
+import { refreshLabels } from "@/lib/labels";
 import { createTicketMutation, ticketsQuery } from "@/lib/tickets";
 
 const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
@@ -36,6 +38,8 @@ export function CreateTicketDialog({ projectKey }: Props) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<TicketType>("task");
+  // Held here until submit. The field's own text box is not part of the form.
+  const [labels, setLabels] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   // The Parent choices come from the unfiltered board, so a filter never hides one.
   const { data: tickets = [] } = useQuery(ticketsQuery(projectKey));
@@ -46,6 +50,7 @@ export function CreateTicketDialog({ projectKey }: Props) {
     setOpen(next);
     if (!next) {
       setType("task");
+      setLabels([]);
       setError(null);
       create.reset();
     }
@@ -65,6 +70,7 @@ export function CreateTicketDialog({ projectKey }: Props) {
       priority: form.get("priority"),
       parentKey: parentKey || null,
       estimate: estimate === "" ? null : Number(estimate),
+      labels,
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Enter a title.");
@@ -73,6 +79,7 @@ export function CreateTicketDialog({ projectKey }: Props) {
     setError(null);
     try {
       await create.mutateAsync(parsed.data);
+      if (parsed.data.labels.length > 0) refreshLabels(queryClient);
       reset(false);
     } catch (err) {
       setError(errorMessage(err));
@@ -151,6 +158,12 @@ export function CreateTicketDialog({ projectKey }: Props) {
               <EstimateInput id="ticket-estimate" name="estimate" />
             </div>
           </div>
+          <LabelsField
+            id="new-ticket-labels"
+            value={labels}
+            labelClassName=""
+            onChange={setLabels}
+          />
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}

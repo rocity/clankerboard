@@ -12,6 +12,7 @@ export * from "./context";
 export * from "./errors";
 export * from "./event-bus";
 export * from "./invites";
+export * from "./labels";
 export * from "./mailer";
 export * from "./members";
 export * from "./moves";

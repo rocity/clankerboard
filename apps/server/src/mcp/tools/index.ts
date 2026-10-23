@@ -5,6 +5,7 @@ import { claimTicketTool } from "./claim-ticket";
 import { createTicketTool } from "./create-ticket";
 import { getTicketTool } from "./get-ticket";
 import { linkTicketsTool } from "./link-tickets";
+import { listLabelsTool } from "./list-labels";
 import { listProjectsTool } from "./list-projects";
 import { listTicketsTool } from "./list-tickets";
 import { moveTicketTool } from "./move-ticket";
@@ -24,4 +25,5 @@ export const tools: Tool[] = [
   addCommentTool,
   linkTicketsTool,
   unlinkTicketsTool,
+  listLabelsTool,
 ];

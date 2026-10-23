@@ -7,6 +7,7 @@ import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
 import { notFound } from "./errors";
 import { assertChildrenAccept, assertPlacement } from "./hierarchy";
+import { labelChanges, resolveLabels, setTicketLabels } from "./labels";
 import { findProject } from "./projects";
 import {
   bottomRank,
@@ -14,6 +15,7 @@ import {
   findParent,
   findTicket,
   findTicketById,
+  labelsOf,
   projects,
   saveTicket,
   type TicketView,
@@ -60,6 +62,7 @@ export async function createTicket(
         type: input.type,
         priority: input.priority,
         estimate: input.estimate,
+        progress: input.progress,
         status: "backlog",
         rank: await bottomRank(tx, project.id, "backlog"),
         createdByUserId: creator.userId,
@@ -70,6 +73,13 @@ export async function createTicket(
       .returning(ticketColumns);
     if (!inserted) throw new Error("ticket insert returned nothing");
     const row = { ...inserted, projectKey: project.key };
+    const labels = await resolveLabels(tx, ctx, input.labels, now);
+    await setTicketLabels(
+      tx,
+      row.id,
+      labels.map((l) => l.id),
+      now,
+    );
     await record(
       ticketActivity(row, "ticket.created", {
         title: row.title,
@@ -94,9 +104,16 @@ export async function updateTicket(
   input: UpdateTicketInput,
 ): Promise<TicketView> {
   return withActivity(deps, ctx, async (tx, record) => {
+    const now = deps.clock.now();
     const row = await findTicket(tx, ctx, key, true);
-    const { parentKey, ...fields } = input;
+    const { parentKey, labels: labelNames, ...fields } = input;
     const changes = changedFields(row, fields);
+
+    const labels = labelNames && (await resolveLabels(tx, ctx, labelNames, now));
+    if (labels) {
+      const current = (await labelsOf(tx, [row.id])).get(row.id) ?? [];
+      Object.assign(changes, labelChanges(current, labels));
+    }
 
     const currentParent = row.parentId ? await findTicketById(tx, ctx, row.parentId) : null;
     const parent =
@@ -117,10 +134,18 @@ export async function updateTicket(
     assertPlacement({ type, projectId: row.projectId }, parent);
     if (type !== row.type) assertChildrenAccept(type, await childrenOf(tx, row.id));
 
+    if (changes.labels && labels) {
+      await setTicketLabels(
+        tx,
+        row.id,
+        labels.map((l) => l.id),
+        now,
+      );
+    }
     const view = await saveTicket(tx, row, {
       ...fields,
       parentId: parent?.id ?? null,
-      updatedAt: deps.clock.now(),
+      updatedAt: now,
     });
     await record(ticketActivity(row, "ticket.updated", { changes }));
     return view;

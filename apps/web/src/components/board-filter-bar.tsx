@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { actorsQuery } from "@/lib/actors";
 import { activeFilterCount, type BoardSearch } from "@/lib/board-search";
+import { labelsQuery } from "@/lib/labels";
 import { teamsQuery } from "@/lib/projects";
 import { ticketsQuery } from "@/lib/tickets";
 
@@ -70,6 +71,8 @@ export function BoardFilterBar({
   const { data: tickets = [] } = useQuery(ticketsQuery(projectKey));
   const { data: actors = [] } = useQuery(actorsQuery);
   const { data: teams = [] } = useQuery(teamsQuery);
+  const { data: labels = [] } = useQuery(labelsQuery);
+  const labelKnown = labels.some((l) => l.name === search.label);
   const epics = tickets.filter((t) => t.type === "epic");
   const users = actors.filter((a) => a.type === "user");
   const agents = actors.filter((a) => a.type === "agent");
@@ -202,6 +205,22 @@ export function BoardFilterBar({
             {search.team && !teams.some((t) => t.id === search.team) && (
               <option value={search.team}>Unknown team</option>
             )}
+          </NativeSelect>
+        </Field>
+        <Field id="filter-label" label="Label">
+          <NativeSelect
+            id="filter-label"
+            value={search.label ?? ""}
+            onChange={(e) => onChange({ label: e.target.value || undefined })}
+          >
+            <option value="">Any label</option>
+            {labels.map((l) => (
+              <option key={l.id} value={l.name}>
+                {l.name}
+              </option>
+            ))}
+            {/* A link may name a Label in another case, or one since renamed or deleted. */}
+            {search.label && !labelKnown && <option value={search.label}>{search.label}</option>}
           </NativeSelect>
         </Field>
         <Field id="filter-blocked" label="Blocked">

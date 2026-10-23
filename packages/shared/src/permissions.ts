@@ -65,6 +65,11 @@ export function canRevokeAgent(actor: CompanyRole, ownsAgent: boolean) {
   return ownsAgent || isAdmin(actor);
 }
 
+/** Renaming, recoloring, and deleting a Label change every Project's board, so they are for owners and admins. */
+export function canManageLabels(role: CompanyRole) {
+  return isAdmin(role);
+}
+
 /** Hard-deleting a Project or Ticket is for owner and admin Users only. */
 export function canHardDelete(role: CompanyRole) {
   return isAdmin(role);

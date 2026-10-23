@@ -1,5 +1,6 @@
 import {
   companyRoles,
+  labelColors,
   teamRoles,
   ticketLinkKinds,
   ticketPriorities,
@@ -18,6 +19,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -293,6 +295,8 @@ export const tickets = pgTable(
     priority: ticketPriority().notNull().default("medium"),
     /** Points from 0 to 100. Null means blank (not sized), which is distinct from 0. */
     estimate: integer(),
+    /** A percentage from 0 to 100, as an Actor reported it. Null means blank, distinct from 0. */
+    progress: integer(),
     /** Fractional-index position within the Ticket's Status column. */
     rank: rankText().notNull(),
     assigneeUserId: actorUser(),
@@ -321,7 +325,47 @@ export const tickets = pgTable(
       sql`num_nonnulls(${t.createdByUserId}, ${t.createdByAgentId}) = 1`,
     ),
     check("tickets_estimate_range", sql`${t.estimate} between 0 and 100`),
+    check("tickets_progress_range", sql`${t.progress} between 0 and 100`),
   ],
+);
+
+export const labelColor = pgEnum("label_color", labelColors);
+
+// A named, colored tag a Company puts on its Tickets (Spec 09). Created by being
+// applied. Names are unique per Company without regard to case.
+export const labels = pgTable(
+  "labels",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    color: labelColor().notNull(),
+    createdByUserId: actorUser(),
+    createdByAgentId: actorAgent(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("labels_company_name_unique").on(t.companyId, sql`lower(${t.name})`),
+    check("labels_one_creator", sql`num_nonnulls(${t.createdByUserId}, ${t.createdByAgentId}) = 1`),
+  ],
+);
+
+// Which Labels a Ticket carries. Cascades both ways, so hard-deleting a Ticket
+// or a Label removes its rows.
+export const ticketLabels = pgTable(
+  "ticket_labels",
+  {
+    ticketId: text()
+      .notNull()
+      .references(() => tickets.id, { onDelete: "cascade" }),
+    labelId: text()
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.ticketId, t.labelId] }), index().on(t.labelId)],
 );
 
 export const ticketLinkKind = pgEnum("ticket_link_kind", ticketLinkKinds);

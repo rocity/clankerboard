@@ -5,6 +5,7 @@ import { Archive, ArchiveRestore, Hand, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { LabelsField } from "@/components/labels-field";
 import { TypeIcon } from "@/components/ticket-summary";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -180,8 +181,15 @@ export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props)
             onType={(type) => run(() => mutations.update.mutateAsync({ type }))}
             onPriority={(priority) => run(() => mutations.update.mutateAsync({ priority }))}
             onEstimate={(estimate) => run(() => mutations.update.mutateAsync({ estimate }))}
+            onProgress={(progress) => run(() => mutations.update.mutateAsync({ progress }))}
             onParent={(parentKey) => run(() => mutations.update.mutateAsync({ parentKey }))}
             onAssignee={(assignee) => run(() => mutations.assign.mutateAsync(assignee))}
+          />
+
+          <LabelsField
+            id="ticket-labels"
+            value={ticket.labels.map((label) => label.name)}
+            onChange={(labels) => run(() => mutations.update.mutateAsync({ labels }))}
           />
 
           <EditableDescription

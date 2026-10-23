@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { labelName, ticketLabels } from "./labels";
 import { projectKey } from "./projects";
 
 export const ticketTypes = ["epic", "story", "task", "bug"] as const;
@@ -68,6 +69,15 @@ export const ticketEstimate = z
   .min(0, estimateError)
   .max(100, estimateError);
 
+const progressError = { error: "Progress is a whole number from 0 to 100." };
+
+/** A percentage from 0 to 100, as an Actor reports it. Null is blank, which is not the same as 0. */
+export const ticketProgress = z
+  .number(progressError)
+  .int(progressError)
+  .min(0, progressError)
+  .max(100, progressError);
+
 export const createTicketInput = z.object({
   projectKey,
   title,
@@ -76,6 +86,8 @@ export const createTicketInput = z.object({
   priority: ticketPriority.default("medium"),
   parentKey: ticketKey.nullish(),
   estimate: ticketEstimate.nullable().default(null),
+  progress: ticketProgress.nullable().default(null),
+  labels: ticketLabels.default([]),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -88,6 +100,10 @@ export const updateTicketInput = z.object({
   parentKey: ticketKey.nullable().optional(),
   /** Null clears the Estimate. */
   estimate: ticketEstimate.nullable().optional(),
+  /** Null clears the Progress. */
+  progress: ticketProgress.nullable().optional(),
+  /** Replaces the whole set. Names without a Label yet create one. */
+  labels: ticketLabels.optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 
@@ -165,6 +181,8 @@ export const listTicketsQuery = z.object({
   /** Free text over title and description. */
   q: z.string().trim().max(200).optional(),
   archived: archivedFilter,
+  /** Only Tickets carrying the Label of this name, without regard to case. */
+  label: labelName.optional(),
   /** Only Blocked Tickets (true) or only unblocked ones (false). */
   blocked: z
     .enum(["true", "false"], { error: "Use blocked=true or blocked=false." })

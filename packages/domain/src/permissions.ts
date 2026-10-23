@@ -1,4 +1,4 @@
-import { canHardDelete } from "@agentkanban/shared";
+import { canHardDelete, canManageLabels } from "@agentkanban/shared";
 import type { CompanyContext } from "./context";
 import { forbidden } from "./errors";
 
@@ -11,6 +11,7 @@ export {
   canInviteToTeam,
   canListInvites,
   canListMembers,
+  canManageLabels,
   canManageTeamMembers,
   canManageTeams,
   canRemoveMember,
@@ -34,6 +35,12 @@ export function canSeeProject(ctx: CompanyContext, project: { companyId: string 
 export function assertMayHardDelete(ctx: CompanyContext) {
   assertMayDelete(ctx);
   if (!canHardDelete(ctx.role)) throw forbidden();
+}
+
+/** Renaming, recoloring, and deleting Labels are for owner and admin Users. Agents only apply them. */
+export function assertMayManageLabels(ctx: CompanyContext) {
+  if (ctx.actor.type !== "user") throw forbidden("Agents can't change labels.");
+  if (!canManageLabels(ctx.role)) throw forbidden();
 }
 
 /** Archiving and restoring are for Users, so every Agent change stays visible on the board. */

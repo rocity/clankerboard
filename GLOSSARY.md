@@ -111,6 +111,14 @@ _Avoid_: See also, references
 **Blocked**:
 A Ticket with at least one blocking Ticket that is neither Done nor Archived. Derived, never set directly.
 
+**Label**:
+A short name with a color that groups Tickets. It belongs to a Company, can be put on any of its Tickets, and is created by being applied.
+_Avoid_: Tag, category, topic
+
+**Progress**:
+How far along a Ticket is, as reported by an Actor: a whole-number percentage from 0 to 100, or blank. Never set automatically.
+_Avoid_: Completion, percent done
+
 ## History
 
 **Comment**:

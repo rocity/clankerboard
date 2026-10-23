@@ -1,0 +1,80 @@
+# Spec 09 implementation notes
+
+Deliberate choices made while implementing Spec 09 (Ticket Labels and Progress). Reviewers: treat these as decided unless one contradicts the spec or an ADR.
+
+## 09-01 Schema and glossary
+
+- **One generated migration.** `packages/db/drizzle/0014_labels_and_progress.sql` and its snapshot come from `pnpm db:generate`, holding the `progress` column, the `label_color` enum, and both tables, so later cards add no migration.
+- **The palette and the color pick live in `packages/shared/src/labels.ts`.** The `label_color` pgEnum is built from `labelColors`, like `ticket_link_kind` from `ticketLinkKinds`. `defaultLabelColor` hashes the normalized name (trimmed, lowercased) with a 31-multiplier string hash, so the server picks it and the web app could preview it the same way.
+- **Case-insensitive uniqueness is an expression index**, `labels_company_name_unique` on `(company_id, lower(name))`. The stored name keeps its first spelling. `normalizeLabelName` (trim plus lowercase) is the JavaScript side of the same rule; names are trimmed by the input schema before they reach the database, so `lower(name)` alone is enough there.
+- **`ticket_labels` has no Company column.** Both of its rows' parents already carry one, and every read goes through a Ticket or a Label. Its primary key `(ticket_id, label_id)` serves lookups by Ticket; a separate index on `label_id` serves the filter, the counts, and Label delete.
+- **No `updated_at` on `labels`.** Rename and recolor record no Activity (spec) and nothing reads when they happened.
+- **Glossary.** Label and Progress follow Blocked at the end of Board. Progress's _Avoid_ list is "completion, percent done": the spec's draft also avoided "status", but `scripts/check-copy.mjs` enforces every _Avoid_ term in copy, and "status" is the right word for Status everywhere. The Label definition avoids its own _Avoid_ term "tag".
+
+## 09-02 Progress over REST and MCP
+
+- **Built exactly like the Estimate.** `ticketProgress` in `packages/shared/src/tickets.ts` carries the one message "Progress is a whole number from 0 to 100." for every failure, refuses strings rather than coercing them, defaults to null on create, and is `nullable().optional()` on update. `updateTicket` needs no Progress branch: the field flows through `changedFields` into the `ticket.updated` diff as `progress`, and a no-op write records nothing.
+- **Moves never touch Progress.** No code in `moves.ts` names it; the test walks a Ticket through every Status, Done included, as both a User and an Agent, and reads the same value back.
+- **"N% done" in the ticket line, "Progress: N%" in get_ticket.** The ticket line puts it after the Estimate and before "blocked". get_ticket always says "Progress: none" when blank, matching "Estimate: none". 0 shows as "0% done", distinct from blank.
+- **The nudge to report lives in three places.** The `progress` description on both write tools ends "Update it as you work.", `update_ticket`'s own description asks Agents to keep progress current while they work a Ticket, and step 4 of the Agent prompt asks for it. The prompt line is checked in `e2e/board.spec.ts` beside the prompt's other lines.
+- **Tests in `apps/server/test/progress.test.ts`**, a sibling of `estimate.test.ts`, with the same User and Agent matrix plus the move case.
+
+## 09-03 Labels over REST
+
+- **Module.** `packages/domain/src/labels.ts` owns the Label rules: `resolveLabels` (find or create by name), `labelChanges` (the diff), `setTicketLabels`, and the three management services. `labelsOf`, which `ticketViews` calls once per page, sits in `ticket-store.ts` beside `openBlockers`, so the Labels module can import the store without a cycle.
+- **`labels` is replace-the-set on both create and update.** The input schema trims names, drops repeats without regard to case (the first spelling wins), and then checks the 10-Label cap, so `["ui", "UI"]` is one Label and never trips the cap. A plain string instead of a list gets "Labels are a list of names."
+- **Find or create is one insert and one read.** `resolveLabels` inserts every name with `on conflict do nothing`, then reads the Company's Labels by `lower(name)`. An existing Label keeps its spelling and color, so `API` applied after `api` reuses `api`. `withActivity`'s per-Company advisory lock already serializes changes, so two concurrent creates of a name queue rather than race; the conflict clause is what makes the second a reuse, and the test fires both at once to prove it.
+- **Labels are resolved before the "no changes" check in `updateTicket`.** A set equal to the current one, in any case or order, adds no `labels` entry and records nothing. A set with a new name creates that Label even when a later rule (the hierarchy) refuses the update; the transaction rolls the new Label back with it.
+- **The diff stores names, sorted without regard to case.** `labels: { from: ["api", "web"], to: ["api", "docs"] }`. Names, not ids, so a Timeline still reads after a Label is renamed or deleted; it reads with the names the Labels had at the time. Sets are compared by Label id, so renaming a Label never makes a later no-op look like a change.
+- **No `labels` in `ticket.created`.** The created payload records the fields the Timeline shows today; a Ticket's first Labels are visible on the Ticket itself. A reviewer who wants them in history can add `labels` to that payload in one line.
+- **`label` filter.** One name, matched as `lower(name)` against the normalized input in a correlated `exists`, like `isBlocked`. It uses the `labelName` schema, so an empty or over-long value gets the same messages as applying one. An unknown name matches nothing, never errors.
+- **Management.** `canManageLabels` (owners and admins) joins the shared Role matrix, and `assertMayManageLabels` in the domain refuses Agents first with "Agents can't change labels.", then members with the generic forbidden message, before looking the Label up, so a member learns nothing about which ids exist. A Label in another Company is not found.
+- **Rename conflicts name the existing Label as spelled**: "A label named api already exists." Renaming to another case of its own name is allowed; the uniqueness check skips the Label itself.
+- **Rename and recolor run under `withActivity` but record nothing.** The lock keeps a rename from racing a change that creates a Label of the new name, which would otherwise surface as a raw unique violation.
+- **Delete bumps each carrier's `updatedAt`** before recording its `ticket.updated`, so the web app's "newer snapshot wins" check in `putTicket` treats the snapshot as the latest. Carriers are locked in id order, archived ones included, and the diff is recorded on each, credited to the deleting User.
+- **`ticketCount` counts live Tickets only** (not archived), in every Project, since every User sees every Project today. A Label with no live Tickets is listed with 0 and kept: unused Labels go only by delete.
+- **The stream test lives in `labels.test.ts`.** It checks one Label-and-Progress update and one delete reach the stream with fresh snapshots; there is no new stream code, since both are `ticket.updated`.
+
+## 09-04 Labels over MCP
+
+- **Summaries carry Label names, not objects.** `ticketSummary` replaces `labels` with a list of names, as the spec says; get_ticket's `ticket` and the write tools' `ticket` keep the full `{ id, name, color }` from `ticketView`, like every other field there. Agents only ever pass names back, so ids in a list would be noise.
+- **The board resource now builds its lines from `summarize`.** It used to hand whole Ticket views to `ticketLine`, which worked while a view was structurally a summary; with `labels` differing in shape between the two, it goes through the same `summarize` the list tools use.
+- **Labels go at the end of the ticket line** (`... Title (unassigned) labels: api, web`), outside the bracketed facts, so the facts keep their short fixed vocabulary and a Label named "blocked" or "urgent" can't be mistaken for one.
+- **One shared description.** `labelsDescription` in `params.ts` tells Agents a new name creates a Label and to check list_labels first; update_ticket's version leads with "Replaces the whole set of labels: pass the current labels plus any to add, or [] to remove them all."
+- **list_labels says "archived ones left out", not "open".** `ticketCount` counts Done Tickets too, so "open tickets" would mislead. Its description also names ticket keys, which `mcp-agent-loop.test.ts` requires of every tool.
+- **list_labels is listed last** in the tool registry, after the Ticket Link tools, so existing tool order (and any client that shows it) is unchanged.
+- **Tests in `apps/server/test/mcp-labels.test.ts`.** The no-management-tool rule is covered by the exact tool list in `mcp-agent-loop.test.ts`, which now includes `list_labels`.
+
+## 09-05 Progress in the web UI
+
+- **One `ProgressBar` for the card and detail** (`apps/web/src/components/progress-bar.tsx`). It is `role="progressbar"` with `aria-valuenow` and the accessible name "N% done", and shows the bare "N%" beside the track. The bar is decorative to a screen reader; the name carries it.
+- **The card puts the bar last,** under the Parent and Assignee row, full width. That keeps the top row's badges (Blocked, priority, Estimate) unchanged and makes the bar the one element that spans the card, so it scans down a column. 0% shows an empty track with "0%", distinct from no bar.
+- **One number input with a unit.** `EstimateInput` became a thin wrapper over a private `UnitNumberInput`; `ProgressInput` is the same field with "%". The detail field's save logic (`EstimateField`) became `NumberField`, shared by both, so Progress saves, clears, refuses, and resets exactly as the Estimate does.
+- **Progress has its own row in Ticket detail,** under Status, Priority, Type, and Estimate, with the field on the left and the bar filling the rest. A fifth cell in the four-column grid would have wrapped alone on a desktop and on a phone. When blank, the row says "Not reported" where the bar would be.
+- **No Progress in the create dialog.** The spec lists only the detail field. The API still takes `progress` on create, which is what Agents use.
+- **Timeline copy** is "set progress to 40%", "changed progress from 40% to 70%", and "cleared progress", without "the", matching the spec's stories.
+- **No live code.** Progress travels in the `ticket.updated` snapshot the board already applies; `e2e/progress.spec.ts` checks a change from another request reaches an open card.
+- **Known failure, not from this card.** `e2e/board.spec.ts` "fits the viewport ... all show on a desktop" fails at 1280x800 on `main` too (the Backlog lane is 96% in view). It is left as is here.
+
+## 09-06 Labels on the board and in Ticket detail
+
+- **One `LabelsField` for Ticket detail and the create dialog** (`apps/web/src/components/labels-field.tsx`). It owns the chips, the text box, and the suggestions, and hands the whole new set of names to `onChange`: detail saves it with `update({ labels })`, the dialog keeps it in state until submit. While a detail save is out, the field shows the set being saved, then goes back to what the server holds, like the selects.
+- **Suggestions are a native `<datalist>`,** filtered to the Company's Labels the Ticket doesn't have. It gives typeahead on desktop and phone keyboards without a custom listbox. Picking one fills the box with no keystroke (`insertReplacementText`, or a plain `Event` in some browsers), which the field treats as "add it now"; typing goes on until Enter.
+- **Enter adds; typing an existing name in another case adds that Label as spelled,** so the chip reads the same as everywhere else. A name the Ticket already has (any case) is dropped quietly. Enter never submits the create dialog. Escape with text in the box clears the text rather than closing the panel.
+- **A new name's chip is drawn in the color it will get.** `defaultLabelColor` is shared, so the dialog can show the final color before the Label exists.
+- **Chip colors** are written out per palette color in `lib/labels.ts` (`labelColorClasses`), a tinted chip and a solid dot, with dark-theme variants, since Tailwind keeps only class names it finds whole.
+- **Cards show three Labels, then "+N",** in name order under the title. "+N" is named "N more labels" and its hover text lists the rest.
+- **The Label filter is a select of the Company's Labels**, kept as `?label=<name>`. A name from a link that no Label has exactly (another case, or one since renamed) is still listed so the select shows what the URL says. `ticketMatchesFilters` matches names without regard to case, so live snapshots are placed by the filter without a refetch, as for the other filters.
+- **The Labels list refreshes when Labels may have changed:** after this User saves a set (detail or create), and on another Actor's `ticket.updated` whose diff has `labels`. Only mounted readers refetch.
+- **Timeline copy** is computed from the before and after names: "added the label api", "removed the labels api and web", or both joined with "and".
+- **The filter row now wraps "Show archived" onto a second line at 1280px.** Seven filters no longer fit beside it. `e2e/board.spec.ts`'s desktop viewport test was already failing on `main` (see 09-05) and this adds one row above the lanes.
+
+## 09-07 Labels page
+
+- **Route and nav.** `apps/web/src/routes/$companySlug/labels.tsx`, linked as "Labels" after Members in the Company nav. Every User can open it; `canManageLabels` (shared with the server) decides whether rows get controls, as `canListInvites` does on Members.
+- **Rows follow the Members list:** a card of rows, the chip and "N tickets" on the left, controls on the right (stacked under it on a phone). Owners and admins get a name field, a color select, and a delete button.
+- **Rename saves on Enter or blur and resets on Escape,** like the title fields. A refusal shows the server's message in that row and puts the saved name back. The field is keyed by the Label's name, so a successful rename starts it fresh from what the server holds.
+- **Recolor saves on pick** and shows the picked color while the request is out.
+- **Delete asks first with the live count:** "It comes off 2 tickets. Archived tickets lose it too. This cannot be undone." The count on the page excludes archived Tickets, so the dialog says archived ones are included rather than giving a number it doesn't have.
+- **This User's open views refresh after a change.** `useLabelMutations` invalidates the Labels list and every `tickets` query, so a board or open Ticket shows the new name or color when next on screen, without a reload. Other Users see a rename or recolor on their next load (spec: no Activity for those). A delete reaches everyone live through its `ticket.updated` events.
+- **"Owners and admins" is allowlisted** in `scripts/copy-allowlist.json`: "owner" is avoided for Assignee, but here it is the Company Role.

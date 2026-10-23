@@ -1,5 +1,7 @@
 import type { TicketType } from "@agentkanban/shared";
 import { Archive, BookOpen, Bot, Bug, CircleCheck, Lock, type LucideIcon, Zap } from "lucide-react";
+import { LabelChip } from "@/components/label-chip";
+import { ProgressBar } from "@/components/progress-bar";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
@@ -85,13 +87,43 @@ function BlockedMarker({ count }: { count: number }) {
   );
 }
 
+/** How many Labels a card shows before the rest fold into "+N". */
+const cardLabelLimit = 3;
+
+/** A card's Labels, in name order: the first three, then how many more. */
+function CardLabels({ labels }: { labels: TicketData["labels"] }) {
+  const hidden = labels.length - cardLabelLimit;
+  return (
+    <ul aria-label="Labels" className="flex min-w-0 flex-wrap gap-1">
+      {labels.slice(0, cardLabelLimit).map((label) => (
+        <li key={label.id} className="flex min-w-0">
+          <LabelChip label={label} />
+        </li>
+      ))}
+      {hidden > 0 && (
+        <li
+          aria-label={`${hidden} more ${hidden === 1 ? "label" : "labels"}`}
+          title={labels
+            .slice(cardLabelLimit)
+            .map((label) => label.name)
+            .join(", ")}
+          className="rounded-full border px-2 py-0.5 text-xs font-medium text-muted-foreground"
+        >
+          +{hidden}
+        </li>
+      )}
+    </ul>
+  );
+}
+
 /**
  * A Ticket on the board. A pure function of the Ticket: the title leads on its
- * own line, the Ticket Key and Type are a quiet identifier above it, Blocked
+ * own line, its Labels (at most three, then "+N") sit under it, the Ticket Key and Type are a quiet identifier above it, Blocked
  * and priority (only high or urgent) sit beside them, the Estimate shows as a
  * quiet "3 pts" only when set, and the Assignee holds the bottom right
- * corner, with a bot icon for an Agent. It has no behavior of its own, so the
- * drag handle and the link to the detail panel wrap it.
+ * corner, with a bot icon for an Agent. Progress, when reported, is a thin bar
+ * along the bottom. It has no behavior of its own, so the drag handle and the
+ * link to the detail panel wrap it.
  */
 export function TicketSummary({ ticket }: { ticket: TicketData }) {
   const loud = ticket.priority === "high" || ticket.priority === "urgent" ? ticket.priority : null;
@@ -147,6 +179,7 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
       <h3 className="text-base leading-snug font-semibold [overflow-wrap:anywhere] md:text-sm">
         {ticket.title}
       </h3>
+      {ticket.labels.length > 0 && <CardLabels labels={ticket.labels} />}
       {(ticket.parent || ticket.assignee) && (
         <div className="flex items-center justify-between gap-2">
           {ticket.parent ? (
@@ -161,6 +194,7 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
           {ticket.assignee && <Assignee assignee={ticket.assignee} />}
         </div>
       )}
+      {ticket.progress !== null && <ProgressBar value={ticket.progress} />}
     </article>
   );
 }

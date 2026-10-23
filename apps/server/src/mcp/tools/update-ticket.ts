@@ -2,7 +2,12 @@ import { updateTicket } from "@agentkanban/domain";
 import { updateTicketInput } from "@agentkanban/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
-import { estimateDescription, ticketKeyParam } from "../params";
+import {
+  estimateDescription,
+  labelsDescription,
+  progressDescription,
+  ticketKeyParam,
+} from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -11,7 +16,7 @@ const { shape } = updateTicketInput;
 export const updateTicketTool = defineTool({
   name: "update_ticket",
   description:
-    "Change a ticket's title, description, priority, parent, or estimate, by its ticket key. Fields you leave out stay as they are.",
+    "Change a ticket's title, description, priority, parent, estimate, progress, or labels, by its ticket key. Fields you leave out stay as they are. While you work a ticket, update its progress so the humans watching the board see how far along it is.",
   // The spec gives Agents no way to change a Ticket's type.
   input: updateTicketInput.omit({ type: true }).extend({
     key: ticketKeyParam,
@@ -22,6 +27,10 @@ export const updateTicketTool = defineTool({
       "The parent's ticket key, such as CB-7, or null to clear it.",
     ),
     estimate: shape.estimate.describe(estimateDescription),
+    progress: shape.progress.describe(progressDescription),
+    labels: shape.labels.describe(
+      `Replaces the whole set of labels: pass the current labels plus any to add, or [] to remove them all. ${labelsDescription}`,
+    ),
   }),
   output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
