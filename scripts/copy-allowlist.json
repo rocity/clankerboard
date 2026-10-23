@@ -23,6 +23,11 @@
   { "term": "owner", "phrase": "Pick owner", "reason": "owner is a Company Role" },
   {
     "term": "owner",
+    "phrase": "Owners and admins",
+    "reason": "owner is a Company Role (Labels page, Spec 09)"
+  },
+  {
+    "term": "owner",
     "phrase": "Owner-Agent",
     "reason": "Test fixture: the Agent of the User with the owner Role"
   },

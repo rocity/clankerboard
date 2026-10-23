@@ -1,6 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import { resetDatabase } from "./database";
-import { createCompany, createProject, createTicket, scrollsSideways, signUp } from "./helpers";
+import {
+  createCompany,
+  createProject,
+  createTicket,
+  joinCompany,
+  scrollsSideways,
+  signUp,
+} from "./helpers";
 
 test.beforeEach(resetDatabase);
 
@@ -226,5 +233,104 @@ test.describe("layout", () => {
       const remove = dialog.getByRole("button", { name: "Remove label third" });
       expect((await remove.boundingBox())?.height).toBeGreaterThanOrEqual(24);
     }
+  });
+});
+
+test.describe("Labels page", () => {
+  const labelsUrl = "/acme-robotics/labels";
+  const row = (page: Page, name: string) => page.getByRole("listitem", { name, exact: true });
+
+  test("lists every Label with its count of live tickets, reached from the Company nav", async ({
+    page,
+  }) => {
+    await setUp(page);
+    await createTicket(page, { projectKey: "PLAT", title: "A", labels: ["web", "api"] });
+    await createTicket(page, { projectKey: "PLAT", title: "B", labels: ["api"] });
+    await page.goto(boardUrl);
+
+    await page
+      .getByRole("navigation", { name: "Company pages" })
+      .getByRole("link", { name: "Labels" })
+      .click();
+
+    await expect(page.getByRole("heading", { name: "Labels" })).toBeVisible();
+    await expect(row(page, "api")).toContainText("2 tickets");
+    await expect(row(page, "web")).toContainText("1 ticket");
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+
+  test("lets an owner rename and recolor, and the board shows it without a reload", async ({
+    page,
+  }) => {
+    await setUp(page);
+    await createTicket(page, { projectKey: "PLAT", title: "Tagged", labels: ["aip"] });
+    await page.goto(boardUrl);
+    await expect(cardLabels(page, "Tagged")).toHaveText(["aip"]);
+    await page
+      .getByRole("navigation", { name: "Company pages" })
+      .getByRole("link", { name: "Labels" })
+      .click();
+
+    const name = page.getByLabel("Name for aip");
+    await name.fill("api");
+    await name.press("Enter");
+    await expect(row(page, "api")).toBeVisible();
+    await page.getByLabel("Color for api").selectOption("violet");
+    await expect(page.getByLabel("Color for api")).toHaveValue("violet");
+
+    await page.goBack();
+    await expect(cardLabels(page, "Tagged")).toHaveText(["api"]);
+    const res = await page.request.get("/api/labels");
+    const { labels } = (await res.json()) as { labels: { name: string; color: string }[] };
+    expect(labels).toMatchObject([{ name: "api", color: "violet" }]);
+  });
+
+  test("shows the server's message when a rename takes another Label's name", async ({ page }) => {
+    await setUp(page);
+    await createTicket(page, { projectKey: "PLAT", title: "A", labels: ["api", "web"] });
+    await page.goto(labelsUrl);
+
+    const name = page.getByLabel("Name for web");
+    await name.fill("API");
+    await name.press("Enter");
+
+    await expect(row(page, "web").getByRole("alert")).toHaveText(
+      "A label named api already exists.",
+    );
+    await expect(name).toHaveValue("web");
+  });
+
+  test("asks before deleting, naming how many tickets carry it, then takes it off them", async ({
+    page,
+  }) => {
+    await setUp(page);
+    await createTicket(page, { projectKey: "PLAT", title: "A", labels: ["api", "web"] });
+    await createTicket(page, { projectKey: "PLAT", title: "B", labels: ["api"] });
+    await page.goto(labelsUrl);
+
+    await page.getByRole("button", { name: "Delete label api" }).click();
+    const confirm = page.getByRole("dialog", { name: "Delete the label api?" });
+    await expect(confirm).toContainText("It comes off 2 tickets.");
+    await confirm.getByRole("button", { name: "Delete label" }).click();
+
+    await expect(confirm).toBeHidden();
+    await expect(row(page, "api")).toHaveCount(0);
+    await expect(row(page, "web")).toBeVisible();
+    expect(await labelsOf(page, "PLAT-1")).toEqual(["web"]);
+    expect(await labelsOf(page, "PLAT-2")).toEqual([]);
+  });
+
+  test("shows members the Labels without controls", async ({ page, browser }) => {
+    await setUp(page);
+    await createTicket(page, { projectKey: "PLAT", title: "A", labels: ["api"] });
+    const member = await joinCompany(page, browser, { name: "Bea", email: "bea@example.com" });
+
+    await member.goto(labelsUrl);
+
+    await expect(row(member, "api")).toContainText("1 ticket");
+    await expect(member.getByLabel("Name for api")).toHaveCount(0);
+    await expect(member.getByLabel("Color for api")).toHaveCount(0);
+    await expect(member.getByRole("button", { name: "Delete label api" })).toHaveCount(0);
+    await member.context().close();
   });
 });

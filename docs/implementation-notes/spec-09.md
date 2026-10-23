@@ -68,3 +68,13 @@ Deliberate choices made while implementing Spec 09 (Ticket Labels and Progress).
 - **The Labels list refreshes when Labels may have changed:** after this User saves a set (detail or create), and on another Actor's `ticket.updated` whose diff has `labels`. Only mounted readers refetch.
 - **Timeline copy** is computed from the before and after names: "added the label api", "removed the labels api and web", or both joined with "and".
 - **The filter row now wraps "Show archived" onto a second line at 1280px.** Seven filters no longer fit beside it. `e2e/board.spec.ts`'s desktop viewport test was already failing on `main` (see 09-05) and this adds one row above the lanes.
+
+## 09-07 Labels page
+
+- **Route and nav.** `apps/web/src/routes/$companySlug/labels.tsx`, linked as "Labels" after Members in the Company nav. Every User can open it; `canManageLabels` (shared with the server) decides whether rows get controls, as `canListInvites` does on Members.
+- **Rows follow the Members list:** a card of rows, the chip and "N tickets" on the left, controls on the right (stacked under it on a phone). Owners and admins get a name field, a color select, and a delete button.
+- **Rename saves on Enter or blur and resets on Escape,** like the title fields. A refusal shows the server's message in that row and puts the saved name back. The field is keyed by the Label's name, so a successful rename starts it fresh from what the server holds.
+- **Recolor saves on pick** and shows the picked color while the request is out.
+- **Delete asks first with the live count:** "It comes off 2 tickets. Archived tickets lose it too. This cannot be undone." The count on the page excludes archived Tickets, so the dialog says archived ones are included rather than giving a number it doesn't have.
+- **This User's open views refresh after a change.** `useLabelMutations` invalidates the Labels list and every `tickets` query, so a board or open Ticket shows the new name or color when next on screen, without a reload. Other Users see a rename or recolor on their next load (spec: no Activity for those). A delete reaches everyone live through its `ticket.updated` events.
+- **"Owners and admins" is allowlisted** in `scripts/copy-allowlist.json`: "owner" is avoided for Assignee, but here it is the Company Role.

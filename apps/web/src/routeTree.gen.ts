@@ -16,6 +16,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as CompanySlugIndexRouteImport } from './routes/$companySlug/index'
 import { Route as CompanySlugAgentsRouteImport } from './routes/$companySlug/agents'
+import { Route as CompanySlugLabelsRouteImport } from './routes/$companySlug/labels'
 import { Route as CompanySlugMembersRouteImport } from './routes/$companySlug/members'
 import { Route as CompanySlugProjectsIndexRouteImport } from './routes/$companySlug/projects/index'
 import { Route as CompanySlugProjectsProjectKeyRouteRouteImport } from './routes/$companySlug/projects/$projectKey/route'
@@ -56,6 +57,11 @@ const CompanySlugIndexRoute = CompanySlugIndexRouteImport.update({
 const CompanySlugAgentsRoute = CompanySlugAgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
+  getParentRoute: () => CompanySlugRouteRoute,
+} as any)
+const CompanySlugLabelsRoute = CompanySlugLabelsRouteImport.update({
+  id: '/labels',
+  path: '/labels',
   getParentRoute: () => CompanySlugRouteRoute,
 } as any)
 const CompanySlugMembersRoute = CompanySlugMembersRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
+  '/$companySlug/labels': typeof CompanySlugLabelsRoute
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
+  '/$companySlug/labels': typeof CompanySlugLabelsRoute
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/$companySlug/agents': typeof CompanySlugAgentsRoute
+  '/$companySlug/labels': typeof CompanySlugLabelsRoute
   '/$companySlug/members': typeof CompanySlugMembersRoute
   '/$companySlug/': typeof CompanySlugIndexRoute
   '/$companySlug/projects/$projectKey': typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/$companySlug/agents'
+    | '/$companySlug/labels'
     | '/$companySlug/members'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/$companySlug/agents'
+    | '/$companySlug/labels'
     | '/$companySlug/members'
     | '/$companySlug'
     | '/$companySlug/projects/$projectKey'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/$companySlug/agents'
+    | '/$companySlug/labels'
     | '/$companySlug/members'
     | '/$companySlug/'
     | '/$companySlug/projects/$projectKey'
@@ -243,6 +255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySlugAgentsRouteImport
       parentRoute: typeof CompanySlugRouteRoute
     }
+    '/$companySlug/labels': {
+      id: '/$companySlug/labels'
+      path: '/labels'
+      fullPath: '/$companySlug/labels'
+      preLoaderRoute: typeof CompanySlugLabelsRouteImport
+      parentRoute: typeof CompanySlugRouteRoute
+    }
     '/$companySlug/members': {
       id: '/$companySlug/members'
       path: '/members'
@@ -305,6 +324,7 @@ const CompanySlugProjectsProjectKeyRouteRouteWithChildren =
 
 interface CompanySlugRouteRouteChildren {
   CompanySlugAgentsRoute: typeof CompanySlugAgentsRoute
+  CompanySlugLabelsRoute: typeof CompanySlugLabelsRoute
   CompanySlugMembersRoute: typeof CompanySlugMembersRoute
   CompanySlugIndexRoute: typeof CompanySlugIndexRoute
   CompanySlugProjectsProjectKeyRouteRoute: typeof CompanySlugProjectsProjectKeyRouteRouteWithChildren
@@ -315,6 +335,7 @@ interface CompanySlugRouteRouteChildren {
 
 const CompanySlugRouteRouteChildren: CompanySlugRouteRouteChildren = {
   CompanySlugAgentsRoute: CompanySlugAgentsRoute,
+  CompanySlugLabelsRoute: CompanySlugLabelsRoute,
   CompanySlugMembersRoute: CompanySlugMembersRoute,
   CompanySlugIndexRoute: CompanySlugIndexRoute,
   CompanySlugProjectsProjectKeyRouteRoute:
