@@ -34,25 +34,40 @@ export type McpCommentView = z.output<typeof mcpCommentView>;
 export const mcpTicketLinkView = ticketLinkView.extend({ createdBy: mcpActorView });
 export type McpTicketLinkView = z.output<typeof mcpTicketLinkView>;
 
-/** A Ticket in a list: enough to pick it, not its description. */
-export const ticketSummary = mcpTicketView.pick({
-  key: true,
-  title: true,
-  type: true,
-  status: true,
-  priority: true,
-  estimate: true,
-  progress: true,
-  blocked: true,
-  assignee: true,
-  parent: true,
-});
+/** A Ticket in a list: enough to pick it, not its description. Labels are names only. */
+export const ticketSummary = mcpTicketView
+  .pick({
+    key: true,
+    title: true,
+    type: true,
+    status: true,
+    priority: true,
+    estimate: true,
+    progress: true,
+    blocked: true,
+    assignee: true,
+    parent: true,
+  })
+  .extend({ labels: z.array(z.string()) });
 export type TicketSummary = z.output<typeof ticketSummary>;
 
 export function summarize(ticket: McpTicketView): TicketSummary {
   const { key, title, type, status, priority, estimate, progress, blocked, assignee, parent } =
     ticket;
-  return { key, title, type, status, priority, estimate, progress, blocked, assignee, parent };
+  const labels = ticket.labels.map((label) => label.name);
+  return {
+    key,
+    title,
+    type,
+    status,
+    priority,
+    estimate,
+    progress,
+    blocked,
+    assignee,
+    parent,
+    labels,
+  };
 }
 
 /**

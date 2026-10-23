@@ -34,3 +34,13 @@ Deliberate choices made while implementing Spec 09 (Ticket Labels and Progress).
 - **Delete bumps each carrier's `updatedAt`** before recording its `ticket.updated`, so the web app's "newer snapshot wins" check in `putTicket` treats the snapshot as the latest. Carriers are locked in id order, archived ones included, and the diff is recorded on each, credited to the deleting User.
 - **`ticketCount` counts live Tickets only** (not archived), in every Project, since every User sees every Project today. A Label with no live Tickets is listed with 0 and kept: unused Labels go only by delete.
 - **The stream test lives in `labels.test.ts`.** It checks one Label-and-Progress update and one delete reach the stream with fresh snapshots; there is no new stream code, since both are `ticket.updated`.
+
+## 09-04 Labels over MCP
+
+- **Summaries carry Label names, not objects.** `ticketSummary` replaces `labels` with a list of names, as the spec says; get_ticket's `ticket` and the write tools' `ticket` keep the full `{ id, name, color }` from `ticketView`, like every other field there. Agents only ever pass names back, so ids in a list would be noise.
+- **The board resource now builds its lines from `summarize`.** It used to hand whole Ticket views to `ticketLine`, which worked while a view was structurally a summary; with `labels` differing in shape between the two, it goes through the same `summarize` the list tools use.
+- **Labels go at the end of the ticket line** (`... Title (unassigned) labels: api, web`), outside the bracketed facts, so the facts keep their short fixed vocabulary and a Label named "blocked" or "urgent" can't be mistaken for one.
+- **One shared description.** `labelsDescription` in `params.ts` tells Agents a new name creates a Label and to check list_labels first; update_ticket's version leads with "Replaces the whole set of labels: pass the current labels plus any to add, or [] to remove them all."
+- **list_labels says "archived ones left out", not "open".** `ticketCount` counts Done Tickets too, so "open tickets" would mislead. Its description also names ticket keys, which `mcp-agent-loop.test.ts` requires of every tool.
+- **list_labels is listed last** in the tool registry, after the Ticket Link tools, so existing tool order (and any client that shows it) is unchanged.
+- **Tests in `apps/server/test/mcp-labels.test.ts`.** The no-management-tool rule is covered by the exact tool list in `mcp-agent-loop.test.ts`, which now includes `list_labels`.

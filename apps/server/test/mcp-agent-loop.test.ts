@@ -39,6 +39,7 @@ describe("MCP tool list", () => {
       "create_ticket",
       "get_ticket",
       "link_tickets",
+      "list_labels",
       "list_projects",
       "list_tickets",
       "move_ticket",

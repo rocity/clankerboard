@@ -40,6 +40,9 @@ const input = listTicketsQuery
       "Only children of this ticket key, such as CB-42.",
     ),
     q: listTicketsQuery.shape.q.describe("Words to find in the title or description."),
+    label: listTicketsQuery.shape.label.describe(
+      "Only tickets with this label, such as api, in any case. See list_labels.",
+    ),
     limit: z
       .number(limitError)
       .int(limitError)
@@ -58,7 +61,7 @@ const input = listTicketsQuery
 export const listTicketsTool = defineTool({
   name: "list_tickets",
   description:
-    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, parent ticket key, text, or assignee (me, a user's email, or an agent's name, as tool output shows them). Blocked tickets are marked blocked and can't be claimed until their blockers are done. When looking for work, pass blocked: false with status todo and assignee unassigned, and the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
+    "List tickets by ticket key, most urgent first within each status. Filter by project key, status, type, priority, label, parent ticket key, text, or assignee (me, a user's email, or an agent's name, as tool output shows them). Blocked tickets are marked blocked and can't be claimed until their blockers are done. When looking for work, pass blocked: false with status todo and assignee unassigned, and the first result is the next ticket to claim with claim_ticket. Archived tickets are left out. Pass nextCursor back as cursor for the next page.",
   input,
   output: z.object({
     tickets: z.array(ticketSummary),

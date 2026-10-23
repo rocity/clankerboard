@@ -16,7 +16,7 @@ import {
 } from "@modelcontextprotocol/server";
 import { ticketLine } from "../markdown";
 import type { ToolEnv } from "../tool";
-import { withEmails } from "../views";
+import { summarize, withEmails } from "../views";
 
 export type BoardConfig = {
   /** How long a Done Ticket stays on the board after its last change. */
@@ -86,7 +86,7 @@ async function boardMarkdown(env: ToolEnv, config: BoardConfig, key: string) {
   const sections = ticketStatuses.map((status) => {
     const lines = shown
       .filter((ticket) => ticket.status === status)
-      .map((ticket) => `- ${ticketLine(ticket, { status: false })}`);
+      .map((ticket) => `- ${ticketLine(summarize(ticket), { status: false })}`);
     const note = status === "done" ? `Changed in ${window}.` : null;
     const empty = status === "done" ? `No tickets changed in ${window}.` : "No tickets.";
     const body = lines.length === 0 ? empty : [note, lines.join("\n")].filter(Boolean).join("\n\n");
