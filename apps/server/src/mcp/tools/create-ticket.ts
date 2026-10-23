@@ -2,7 +2,7 @@ import { createTicket } from "@agentkanban/domain";
 import { createTicketInput } from "@agentkanban/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
-import { estimateDescription } from "../params";
+import { estimateDescription, progressDescription } from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -20,6 +20,7 @@ export const createTicketTool = defineTool({
     priority: shape.priority.describe("low, medium, high, or urgent. Defaults to medium."),
     parentKey: shape.parentKey.describe("The parent's ticket key, such as CB-7."),
     estimate: shape.estimate.describe(estimateDescription),
+    progress: shape.progress.describe(progressDescription),
   }),
   output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false },

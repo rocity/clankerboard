@@ -10,3 +10,11 @@ Deliberate choices made while implementing Spec 09 (Ticket Labels and Progress).
 - **`ticket_labels` has no Company column.** Both of its rows' parents already carry one, and every read goes through a Ticket or a Label. Its primary key `(ticket_id, label_id)` serves lookups by Ticket; a separate index on `label_id` serves the filter, the counts, and Label delete.
 - **No `updated_at` on `labels`.** Rename and recolor record no Activity (spec) and nothing reads when they happened.
 - **Glossary.** Label and Progress follow Blocked at the end of Board. Progress's _Avoid_ list is "completion, percent done": the spec's draft also avoided "status", but `scripts/check-copy.mjs` enforces every _Avoid_ term in copy, and "status" is the right word for Status everywhere. The Label definition avoids its own _Avoid_ term "tag".
+
+## 09-02 Progress over REST and MCP
+
+- **Built exactly like the Estimate.** `ticketProgress` in `packages/shared/src/tickets.ts` carries the one message "Progress is a whole number from 0 to 100." for every failure, refuses strings rather than coercing them, defaults to null on create, and is `nullable().optional()` on update. `updateTicket` needs no Progress branch: the field flows through `changedFields` into the `ticket.updated` diff as `progress`, and a no-op write records nothing.
+- **Moves never touch Progress.** No code in `moves.ts` names it; the test walks a Ticket through every Status, Done included, as both a User and an Agent, and reads the same value back.
+- **"N% done" in the ticket line, "Progress: N%" in get_ticket.** The ticket line puts it after the Estimate and before "blocked". get_ticket always says "Progress: none" when blank, matching "Estimate: none". 0 shows as "0% done", distinct from blank.
+- **The nudge to report lives in three places.** The `progress` description on both write tools ends "Update it as you work.", `update_ticket`'s own description asks Agents to keep progress current while they work a Ticket, and step 4 of the Agent prompt asks for it. The prompt line is checked in `e2e/board.spec.ts` beside the prompt's other lines.
+- **Tests in `apps/server/test/progress.test.ts`**, a sibling of `estimate.test.ts`, with the same User and Agent matrix plus the move case.

@@ -42,6 +42,8 @@ export const ticketView = z.object({
   rank: z.string(),
   /** Points from 0 to 100, or null when blank. */
   estimate: z.number().int().nullable(),
+  /** A percentage from 0 to 100 as an Actor reported it, or null when blank. */
+  progress: z.number().int().nullable(),
   /** At least one Ticket blocking this one is neither Done nor archived. */
   blocked: z.boolean(),
   /** How many Tickets blocking this one are neither Done nor archived. */

@@ -60,6 +60,7 @@ export async function createTicket(
         type: input.type,
         priority: input.priority,
         estimate: input.estimate,
+        progress: input.progress,
         status: "backlog",
         rank: await bottomRank(tx, project.id, "backlog"),
         createdByUserId: creator.userId,

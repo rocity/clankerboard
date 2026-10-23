@@ -166,6 +166,7 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     priority: row.priority,
     rank: row.rank,
     estimate: row.estimate,
+    progress: row.progress,
     blocked: openBlockerCount(row.id) > 0,
     blockedByCount: openBlockerCount(row.id),
     parent: (row.parentId && parents.get(row.parentId)) || null,

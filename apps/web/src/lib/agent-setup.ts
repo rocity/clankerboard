@@ -74,7 +74,7 @@ Check that the ${serverName} MCP tools (list_tickets, get_ticket, claim_ticket, 
 1. Find work: list_tickets with projectKey ${projectKey}, status todo, and assignee unassigned. The first result is the most urgent. If I name a Ticket, work on that one.
 2. Read it with get_ticket, comments included, before you start.
 3. Claim it with claim_ticket. If the claim fails, someone else has it: choose another.
-4. Do the work. Use add_comment for questions, blockers, and progress worth keeping.
+4. Do the work. As you go, set the Ticket's progress (0 to 100) with update_ticket so I can see how far along it is. Use add_comment for questions, blockers, and anything worth keeping.
 5. When it is ready, add_comment with what changed and how you tested it, then move_ticket to review. Never move a Ticket to done yourself: a human reviews it first. To hand it to a specific human, use assign_ticket with their email.
 6. If you find work outside the Ticket, create_ticket in ${projectKey} instead of widening its scope.
 7. Tell me the Ticket is in review, then ask before you claim the next one.

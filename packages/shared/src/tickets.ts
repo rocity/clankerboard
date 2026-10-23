@@ -68,6 +68,15 @@ export const ticketEstimate = z
   .min(0, estimateError)
   .max(100, estimateError);
 
+const progressError = { error: "Progress is a whole number from 0 to 100." };
+
+/** A percentage from 0 to 100, as an Actor reports it. Null is blank, which is not the same as 0. */
+export const ticketProgress = z
+  .number(progressError)
+  .int(progressError)
+  .min(0, progressError)
+  .max(100, progressError);
+
 export const createTicketInput = z.object({
   projectKey,
   title,
@@ -76,6 +85,7 @@ export const createTicketInput = z.object({
   priority: ticketPriority.default("medium"),
   parentKey: ticketKey.nullish(),
   estimate: ticketEstimate.nullable().default(null),
+  progress: ticketProgress.nullable().default(null),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -88,6 +98,8 @@ export const updateTicketInput = z.object({
   parentKey: ticketKey.nullable().optional(),
   /** Null clears the Estimate. */
   estimate: ticketEstimate.nullable().optional(),
+  /** Null clears the Progress. */
+  progress: ticketProgress.nullable().optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 

@@ -42,6 +42,7 @@ export const ticketSummary = mcpTicketView.pick({
   status: true,
   priority: true,
   estimate: true,
+  progress: true,
   blocked: true,
   assignee: true,
   parent: true,
@@ -49,8 +50,9 @@ export const ticketSummary = mcpTicketView.pick({
 export type TicketSummary = z.output<typeof ticketSummary>;
 
 export function summarize(ticket: McpTicketView): TicketSummary {
-  const { key, title, type, status, priority, estimate, blocked, assignee, parent } = ticket;
-  return { key, title, type, status, priority, estimate, blocked, assignee, parent };
+  const { key, title, type, status, priority, estimate, progress, blocked, assignee, parent } =
+    ticket;
+  return { key, title, type, status, priority, estimate, progress, blocked, assignee, parent };
 }
 
 /**

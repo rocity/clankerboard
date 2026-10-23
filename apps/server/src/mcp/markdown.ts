@@ -30,9 +30,9 @@ function points(estimate: number | null) {
 }
 
 /**
- * One line per Ticket: `**CB-3** [task, To Do, medium, 3 pts, blocked] Title (assignee: Ada)`.
+ * One line per Ticket: `**CB-3** [task, To Do, medium, 3 pts, 40% done, blocked] Title (assignee: Ada)`.
  * Leave the Status out where the line already sits under its Status. A blank
- * Estimate and an unblocked Ticket add nothing.
+ * Estimate, a blank Progress, and an unblocked Ticket add nothing.
  */
 export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
   const estimate = points(ticket.estimate);
@@ -41,6 +41,7 @@ export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
     ...(status ? [statusLabels[ticket.status]] : []),
     ticket.priority,
     ...(estimate ? [estimate] : []),
+    ...(ticket.progress === null ? [] : [`${ticket.progress}% done`]),
     ...(ticket.blocked ? ["blocked"] : []),
   ];
   const assignee = ticket.assignee ? `assignee: ${actorLabel(ticket.assignee)}` : "unassigned";
@@ -54,6 +55,7 @@ export function ticketMarkdown(ticket: McpTicketView) {
     `Status: ${statusLabels[ticket.status]}`,
     `Priority: ${ticket.priority}`,
     `Estimate: ${points(ticket.estimate) ?? "none"}`,
+    `Progress: ${ticket.progress === null ? "none" : `${ticket.progress}%`}`,
     `Assignee: ${ticket.assignee ? actorLabel(ticket.assignee) : "unassigned"}`,
     `Parent: ${ticket.parent ? `**${ticket.parent.key}** [${ticket.parent.type}] ${ticket.parent.title}` : "none"}`,
     `Created by: ${actorLabel(ticket.createdBy)}`,

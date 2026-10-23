@@ -365,6 +365,7 @@ test.describe("Agent prompt dialog", () => {
     await expect(prompt).toContainText(
       "list_tickets with projectKey PLAT, status todo, and assignee unassigned",
     );
+    await expect(prompt).toContainText("set the Ticket's progress (0 to 100) with update_ticket");
 
     await dialog.getByRole("button", { name: "Copy prompt" }).click();
     await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();

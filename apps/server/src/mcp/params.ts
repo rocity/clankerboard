@@ -10,3 +10,7 @@ export const targetKeyParam = ticketKey
 
 /** How create_ticket and update_ticket describe `estimate`. */
 export const estimateDescription = "Points from 0 to 100, or null to leave it blank.";
+
+/** How create_ticket and update_ticket describe `progress`. */
+export const progressDescription =
+  "How far along the work is, from 0 to 100, or null to leave it blank. Update it as you work.";
