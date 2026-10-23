@@ -5,11 +5,13 @@ import { AgentPromptDialog } from "@/components/agent-prompt-dialog";
 import { Board } from "@/components/board";
 import { BoardFilterBar } from "@/components/board-filter-bar";
 import { CreateTicketDialog } from "@/components/create-ticket-dialog";
+import { SprintBar } from "@/components/sprint-bar";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { toBoardFilters, validateBoardSearch } from "@/lib/board-search";
 import { projectQuery } from "@/lib/projects";
 import { sessionQuery } from "@/lib/queries";
+import { sprintMode, sprintsQuery } from "@/lib/sprints";
 import { ticketsQuery } from "@/lib/tickets";
 
 // A Project's board. Ticket routes (the detail panel) nest under this one, so
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/$companySlug/projects/$projectKey")({
       await Promise.all([
         queryClient.ensureQueryData(projectQuery(params.projectKey)),
         queryClient.ensureQueryData(ticketsQuery(params.projectKey)),
+        queryClient.ensureQueryData(sprintsQuery(params.projectKey)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) throw notFound();
@@ -40,7 +43,13 @@ function ProjectBoard() {
   const navigate = Route.useNavigate();
   const { data: project } = useQuery(projectQuery(projectKey));
   const { data: me } = useQuery(sessionQuery);
-  const filters = toBoardFilters(search, me?.id);
+  const { data: sprints = [] } = useQuery(sprintsQuery(projectKey));
+  // A Project that runs Sprints shows only the active one's Tickets, or none while none is active.
+  const mode = sprintMode(sprints);
+  const filters = {
+    ...toBoardFilters(search, me?.id),
+    sprint: mode.kind === "active" ? "active" : undefined,
+  };
 
   return (
     <div className="grid gap-4">
@@ -80,13 +89,20 @@ function ProjectBoard() {
           </div>
         </div>
       </div>
-      <BoardFilterBar
-        projectKey={projectKey}
-        search={search}
-        onChange={(patch) => navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })}
-        onClear={() => navigate({ search: {}, replace: true })}
-      />
-      <Board projectKey={projectKey} filters={filters} />
+      {mode.kind !== "off" && <SprintBar projectKey={projectKey} mode={mode} />}
+      {mode.kind !== "idle" && (
+        <>
+          <BoardFilterBar
+            projectKey={projectKey}
+            search={search}
+            onChange={(patch) =>
+              navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
+            }
+            onClear={() => navigate({ search: {}, replace: true })}
+          />
+          <Board projectKey={projectKey} filters={filters} />
+        </>
+      )}
       <Outlet />
     </div>
   );

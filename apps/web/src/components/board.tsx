@@ -40,6 +40,8 @@ export function Board({ projectKey, filters = {} }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const [holding, setHolding] = useState(false);
   const byStatus = useMemo(() => groupByStatus(data ?? []), [data]);
+  // The active Sprint narrows the board too, but it is not a filter the viewer chose.
+  const narrowed = isFiltered({ ...filters, sprint: undefined });
 
   // The drop handler outlives renders, so it reads the latest board through a ref.
   const latest = useRef({ byStatus, filtered: isFiltered(filters) });
@@ -101,9 +103,9 @@ export function Board({ projectKey, filters = {} }: Props) {
 
   return (
     <div className="grid gap-3">
-      {isFiltered(filters) && data.length === 0 && !isPlaceholderData && (
+      {data.length === 0 && !isPlaceholderData && (narrowed || filters.sprint) && (
         <p role="status" className="text-sm text-muted-foreground">
-          No tickets match these filters.
+          {narrowed ? "No tickets match these filters." : "No tickets in this sprint yet."}
         </p>
       )}
       <div
