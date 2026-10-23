@@ -2,7 +2,12 @@ import { createTicket } from "@agentkanban/domain";
 import { createTicketInput } from "@agentkanban/shared";
 import { z } from "zod";
 import { ticketMarkdown } from "../markdown";
-import { estimateDescription, labelsDescription, progressDescription } from "../params";
+import {
+  estimateDescription,
+  labelsDescription,
+  progressDescription,
+  sprintDescription,
+} from "../params";
 import { defineTool } from "../tool";
 import { mcpTicketView, ticketWithEmails } from "../views";
 
@@ -22,6 +27,7 @@ export const createTicketTool = defineTool({
     estimate: shape.estimate.describe(estimateDescription),
     progress: shape.progress.describe(progressDescription),
     labels: shape.labels.describe(`${labelsDescription} Defaults to none.`),
+    sprint: shape.sprint.describe(`${sprintDescription} Defaults to none.`),
   }),
   output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false },

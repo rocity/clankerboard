@@ -29,4 +29,14 @@ Deliberate choices made while implementing Spec 10 (Sprints). Reviewers: treat t
 - **Dates.** `startedAt` and `finishedAt` are the clock's moments; `endsOn` is compared with the start's UTC date, so "today" is the server's UTC day. A Sprint may end the day it starts. The default length is the last finished Sprint's start date to its end date, at least one day.
 - **Updating with nothing new records nothing**, like Tickets. Setting the same Sprint on a Ticket again records nothing either.
 - **The `sprint` list filter** is `active`, `none`, or a number up to nine digits. A number matches the Sprint of that number in each Ticket's own Project, so it needs no Project Key. It is a correlated `exists`, like `isBlocked` and the Label filter.
+- **A Sprint's `state` keeps that name in code and JSON.** GLOSSARY.md avoids "state" for a Ticket's Status; a Sprint has no Status, and naming its Planned, Active, Finished lifecycle `status` would read as the Ticket workflow. Copy never says "state": it says planned, active, or finished.
 - **Sprint Activity is Project Activity** (no Ticket), with `projectKey` and `number` in every payload, so a client can tell which Project's Sprints changed without looking the Project up.
+
+## 10-03 Sprints over MCP
+
+- **list_sprints takes a Project Key** and returns `sprintView` without its id and created time, since Agents name Sprints by number. Finished Sprints show only when they finished, since their live counts are always 0.
+- **list_tickets takes `sprint` as JSON**: the strings `active` or `none`, or a number, where the REST query string takes text. It maps to the same `SprintFilter` the REST filter produces.
+- **"sprint 4" sits right after the priority** in a ticket line's facts, before the Estimate. get_ticket says "Sprint: Sprint 4 (active)" or "Sprint: none". Summaries carry the number only, like Labels carry names only.
+- **The board resource follows the web board.** A Project with no Sprints is unchanged. With an active Sprint, a line under the heading names it, its end date, and its goal, and only its Tickets are listed. With Sprints but none active, it says the board is empty and points at list_sprints, without the empty Status sections.
+- **The nudge to stay in the Sprint** lives in list_tickets's description and step 1 of the Agent prompt, both conditional on the Project running Sprints, since `sprint: active` on a Project without Sprints lists nothing. The prompt's existing e2e check still matches its first half.
+- **No tool changes a Sprint.** The exact tool list in `mcp-agent-loop.test.ts` gains only `list_sprints`, listed last in the registry.

@@ -71,7 +71,7 @@ Check that the ${serverName} MCP tools (list_tickets, get_ticket, claim_ticket, 
 - The resource agentkanban://projects/${projectKey}/board lists every status at a glance.
 
 ## 3. Workflow
-1. Find work: list_tickets with projectKey ${projectKey}, status todo, and assignee unassigned. The first result is the most urgent. If I name a Ticket, work on that one.
+1. Find work: list_tickets with projectKey ${projectKey}, status todo, and assignee unassigned, and sprint active if list_sprints shows ${projectKey} runs sprints. The first result is the most urgent. If I name a Ticket, work on that one.
 2. Read it with get_ticket, comments included, before you start.
 3. Claim it with claim_ticket. If the claim fails, someone else has it: choose another.
 4. Do the work. As you go, set the Ticket's progress (0 to 100) with update_ticket so I can see how far along it is. Use add_comment for questions, blockers, and anything worth keeping.
