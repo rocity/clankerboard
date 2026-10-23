@@ -2,7 +2,7 @@
 // Company, shaping them for the API, and writing a change to one row. Not part
 // of the domain module's public surface.
 import { type Db, schema, type Tx } from "@agentkanban/db";
-import type { TicketStatus, TicketView } from "@agentkanban/shared";
+import type { TicketLabelView, TicketStatus, TicketView } from "@agentkanban/shared";
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, sql } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import type { RecordActivity } from "./activity";
@@ -13,7 +13,7 @@ import { canSeeProject } from "./permissions";
 
 export type { TicketView };
 
-export const { tickets, projects, ticketLinks } = schema;
+export const { tickets, projects, ticketLinks, labels, ticketLabels } = schema;
 
 export type TicketRow = Omit<typeof tickets.$inferSelect, "search"> & { projectKey: string };
 
@@ -136,6 +136,28 @@ export async function openBlockers(
   return byTicket;
 }
 
+/** Each Ticket's Labels, by Ticket id, in name order without regard to case. */
+export async function labelsOf(
+  db: Db | Tx,
+  ticketIds: string[],
+): Promise<Map<string, TicketLabelView[]>> {
+  const byTicket = new Map<string, TicketLabelView[]>(ticketIds.map((id) => [id, []]));
+  if (ticketIds.length === 0) return byTicket;
+  const rows = await db
+    .select({
+      ticketId: ticketLabels.ticketId,
+      id: labels.id,
+      name: labels.name,
+      color: labels.color,
+    })
+    .from(ticketLabels)
+    .innerJoin(labels, eq(labels.id, ticketLabels.labelId))
+    .where(inArray(ticketLabels.ticketId, [...new Set(ticketIds)]))
+    .orderBy(sql`lower(${labels.name})`);
+  for (const { ticketId, ...label } of rows) byTicket.get(ticketId)?.push(label);
+  return byTicket;
+}
+
 export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<TicketView[]> {
   const assignees = rows.map((r) => refFromColumns(r.assigneeUserId, r.assigneeAgentId));
   const creators = rows.map((r) => refFromColumns(r.createdByUserId, r.createdByAgentId));
@@ -154,6 +176,10 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     rows.map((r) => r.id),
   );
   const openBlockerCount = (id: string) => blockers.get(id)?.length ?? 0;
+  const labelsByTicket = await labelsOf(
+    db,
+    rows.map((r) => r.id),
+  );
   return rows.map((row, i) => ({
     id: row.id,
     key: ticketKeyOf(row),
@@ -167,6 +193,7 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     rank: row.rank,
     estimate: row.estimate,
     progress: row.progress,
+    labels: labelsByTicket.get(row.id) ?? [],
     blocked: openBlockerCount(row.id) > 0,
     blockedByCount: openBlockerCount(row.id),
     parent: (row.parentId && parents.get(row.parentId)) || null,

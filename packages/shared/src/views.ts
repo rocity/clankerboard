@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { labelColors } from "./labels";
 import { ticketLinkViewKinds, ticketPriority, ticketStatus, ticketType } from "./tickets";
 
 // Response shapes for the board. The domain's view types are derived from
@@ -29,6 +30,21 @@ export const projectView = z.object({
 });
 export type ProjectView = z.output<typeof projectView>;
 
+/** A Label as a Ticket carries it. */
+export const ticketLabelView = z.object({
+  id: z.string(),
+  name: z.string(),
+  color: z.enum(labelColors),
+});
+export type TicketLabelView = z.output<typeof ticketLabelView>;
+
+/** A Label of the Company, with how many live Tickets carry it. */
+export const labelView = ticketLabelView.extend({
+  ticketCount: z.number().int(),
+  createdAt: timestamp,
+});
+export type LabelView = z.output<typeof labelView>;
+
 export const ticketView = z.object({
   id: z.string(),
   key: z.string(),
@@ -44,6 +60,8 @@ export const ticketView = z.object({
   estimate: z.number().int().nullable(),
   /** A percentage from 0 to 100 as an Actor reported it, or null when blank. */
   progress: z.number().int().nullable(),
+  /** In name order. */
+  labels: z.array(ticketLabelView),
   /** At least one Ticket blocking this one is neither Done nor archived. */
   blocked: z.boolean(),
   /** How many Tickets blocking this one are neither Done nor archived. */

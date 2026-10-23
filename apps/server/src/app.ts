@@ -28,6 +28,7 @@ import { companyRoutes } from "./routes/companies";
 import { configRoutes } from "./routes/config";
 import { healthRoutes } from "./routes/health";
 import { inviteRoutes } from "./routes/invites";
+import { labelRoutes } from "./routes/labels";
 import { meRoutes } from "./routes/me";
 import { memberRoutes } from "./routes/members";
 import { projectRoutes } from "./routes/projects";
@@ -93,6 +94,7 @@ export function createApp(deps: AppDeps) {
     .route("/", agentRoutes(domain))
     .route("/", projectRoutes(domain))
     .route("/", ticketRoutes(domain))
+    .route("/", labelRoutes(domain))
     .route("/", streamRoutes(domain, streams));
 
   const app = new Hono<AppEnv>()

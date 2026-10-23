@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { labelName, ticketLabels } from "./labels";
 import { projectKey } from "./projects";
 
 export const ticketTypes = ["epic", "story", "task", "bug"] as const;
@@ -86,6 +87,7 @@ export const createTicketInput = z.object({
   parentKey: ticketKey.nullish(),
   estimate: ticketEstimate.nullable().default(null),
   progress: ticketProgress.nullable().default(null),
+  labels: ticketLabels.default([]),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -100,6 +102,8 @@ export const updateTicketInput = z.object({
   estimate: ticketEstimate.nullable().optional(),
   /** Null clears the Progress. */
   progress: ticketProgress.nullable().optional(),
+  /** Replaces the whole set. Names without a Label yet create one. */
+  labels: ticketLabels.optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 
@@ -177,6 +181,8 @@ export const listTicketsQuery = z.object({
   /** Free text over title and description. */
   q: z.string().trim().max(200).optional(),
   archived: archivedFilter,
+  /** Only Tickets carrying the Label of this name, without regard to case. */
+  label: labelName.optional(),
   /** Only Blocked Tickets (true) or only unblocked ones (false). */
   blocked: z
     .enum(["true", "false"], { error: "Use blocked=true or blocked=false." })

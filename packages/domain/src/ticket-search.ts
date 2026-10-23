@@ -1,8 +1,9 @@
-import type {
-  AssigneeFilter,
-  ListTicketsQuery,
-  TicketPriority,
-  TicketStatus,
+import {
+  type AssigneeFilter,
+  type ListTicketsQuery,
+  normalizeLabelName,
+  type TicketPriority,
+  type TicketStatus,
 } from "@agentkanban/shared";
 import {
   and,
@@ -129,6 +130,16 @@ function assigneeCondition(filter: AssigneeFilter) {
   }
 }
 
+/** Carries the Label of this name, without regard to case. A name no Label has matches nothing. */
+function hasLabel(name: string) {
+  return sql`exists (
+    select 1 from ticket_labels tl
+    join labels l on l.id = tl.label_id
+    where tl.ticket_id = ${tickets.id}
+      and lower(l.name) = ${normalizeLabelName(name)}
+  )`;
+}
+
 /**
  * Tickets matching every given filter, in board order (by Status, then
  * rank) unless asked for `urgency`, one page at a time. Archived Tickets are
@@ -155,6 +166,7 @@ export async function listTickets(
         parent ? eq(tickets.parentId, parent.id) : undefined,
         filter.teamId ? eq(projects.teamId, filter.teamId) : undefined,
         filter.blocked === undefined ? undefined : filter.blocked ? isBlocked() : not(isBlocked()),
+        filter.label ? hasLabel(filter.label) : undefined,
         filter.q
           ? sql`${tickets.search} @@ websearch_to_tsquery('english', ${filter.q})`
           : undefined,
