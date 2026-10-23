@@ -8,6 +8,7 @@ export * from "./product";
 export * from "./projects";
 export * from "./rank";
 export * from "./roles";
+export * from "./sprints";
 export * from "./teams";
 export * from "./tickets";
 export * from "./views";
