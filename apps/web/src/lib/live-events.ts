@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { actorsQuery } from "./actors";
 import type { TicketData } from "./board";
+import { refreshLabels } from "./labels";
 import { highlightTicket } from "./live-highlight";
 import { isMoving } from "./move-ticket";
 import { projectKeys } from "./projects";
@@ -106,6 +107,12 @@ export function applyLiveEvent(queryClient: QueryClient, { activity, ticket }: L
 
   // Every Activity adds a Timeline line, and a Comment's body is not in the event.
   void queryClient.invalidateQueries({ queryKey: ticketKeys.timeline(key) });
+  // Someone else's Labels change may have created a Label, or moved its count.
+  // Only on-screen readers (suggestions, the filter, the Labels page) refetch.
+  const changes = activity.payload.changes;
+  if (kind === "ticket.updated" && changes && typeof changes === "object" && "labels" in changes) {
+    refreshLabels(queryClient);
+  }
   if (kind !== "comment.added") {
     // A Parent's children change when a Ticket is created, re-parented, archived, or deleted.
     void queryClient.invalidateQueries({ queryKey: ["tickets", "children"] });

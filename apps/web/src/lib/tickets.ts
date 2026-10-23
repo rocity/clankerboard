@@ -1,4 +1,9 @@
-import type { CreateTicketInput, TicketPriority, TicketType } from "@agentkanban/shared";
+import {
+  type CreateTicketInput,
+  normalizeLabelName,
+  type TicketPriority,
+  type TicketType,
+} from "@agentkanban/shared";
 import { type QueryClient, queryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 import { type TicketData, withoutTicket, withTicket } from "./board";
@@ -19,6 +24,8 @@ export type BoardFilters = {
   q?: string;
   /** Only Projects of this Team. On one Project's board that is all of it or none of it. */
   teamId?: string;
+  /** Only Tickets carrying the Label of this name, in any case. */
+  label?: string;
   /** `include` adds archived Tickets to the live ones. The list has no archived-only filter. */
   archived?: "include";
   /** `true` for only Blocked Tickets, `false` for only unblocked ones. */
@@ -51,6 +58,7 @@ export function ticketMatchesFilters(
   if (filters.assignee && !assigneeMatches(ticket.assignee, filters.assignee)) return false;
   if (filters.parentKey && ticket.parent?.key !== filters.parentKey.toUpperCase()) return false;
   if (filters.blocked && String(ticket.blocked) !== filters.blocked) return false;
+  if (filters.label && !hasLabel(ticket, filters.label)) return false;
   if (filters.teamId && projectTeamId !== undefined && projectTeamId !== filters.teamId) {
     return false;
   }
@@ -59,6 +67,10 @@ export function ticketMatchesFilters(
 
 /** True when the filters include a text search, which only the server can judge. */
 export const hasSearch = (filters: BoardFilters) => Boolean(filters.q);
+
+/** The list endpoint's rule: the name matches without regard to case or surrounding spaces. */
+const hasLabel = (ticket: TicketData, name: string) =>
+  ticket.labels.some((label) => normalizeLabelName(label.name) === normalizeLabelName(name));
 
 function assigneeMatches(assignee: TicketData["assignee"], wanted: string) {
   if (wanted === "unassigned") return assignee === null;

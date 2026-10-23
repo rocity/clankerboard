@@ -37,6 +37,8 @@ function describeChange(field: string, change: Change) {
         ? `set the estimate to ${after}`
         : `changed the estimate from ${before} to ${after}`;
     }
+    case "labels":
+      return describeLabels(change);
     case "progress": {
       // Like the Estimate, 0% is a value, so only null means blank.
       const before = typeof change.from === "number" ? change.from : null;
@@ -49,6 +51,36 @@ function describeChange(field: string, change: Change) {
     default:
       return `changed the ${field}`;
   }
+}
+
+const names = (value: unknown) =>
+  Array.isArray(value) ? value.filter((name): name is string => typeof name === "string") : [];
+
+/** "api", "api and web", or "api, docs, and web". */
+function inWords(items: string[]) {
+  if (items.length <= 2) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+/**
+ * A Labels change as what was added and what was removed: "added the label
+ * api", "removed the labels api and web", or both. Names compare without
+ * regard to case, like the Labels themselves.
+ */
+function describeLabels(change: Change) {
+  const from = names(change.from);
+  const to = names(change.to);
+  const has = (list: string[], name: string) =>
+    list.some((other) => other.toLowerCase() === name.toLowerCase());
+  const added = to.filter((name) => !has(from, name));
+  const removed = from.filter((name) => !has(to, name));
+  const phrase = (verb: string, list: string[]) =>
+    `${verb} the ${list.length === 1 ? "label" : "labels"} ${inWords(list)}`;
+  const parts = [
+    ...(added.length > 0 ? [phrase("added", added)] : []),
+    ...(removed.length > 0 ? [phrase("removed", removed)] : []),
+  ];
+  return parts.join(" and ") || "changed the labels";
 }
 
 /** A Ticket Link being added, as seen from the Ticket whose Timeline it is on. */

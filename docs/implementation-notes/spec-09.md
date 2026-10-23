@@ -55,3 +55,16 @@ Deliberate choices made while implementing Spec 09 (Ticket Labels and Progress).
 - **Timeline copy** is "set progress to 40%", "changed progress from 40% to 70%", and "cleared progress", without "the", matching the spec's stories.
 - **No live code.** Progress travels in the `ticket.updated` snapshot the board already applies; `e2e/progress.spec.ts` checks a change from another request reaches an open card.
 - **Known failure, not from this card.** `e2e/board.spec.ts` "fits the viewport ... all show on a desktop" fails at 1280x800 on `main` too (the Backlog lane is 96% in view). It is left as is here.
+
+## 09-06 Labels on the board and in Ticket detail
+
+- **One `LabelsField` for Ticket detail and the create dialog** (`apps/web/src/components/labels-field.tsx`). It owns the chips, the text box, and the suggestions, and hands the whole new set of names to `onChange`: detail saves it with `update({ labels })`, the dialog keeps it in state until submit. While a detail save is out, the field shows the set being saved, then goes back to what the server holds, like the selects.
+- **Suggestions are a native `<datalist>`,** filtered to the Company's Labels the Ticket doesn't have. It gives typeahead on desktop and phone keyboards without a custom listbox. Picking one fills the box with no keystroke (`insertReplacementText`, or a plain `Event` in some browsers), which the field treats as "add it now"; typing goes on until Enter.
+- **Enter adds; typing an existing name in another case adds that Label as spelled,** so the chip reads the same as everywhere else. A name the Ticket already has (any case) is dropped quietly. Enter never submits the create dialog. Escape with text in the box clears the text rather than closing the panel.
+- **A new name's chip is drawn in the color it will get.** `defaultLabelColor` is shared, so the dialog can show the final color before the Label exists.
+- **Chip colors** are written out per palette color in `lib/labels.ts` (`labelColorClasses`), a tinted chip and a solid dot, with dark-theme variants, since Tailwind keeps only class names it finds whole.
+- **Cards show three Labels, then "+N",** in name order under the title. "+N" is named "N more labels" and its hover text lists the rest.
+- **The Label filter is a select of the Company's Labels**, kept as `?label=<name>`. A name from a link that no Label has exactly (another case, or one since renamed) is still listed so the select shows what the URL says. `ticketMatchesFilters` matches names without regard to case, so live snapshots are placed by the filter without a refetch, as for the other filters.
+- **The Labels list refreshes when Labels may have changed:** after this User saves a set (detail or create), and on another Actor's `ticket.updated` whose diff has `labels`. Only mounted readers refetch.
+- **Timeline copy** is computed from the before and after names: "added the label api", "removed the labels api and web", or both joined with "and".
+- **The filter row now wraps "Show archived" onto a second line at 1280px.** Seven filters no longer fit beside it. `e2e/board.spec.ts`'s desktop viewport test was already failing on `main` (see 09-05) and this adds one row above the lanes.
