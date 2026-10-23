@@ -1,5 +1,6 @@
 import type { TicketType } from "@agentkanban/shared";
 import { Archive, BookOpen, Bot, Bug, CircleCheck, Lock, type LucideIcon, Zap } from "lucide-react";
+import { ProgressBar } from "@/components/progress-bar";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
@@ -90,8 +91,9 @@ function BlockedMarker({ count }: { count: number }) {
  * own line, the Ticket Key and Type are a quiet identifier above it, Blocked
  * and priority (only high or urgent) sit beside them, the Estimate shows as a
  * quiet "3 pts" only when set, and the Assignee holds the bottom right
- * corner, with a bot icon for an Agent. It has no behavior of its own, so the
- * drag handle and the link to the detail panel wrap it.
+ * corner, with a bot icon for an Agent. Progress, when reported, is a thin bar
+ * along the bottom. It has no behavior of its own, so the drag handle and the
+ * link to the detail panel wrap it.
  */
 export function TicketSummary({ ticket }: { ticket: TicketData }) {
   const loud = ticket.priority === "high" || ticket.priority === "urgent" ? ticket.priority : null;
@@ -161,6 +163,7 @@ export function TicketSummary({ ticket }: { ticket: TicketData }) {
           {ticket.assignee && <Assignee assignee={ticket.assignee} />}
         </div>
       )}
+      {ticket.progress !== null && <ProgressBar value={ticket.progress} />}
     </article>
   );
 }

@@ -44,3 +44,14 @@ Deliberate choices made while implementing Spec 09 (Ticket Labels and Progress).
 - **list_labels says "archived ones left out", not "open".** `ticketCount` counts Done Tickets too, so "open tickets" would mislead. Its description also names ticket keys, which `mcp-agent-loop.test.ts` requires of every tool.
 - **list_labels is listed last** in the tool registry, after the Ticket Link tools, so existing tool order (and any client that shows it) is unchanged.
 - **Tests in `apps/server/test/mcp-labels.test.ts`.** The no-management-tool rule is covered by the exact tool list in `mcp-agent-loop.test.ts`, which now includes `list_labels`.
+
+## 09-05 Progress in the web UI
+
+- **One `ProgressBar` for the card and detail** (`apps/web/src/components/progress-bar.tsx`). It is `role="progressbar"` with `aria-valuenow` and the accessible name "N% done", and shows the bare "N%" beside the track. The bar is decorative to a screen reader; the name carries it.
+- **The card puts the bar last,** under the Parent and Assignee row, full width. That keeps the top row's badges (Blocked, priority, Estimate) unchanged and makes the bar the one element that spans the card, so it scans down a column. 0% shows an empty track with "0%", distinct from no bar.
+- **One number input with a unit.** `EstimateInput` became a thin wrapper over a private `UnitNumberInput`; `ProgressInput` is the same field with "%". The detail field's save logic (`EstimateField`) became `NumberField`, shared by both, so Progress saves, clears, refuses, and resets exactly as the Estimate does.
+- **Progress has its own row in Ticket detail,** under Status, Priority, Type, and Estimate, with the field on the left and the bar filling the rest. A fifth cell in the four-column grid would have wrapped alone on a desktop and on a phone. When blank, the row says "Not reported" where the bar would be.
+- **No Progress in the create dialog.** The spec lists only the detail field. The API still takes `progress` on create, which is what Agents use.
+- **Timeline copy** is "set progress to 40%", "changed progress from 40% to 70%", and "cleared progress", without "the", matching the spec's stories.
+- **No live code.** Progress travels in the `ticket.updated` snapshot the board already applies; `e2e/progress.spec.ts` checks a change from another request reaches an open card.
+- **Known failure, not from this card.** `e2e/board.spec.ts` "fits the viewport ... all show on a desktop" fails at 1280x800 on `main` too (the Backlog lane is 96% in view). It is left as is here.

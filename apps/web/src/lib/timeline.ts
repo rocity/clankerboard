@@ -37,6 +37,15 @@ function describeChange(field: string, change: Change) {
         ? `set the estimate to ${after}`
         : `changed the estimate from ${before} to ${after}`;
     }
+    case "progress": {
+      // Like the Estimate, 0% is a value, so only null means blank.
+      const before = typeof change.from === "number" ? change.from : null;
+      const after = typeof change.to === "number" ? change.to : null;
+      if (after === null) return "cleared progress";
+      return before === null
+        ? `set progress to ${after}%`
+        : `changed progress from ${before}% to ${after}%`;
+    }
     default:
       return `changed the ${field}`;
   }
