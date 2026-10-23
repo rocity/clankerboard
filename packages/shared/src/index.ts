@@ -1,6 +1,7 @@
 export * from "./agents";
 export * from "./companies";
 export * from "./invites";
+export * from "./labels";
 export * from "./members";
 export * from "./permissions";
 export * from "./product";
