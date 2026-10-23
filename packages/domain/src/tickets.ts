@@ -134,9 +134,11 @@ export async function updateTicket(
       };
     }
 
-    const currentSprint = row.sprintId
-      ? (await sprintsOf(tx, [row.sprintId])).get(row.sprintId)
-      : null;
+    // Read only when this update could move the Ticket or make it an Epic.
+    const currentSprint =
+      row.sprintId && (sprintNumber !== undefined || type === "epic")
+        ? (await sprintsOf(tx, [row.sprintId])).get(row.sprintId)
+        : null;
     let sprintId = row.sprintId;
     if (sprintNumber !== undefined && sprintNumber !== (currentSprint?.number ?? null)) {
       if (row.archivedAt) throw conflict(`Restore ${ticketKeyOf(row)} before changing its sprint.`);
