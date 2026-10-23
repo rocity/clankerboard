@@ -1,8 +1,11 @@
 import { sprintName } from "@agentkanban/shared";
+import { Link } from "@tanstack/react-router";
 import { FinishSprintButton, StartSprintButton } from "@/components/sprint-dialogs";
+import { Button } from "@/components/ui/button";
 import { endsLabel, type SprintMode } from "@/lib/sprints";
 
 type Props = {
+  companySlug: string;
   projectKey: string;
   /** Only shown for a Project that runs Sprints. */
   mode: Exclude<SprintMode, { kind: "off" }>;
@@ -11,9 +14,9 @@ type Props = {
 /**
  * What the board is showing, above its filters: the active Sprint with its end
  * date, goal, and Finish sprint, or that none is active, with the next Planned
- * Sprint ready to start.
+ * Sprint ready to start, or a way to the Sprints page to plan one.
  */
-export function SprintBar({ projectKey, mode }: Props) {
+export function SprintBar({ companySlug, projectKey, mode }: Props) {
   return (
     <section
       aria-label="Sprint"
@@ -46,7 +49,18 @@ export function SprintBar({ projectKey, mode }: Props) {
                 : "Plan one to fill the board."}
             </span>
           </p>
-          {mode.next && <StartSprintButton projectKey={projectKey} sprint={mode.next} />}
+          {mode.next ? (
+            <StartSprintButton projectKey={projectKey} sprint={mode.next} />
+          ) : (
+            <Button asChild variant="outline" className="h-11 md:h-9">
+              <Link
+                to="/$companySlug/projects/$projectKey/sprints"
+                params={{ companySlug, projectKey }}
+              >
+                Plan sprints
+              </Link>
+            </Button>
+          )}
         </>
       )}
     </section>

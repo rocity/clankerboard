@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
-import { ChevronLeft, UsersRound } from "lucide-react";
+import { CalendarRange, ChevronLeft, UsersRound } from "lucide-react";
 import { AgentPromptDialog } from "@/components/agent-prompt-dialog";
 import { Board } from "@/components/board";
 import { BoardFilterBar } from "@/components/board-filter-bar";
@@ -72,12 +72,22 @@ function ProjectBoard() {
                 {projectKey}
               </span>
             </div>
-            {project?.team && (
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <UsersRound className="size-3.5" aria-hidden />
-                {project.team.name}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-x-4 text-sm text-muted-foreground">
+              {project?.team && (
+                <p className="flex items-center gap-1.5">
+                  <UsersRound className="size-3.5" aria-hidden />
+                  {project.team.name}
+                </p>
+              )}
+              <Link
+                to="/$companySlug/projects/$projectKey/sprints"
+                params={{ companySlug, projectKey }}
+                className="-mx-1 flex min-h-11 items-center gap-1.5 rounded-md px-1 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 md:min-h-6"
+              >
+                <CalendarRange className="size-3.5" aria-hidden />
+                Sprints
+              </Link>
+            </div>
           </div>
           <div className="grid gap-2">
             <AgentPromptDialog
@@ -89,7 +99,9 @@ function ProjectBoard() {
           </div>
         </div>
       </div>
-      {mode.kind !== "off" && <SprintBar projectKey={projectKey} mode={mode} />}
+      {mode.kind !== "off" && (
+        <SprintBar companySlug={companySlug} projectKey={projectKey} mode={mode} />
+      )}
       {mode.kind !== "idle" && (
         <>
           <BoardFilterBar

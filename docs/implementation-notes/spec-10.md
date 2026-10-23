@@ -59,3 +59,17 @@ Deliberate choices made while implementing Spec 10 (Sprints). Reviewers: treat t
 - **The create dialog defaults to the active Sprint,** so a Ticket created from a board in Sprint mode lands on it. It shows only when the Project has open Sprints. Choosing Epic disables it (a disabled select sends nothing, which the dialog reads as no Sprint); the select is keyed by "is it an Epic", so switching back restores the default.
 - **Timeline copy:** "moved this to Sprint 2", "moved this from Sprint 1 to Sprint 2", "removed this from Sprint 2"; a finish's archive reads "archived this ticket when Sprint 1 finished"; a restore out of a finished Sprint reads "restored this ticket and removed it from the finished Sprint 1". "Took this out" from the spec's draft became "removed this from", since "take" is avoided copy.
 - **No live code.** A Sprint change is `ticket.updated` with a snapshot, which every board view already places through `ticketMatchesFilters`, now Sprint-aware.
+
+## 10-06 Sprints page
+
+- **Route.** `apps/web/src/routes/$companySlug/projects/$projectKey_.sprints.tsx`, at `/:company/projects/:key/sprints`. The trailing underscore keeps it out of the board route, which would otherwise mount the board (and its live drag handlers) behind it. Ticket rows link to the board's Ticket route, which opens the Ticket over its board as anywhere else.
+- **Ways in:** a "Sprints" link under the Project's name on every board, beside its Team, and "Plan sprints" on the Sprint bar when no Sprint is active and none is Planned.
+- **Order:** the active Sprint, the Planned Sprints by number, "No sprint", then Finished Sprints newest first. A Project with no Sprints says what having one does to the board.
+- **Everything is counted from the board's live Tickets** (the unfiltered board query), grouped by each snapshot's Sprint, rather than from the Sprint view's counts. The page then follows live changes through the same snapshots the board does, without refetching the Sprints on every Ticket event. Rows are in board order (Status, then rank).
+- **"No sprint" leaves out Epics,** since they can never be planned into a Sprint; they stay on the board.
+- **Each row has a Sprint select** (No sprint, the active Sprint, the Planned ones) labelled "Sprint for PLAT-4", which saves on pick, shows the pick while the request is out, and shows the server's refusal under the row. It is the spec's quick, phone-friendly move; drag and drop between Sprints is out of scope.
+- **Create sprint makes one straight away,** Planned with no goal, numbered by the server; the goal is edited on its card. There is no create dialog to fill in.
+- **The goal is a one-line field** on each open Sprint's card, saved on Enter or blur and put back on Escape, like a Label's name.
+- **Start sprint shows only while no Sprint is active,** so the button is never there to be refused. Finish sprint and Start sprint are the same components as on the board's bar.
+- **Delete is for Planned Sprints,** an icon button named "Delete Sprint N" with a confirmation that says where its Tickets go: "Its 2 tickets go back to no sprint."
+- **Finished Sprints are a plain list:** name, "Finished Oct 9", and the goal. Their Tickets were archived or moved, so there is nothing to list under them.

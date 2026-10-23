@@ -223,3 +223,90 @@ test.describe("Sprint of a Ticket", () => {
     expect(tickets).toEqual([expect.objectContaining({ sprint: null })]);
   });
 });
+
+const sprintsUrl = `${boardUrl}/sprints`;
+const sprintCard = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
+const row = (page: Page, section: string, key: string) =>
+  sprintCard(page, section).getByRole("listitem", { name: new RegExp(`^${key} `) });
+
+test.describe("Sprints page", () => {
+  test("plans a Sprint: create it, move Tickets in, set its goal, start it, and delete another", async ({
+    page,
+  }) => {
+    await setUp(page);
+    const alpha = await createTicket(page, { projectKey: "PLAT", title: "Alpha" });
+    const beta = await createTicket(page, { projectKey: "PLAT", title: "Beta", estimate: 5 });
+    await createTicket(page, { projectKey: "PLAT", title: "Theme", type: "epic" });
+    await page.goto(boardUrl);
+    await page.getByRole("link", { name: "Sprints" }).click();
+    await expect(page).toHaveURL(sprintsUrl);
+    await expect(page.getByRole("heading", { name: "Sprints" })).toBeVisible();
+    await expect(page.getByText("No sprints yet.")).toBeVisible();
+    await expect(sprintCard(page, "No sprint").getByRole("listitem")).toHaveCount(2);
+
+    await page.getByRole("button", { name: "Create sprint" }).click();
+    await expect(sprintCard(page, "Sprint 1")).toContainText("Planned");
+    await page.getByLabel(`Sprint for ${beta.key}`).selectOption({ label: "Sprint 1" });
+    await expect(row(page, "Sprint 1", beta.key)).toBeVisible();
+    await expect(row(page, "No sprint", beta.key)).toHaveCount(0);
+    await expect(sprintCard(page, "Sprint 1")).toContainText("1 ticket · 0 done · 5 pts");
+    await page.getByLabel("Goal for Sprint 1").fill("Beta first");
+    await page.getByLabel("Goal for Sprint 1").press("Enter");
+    await expect
+      .poll(async () => {
+        const res = await page.request.get("/api/projects/PLAT/sprints");
+        return ((await res.json()) as { sprints: { goal: string }[] }).sprints[0]?.goal;
+      })
+      .toBe("Beta first");
+
+    await sprintCard(page, "Sprint 1").getByRole("button", { name: "Start sprint" }).click();
+    const start = page.getByRole("dialog", { name: "Start Sprint 1" });
+    await expect(start.getByLabel("Goal")).toHaveValue("Beta first");
+    await start.getByRole("button", { name: "Start sprint" }).click();
+    await expect(sprintCard(page, "Sprint 1")).toContainText("Active");
+    await expect(sprintCard(page, "Sprint 1")).toContainText("Started");
+
+    await page.getByRole("button", { name: "Create sprint" }).click();
+    await page.getByLabel(`Sprint for ${alpha.key}`).selectOption({ label: "Sprint 2" });
+    await expect(row(page, "Sprint 2", alpha.key)).toBeVisible();
+    // Only one Sprint is active at a time.
+    await expect(
+      sprintCard(page, "Sprint 2").getByRole("button", { name: "Start sprint" }),
+    ).toHaveCount(0);
+    await sprintCard(page, "Sprint 2").getByRole("button", { name: "Delete Sprint 2" }).click();
+    const confirm = page.getByRole("dialog", { name: "Delete Sprint 2?" });
+    await expect(confirm).toContainText("Its ticket goes back to no sprint.");
+    await confirm.getByRole("button", { name: "Delete sprint" }).click();
+    await expect(sprintCard(page, "Sprint 2")).toHaveCount(0);
+    await expect(row(page, "No sprint", alpha.key)).toBeVisible();
+    expect(await scrollsSideways(page)).toBe(false);
+
+    await page.getByRole("link", { name: "Board" }).click();
+    await expect(page).toHaveURL(boardUrl);
+    await expect(card(page, "Beta")).toBeVisible();
+    await expect(card(page, "Alpha")).toHaveCount(0);
+  });
+
+  test("finishes the active Sprint and lists it as finished", async ({ page }) => {
+    await setUp(page);
+    await newSprint(page, "Wrap up");
+    await startSprint(page, 1);
+    const done = await createTicket(page, { projectKey: "PLAT", title: "Shipped", sprint: 1 });
+    const open = await createTicket(page, { projectKey: "PLAT", title: "Carried", sprint: 1 });
+    await moveTicket(page, done.key, "done");
+    await page.goto(sprintsUrl);
+
+    await sprintCard(page, "Sprint 1").getByRole("button", { name: "Finish sprint" }).click();
+    await page
+      .getByRole("dialog", { name: "Finish Sprint 1?" })
+      .getByRole("button", { name: "Finish sprint" })
+      .click();
+
+    await expect(row(page, "Sprint 2", open.key)).toBeVisible();
+    const finished = page.getByRole("region", { name: "Finished sprints" });
+    await expect(finished).toContainText("Sprint 1");
+    await expect(finished).toContainText("Finished");
+    await expect(finished).toContainText("Wrap up");
+    await expect(page.getByText("Shipped")).toHaveCount(0);
+  });
+});

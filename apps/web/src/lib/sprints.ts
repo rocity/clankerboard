@@ -11,7 +11,7 @@ import {
 import { type QueryClient, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./api";
 import type { TicketData } from "./board";
-import { ticketKeys } from "./tickets";
+import { putTicket, ticketKeys } from "./tickets";
 
 /** A Sprint as the API sends it: timestamps are ISO strings, `endsOn` is `YYYY-MM-DD`. */
 export type SprintData = SprintWire;
@@ -171,4 +171,27 @@ export function useSprintMutations(projectKey: string) {
       onSuccess: refresh,
     }),
   };
+}
+
+/**
+ * Puts one Ticket in a Sprint, or in none, from a list of Tickets. The answer
+ * goes into every cached board view, like any change to a Ticket.
+ */
+export function useSprintPick() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, sprint }: { key: string; sprint: number | null }) =>
+      (await unwrap(api.tickets[":key"].$patch({ param: { key }, json: { sprint } }))).ticket,
+    onSuccess: (ticket) => {
+      putTicket(queryClient, ticket);
+      void queryClient.invalidateQueries({ queryKey: ticketKeys.timeline(ticket.key) });
+    },
+  });
+}
+
+/** Ticket count, Done count, and points of a list of Tickets: "3 tickets · 1 done · 8 pts". */
+export function sprintTotals(tickets: readonly TicketData[]) {
+  const done = tickets.filter((t) => t.status === "done").length;
+  const points = tickets.reduce((sum, t) => sum + (t.estimate ?? 0), 0);
+  return `${plural(tickets.length, "ticket")} · ${done} done · ${points} pts`;
 }
