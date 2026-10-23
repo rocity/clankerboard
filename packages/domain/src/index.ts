@@ -21,6 +21,7 @@ export * from "./projects";
 export * from "./public-config";
 export * from "./revocation";
 export * from "./sign-up";
+export * from "./sprints";
 export * from "./streamed-activity";
 export * from "./teams";
 export * from "./ticket-links";

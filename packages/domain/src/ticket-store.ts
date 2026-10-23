@@ -2,7 +2,7 @@
 // Company, shaping them for the API, and writing a change to one row. Not part
 // of the domain module's public surface.
 import { type Db, schema, type Tx } from "@agentkanban/db";
-import type { TicketLabelView, TicketStatus, TicketView } from "@agentkanban/shared";
+import type { SprintState, TicketLabelView, TicketStatus, TicketView } from "@agentkanban/shared";
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, sql } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import type { RecordActivity } from "./activity";
@@ -13,7 +13,7 @@ import { canSeeProject } from "./permissions";
 
 export type { TicketView };
 
-export const { tickets, projects, ticketLinks, labels, ticketLabels } = schema;
+export const { tickets, projects, ticketLinks, labels, ticketLabels, sprints } = schema;
 
 export type TicketRow = Omit<typeof tickets.$inferSelect, "search"> & { projectKey: string };
 
@@ -158,6 +158,19 @@ export async function labelsOf(
   return byTicket;
 }
 
+/** Each Sprint's number and state, by Sprint id. */
+export async function sprintsOf(
+  db: Db | Tx,
+  sprintIds: string[],
+): Promise<Map<string, { number: number; state: SprintState }>> {
+  if (sprintIds.length === 0) return new Map();
+  const rows = await db
+    .select({ id: sprints.id, number: sprints.number, state: sprints.state })
+    .from(sprints)
+    .where(inArray(sprints.id, [...new Set(sprintIds)]));
+  return new Map(rows.map(({ id, ...sprint }) => [id, sprint]));
+}
+
 export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<TicketView[]> {
   const assignees = rows.map((r) => refFromColumns(r.assigneeUserId, r.assigneeAgentId));
   const creators = rows.map((r) => refFromColumns(r.createdByUserId, r.createdByAgentId));
@@ -180,6 +193,10 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     db,
     rows.map((r) => r.id),
   );
+  const sprintById = await sprintsOf(
+    db,
+    rows.flatMap((r) => (r.sprintId ? [r.sprintId] : [])),
+  );
   return rows.map((row, i) => ({
     id: row.id,
     key: ticketKeyOf(row),
@@ -194,6 +211,7 @@ export async function ticketViews(db: Db | Tx, rows: TicketRow[]): Promise<Ticke
     estimate: row.estimate,
     progress: row.progress,
     labels: labelsByTicket.get(row.id) ?? [],
+    sprint: (row.sprintId && sprintById.get(row.sprintId)) || null,
     blocked: openBlockerCount(row.id) > 0,
     blockedByCount: openBlockerCount(row.id),
     parent: (row.parentId && parents.get(row.parentId)) || null,

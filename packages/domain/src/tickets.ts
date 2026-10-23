@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
-import type { CreateTicketInput, UpdateTicketInput } from "@agentkanban/shared";
+import { type CreateTicketInput, sprintName, type UpdateTicketInput } from "@agentkanban/shared";
 import { eq, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { actorColumns, refOf } from "./actors";
 import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
-import { notFound } from "./errors";
+import { conflict, invalid, notFound } from "./errors";
 import { assertChildrenAccept, assertPlacement } from "./hierarchy";
 import { labelChanges, resolveLabels, setTicketLabels } from "./labels";
 import { findProject } from "./projects";
+import { resolveSprint } from "./sprints";
 import {
   bottomRank,
   childrenOf,
@@ -18,6 +19,7 @@ import {
   labelsOf,
   projects,
   saveTicket,
+  sprintsOf,
   type TicketView,
   ticketActivity,
   ticketColumns,
@@ -39,6 +41,7 @@ export async function createTicket(
     const project = await findProject(tx, ctx, input.projectKey);
     const parent = input.parentKey ? await findParent(tx, ctx, input.parentKey) : null;
     assertPlacement({ type: input.type, projectId: project.id }, parent);
+    const sprint = await resolveSprint(tx, project, input.sprint, input.type);
     // Taking the number locks the Project row, so concurrent creates queue
     // here and each sees the previous one's rank.
     const [counter] = await tx
@@ -63,6 +66,7 @@ export async function createTicket(
         priority: input.priority,
         estimate: input.estimate,
         progress: input.progress,
+        sprintId: sprint?.id ?? null,
         status: "backlog",
         rank: await bottomRank(tx, project.id, "backlog"),
         createdByUserId: creator.userId,
@@ -106,8 +110,9 @@ export async function updateTicket(
   return withActivity(deps, ctx, async (tx, record) => {
     const now = deps.clock.now();
     const row = await findTicket(tx, ctx, key, true);
-    const { parentKey, labels: labelNames, ...fields } = input;
+    const { parentKey, labels: labelNames, sprint: sprintNumber, ...fields } = input;
     const changes = changedFields(row, fields);
+    const type = fields.type ?? row.type;
 
     const labels = labelNames && (await resolveLabels(tx, ctx, labelNames, now));
     if (labels) {
@@ -128,9 +133,28 @@ export async function updateTicket(
         to: parent ? ticketKeyOf(parent) : null,
       };
     }
+
+    const currentSprint = row.sprintId
+      ? (await sprintsOf(tx, [row.sprintId])).get(row.sprintId)
+      : null;
+    let sprintId = row.sprintId;
+    if (sprintNumber !== undefined && sprintNumber !== (currentSprint?.number ?? null)) {
+      if (row.archivedAt) throw conflict(`Restore ${ticketKeyOf(row)} before changing its sprint.`);
+      const sprint = await resolveSprint(
+        tx,
+        { id: row.projectId, key: row.projectKey },
+        sprintNumber,
+        type,
+      );
+      sprintId = sprint?.id ?? null;
+      changes.sprint = { from: currentSprint?.number ?? null, to: sprintNumber };
+    } else if (type === "epic" && currentSprint) {
+      throw invalid(
+        `Remove ${ticketKeyOf(row)} from ${sprintName(currentSprint.number)} before making it an epic.`,
+      );
+    }
     if (Object.keys(changes).length === 0) return ticketView(tx, row);
 
-    const type = fields.type ?? row.type;
     assertPlacement({ type, projectId: row.projectId }, parent);
     if (type !== row.type) assertChildrenAccept(type, await childrenOf(tx, row.id));
 
@@ -145,6 +169,7 @@ export async function updateTicket(
     const view = await saveTicket(tx, row, {
       ...fields,
       parentId: parent?.id ?? null,
+      sprintId,
       updatedAt: now,
     });
     await record(ticketActivity(row, "ticket.updated", { changes }));

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { labelName, ticketLabels } from "./labels";
 import { projectKey } from "./projects";
+import { sprintFilter, sprintNumber } from "./sprints";
 
 export const ticketTypes = ["epic", "story", "task", "bug"] as const;
 export const ticketStatuses = ["backlog", "todo", "in_progress", "review", "done"] as const;
@@ -88,6 +89,8 @@ export const createTicketInput = z.object({
   estimate: ticketEstimate.nullable().default(null),
   progress: ticketProgress.nullable().default(null),
   labels: ticketLabels.default([]),
+  /** A Sprint of the Project, by number. Null is no Sprint. */
+  sprint: sprintNumber.nullable().default(null),
 });
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 
@@ -104,6 +107,8 @@ export const updateTicketInput = z.object({
   progress: ticketProgress.nullable().optional(),
   /** Replaces the whole set. Names without a Label yet create one. */
   labels: ticketLabels.optional(),
+  /** A Sprint of the Ticket's Project, by number. Null takes it out of its Sprint. */
+  sprint: sprintNumber.nullable().optional(),
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketInput>;
 
@@ -183,6 +188,8 @@ export const listTicketsQuery = z.object({
   archived: archivedFilter,
   /** Only Tickets carrying the Label of this name, without regard to case. */
   label: labelName.optional(),
+  /** `active`, `none`, or a Sprint number, matched in each Ticket's own Project. */
+  sprint: sprintFilter.optional(),
   /** Only Blocked Tickets (true) or only unblocked ones (false). */
   blocked: z
     .enum(["true", "false"], { error: "Use blocked=true or blocked=false." })

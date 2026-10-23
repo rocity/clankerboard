@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { labelColors } from "./labels";
+import { sprintStates } from "./sprints";
 import { ticketLinkViewKinds, ticketPriority, ticketStatus, ticketType } from "./tickets";
 
 // Response shapes for the board. The domain's view types are derived from
@@ -62,6 +63,8 @@ export const ticketView = z.object({
   progress: z.number().int().nullable(),
   /** In name order. */
   labels: z.array(ticketLabelView),
+  /** The Sprint it is in, or null for no Sprint. */
+  sprint: z.object({ number: z.number().int(), state: z.enum(sprintStates) }).nullable(),
   /** At least one Ticket blocking this one is neither Done nor archived. */
   blocked: z.boolean(),
   /** How many Tickets blocking this one are neither Done nor archived. */
@@ -76,6 +79,28 @@ export const ticketView = z.object({
 export type TicketView = z.output<typeof ticketView>;
 /** A Ticket as it travels in JSON: timestamps are ISO strings. The web app's shape. */
 export type TicketWire = z.input<typeof ticketView>;
+
+/** A Sprint of a Project, with what its live Tickets add up to. */
+export const sprintView = z.object({
+  id: z.string(),
+  number: z.number().int(),
+  goal: z.string(),
+  state: z.enum(sprintStates),
+  startedAt: timestamp.nullable(),
+  /** A calendar date, `YYYY-MM-DD`. Set once the Sprint starts. */
+  endsOn: z.string().nullable(),
+  finishedAt: timestamp.nullable(),
+  /** Live Tickets in the Sprint. Archived ones are left out. */
+  ticketCount: z.number().int(),
+  /** Of those, the ones in Done. */
+  doneCount: z.number().int(),
+  /** The sum of their Estimates. A blank Estimate adds nothing. */
+  points: z.number().int(),
+  createdAt: timestamp,
+});
+export type SprintView = z.output<typeof sprintView>;
+/** A Sprint as it travels in JSON. The web app's shape. */
+export type SprintWire = z.input<typeof sprintView>;
 
 /**
  * A Ticket Link as seen from one of its Tickets: the kind from that side, and
