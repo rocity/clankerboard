@@ -148,3 +148,78 @@ test.describe("board in Sprint mode", () => {
     await other.context().close();
   });
 });
+
+const panel = (page: Page, key: string) => page.getByRole("dialog", { name: `Ticket ${key}` });
+const timeline = (page: Page, key: string) =>
+  panel(page, key).getByRole("region", { name: "Timeline" });
+
+test.describe("Sprint of a Ticket", () => {
+  test("changes in Ticket detail, and the Timeline and board follow", async ({ page }) => {
+    await setUp(page);
+    await newSprint(page);
+    await newSprint(page);
+    await startSprint(page, 1);
+    const ticket = await createTicket(page, { projectKey: "PLAT", title: "Movable", sprint: 1 });
+    await page.goto(`${boardUrl}/tickets/${ticket.key}`);
+    const sprint = panel(page, ticket.key).getByLabel("Sprint");
+    await expect(sprint).toHaveValue("1");
+
+    await sprint.selectOption({ label: "Sprint 2" });
+
+    await expect(timeline(page, ticket.key)).toContainText("moved this from Sprint 1 to Sprint 2");
+    await expect(sprint).toHaveValue("2");
+    expect((await ticketJson(page, ticket.key)).sprint?.number).toBe(2);
+    await sprint.selectOption({ label: "No sprint" });
+    await expect(timeline(page, ticket.key)).toContainText("removed this from Sprint 2");
+    await page.keyboard.press("Escape");
+    await expect(card(page, "Movable")).toHaveCount(0);
+  });
+
+  test("can't be set on an Epic, and an archive at finish names the Sprint in the Timeline", async ({
+    page,
+  }) => {
+    await setUp(page);
+    await newSprint(page);
+    await startSprint(page, 1);
+    const epic = await createTicket(page, { projectKey: "PLAT", title: "Big", type: "epic" });
+    const done = await createTicket(page, { projectKey: "PLAT", title: "Shipped", sprint: 1 });
+    await moveTicket(page, done.key, "done");
+    await api(page, "post", "/api/projects/PLAT/sprints/1/finish");
+
+    await page.goto(`${boardUrl}/tickets/${epic.key}`);
+    await expect(panel(page, epic.key).getByLabel("Sprint")).toBeDisabled();
+    await page.goto(`${boardUrl}/tickets/${done.key}`);
+    await expect(panel(page, done.key).getByLabel("Sprint")).toBeDisabled();
+    await expect(panel(page, done.key).getByLabel("Sprint")).toHaveValue("1");
+    await expect(timeline(page, done.key)).toContainText(
+      "archived this ticket when Sprint 1 finished",
+    );
+  });
+
+  test("defaults to the active Sprint in the create dialog, and to none for an Epic", async ({
+    page,
+  }) => {
+    await setUp(page);
+    await newSprint(page);
+    await newSprint(page);
+    await startSprint(page, 1);
+    await page.goto(boardUrl);
+
+    await page.getByRole("button", { name: "Create ticket" }).click();
+    const dialog = page.getByRole("dialog", { name: "Create ticket" });
+    await expect(dialog.getByLabel("Sprint")).toHaveValue("1");
+    await dialog.getByLabel("Title").fill("Fresh work");
+    await dialog.getByRole("button", { name: "Create ticket" }).click();
+    await expect(card(page, "Fresh work")).toBeVisible();
+
+    await page.getByRole("button", { name: "Create ticket" }).click();
+    await dialog.getByLabel("Type").selectOption("epic");
+    await expect(dialog.getByLabel("Sprint")).toBeDisabled();
+    await dialog.getByLabel("Title").fill("Broad goal");
+    await dialog.getByRole("button", { name: "Create ticket" }).click();
+    await expect(dialog).toBeHidden();
+    const res = await page.request.get("/api/tickets?projectKey=PLAT&type=epic");
+    const { tickets } = (await res.json()) as { tickets: { sprint: unknown }[] };
+    expect(tickets).toEqual([expect.objectContaining({ sprint: null })]);
+  });
+});

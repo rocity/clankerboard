@@ -25,6 +25,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/api";
 import { refreshLabels } from "@/lib/labels";
+import { openSprints, sprintOption, sprintsQuery } from "@/lib/sprints";
 import { createTicketMutation, ticketsQuery } from "@/lib/tickets";
 
 const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
@@ -33,7 +34,11 @@ type Props = {
   projectKey: string;
 };
 
-/** The button and dialog that create a Ticket in a Project. It lands at the bottom of Backlog. */
+/**
+ * The button and dialog that create a Ticket in a Project. It lands at the
+ * bottom of Backlog, in the active Sprint when there is one, so it shows on the
+ * board it was created from.
+ */
 export function CreateTicketDialog({ projectKey }: Props) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -45,6 +50,9 @@ export function CreateTicketDialog({ projectKey }: Props) {
   const { data: tickets = [] } = useQuery(ticketsQuery(projectKey));
   const create = useMutation(createTicketMutation(queryClient));
   const parents = tickets.filter((t) => parentTypesAllowed[type].includes(t.type));
+  const { data: sprints = [] } = useQuery(sprintsQuery(projectKey));
+  const sprintChoices = openSprints(sprints);
+  const activeSprint = sprintChoices.find((s) => s.state === "active");
 
   function reset(next: boolean) {
     setOpen(next);
@@ -60,6 +68,8 @@ export function CreateTicketDialog({ projectKey }: Props) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const parentKey = String(form.get("parent") ?? "");
+    // A disabled select (an Epic's) sends nothing, which is no Sprint.
+    const sprint = String(form.get("sprint") ?? "");
     // Left empty, the Estimate is blank. The shared schema refuses anything out of range.
     const estimate = String(form.get("estimate") ?? "").trim();
     const parsed = createTicketInput.safeParse({
@@ -71,6 +81,7 @@ export function CreateTicketDialog({ projectKey }: Props) {
       parentKey: parentKey || null,
       estimate: estimate === "" ? null : Number(estimate),
       labels,
+      sprint: sprint === "" ? null : Number(sprint),
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Enter a title.");
@@ -158,6 +169,26 @@ export function CreateTicketDialog({ projectKey }: Props) {
               <EstimateInput id="ticket-estimate" name="estimate" />
             </div>
           </div>
+          {sprintChoices.length > 0 && (
+            <div className="grid gap-2">
+              <Label htmlFor="new-ticket-sprint">Sprint</Label>
+              {/* Keyed by type, so an Epic drops its Sprint and a change back picks the default again. */}
+              <NativeSelect
+                key={type === "epic" ? "epic" : "work"}
+                id="new-ticket-sprint"
+                name="sprint"
+                defaultValue={type === "epic" ? "" : String(activeSprint?.number ?? "")}
+                disabled={type === "epic"}
+              >
+                <option value="">No sprint</option>
+                {sprintChoices.map((s) => (
+                  <option key={s.number} value={s.number}>
+                    {sprintOption(s)}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+          )}
           <LabelsField
             id="new-ticket-labels"
             value={labels}

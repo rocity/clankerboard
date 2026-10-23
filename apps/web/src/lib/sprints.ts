@@ -1,8 +1,10 @@
 import {
   type CreateSprintInput,
   defaultSprintEnd,
+  type SprintState,
   type SprintWire,
   type StartSprintInput,
+  sprintName,
   type UpdateSprintInput,
   utcDate,
 } from "@agentkanban/shared";
@@ -53,6 +55,10 @@ export const openSprints = (sprints: readonly SprintData[]) =>
   [...sprints]
     .filter((s) => s.state !== "finished")
     .sort((a, b) => (a.state === "active" ? -1 : b.state === "active" ? 1 : a.number - b.number));
+
+/** "Sprint 4" as a choice in a select, marked when it is active or finished. */
+export const sprintOption = ({ number, state }: { number: number; state: SprintState }) =>
+  `${sprintName(number)}${state === "planned" ? "" : ` (${state})`}`;
 
 /** Today in the viewer's own time zone, as `YYYY-MM-DD`. */
 export const localToday = (now = new Date()) => now.toLocaleDateString("en-CA");
@@ -105,7 +111,7 @@ export function finishSummary(
     ...(done > 0 ? [`${plural(done, "Done ticket")} ${done === 1 ? "is" : "are"} archived.`] : []),
     ...(rest > 0
       ? [
-          `${plural(rest, "ticket")} ${rest === 1 ? "moves" : "move"} to ${next ? `Sprint ${next.number}` : "a new sprint"}.`,
+          `${plural(rest, "ticket")} ${rest === 1 ? "moves" : "move"} to ${next ? sprintName(next.number) : "a new sprint"}.`,
         ]
       : []),
   ];

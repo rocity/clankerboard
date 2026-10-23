@@ -1,4 +1,4 @@
-import { statusLabels, type TicketStatus } from "@agentkanban/shared";
+import { sprintName, statusLabels, type TicketStatus } from "@agentkanban/shared";
 
 export const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 
@@ -39,6 +39,12 @@ function describeChange(field: string, change: Change) {
     }
     case "labels":
       return describeLabels(change);
+    case "sprint": {
+      const before = typeof change.from === "number" ? sprintName(change.from) : null;
+      const after = typeof change.to === "number" ? sprintName(change.to) : null;
+      if (!after) return before ? `removed this from ${before}` : "removed this from its sprint";
+      return before ? `moved this from ${before} to ${after}` : `moved this to ${after}`;
+    }
     case "progress": {
       // Like the Estimate, 0% is a value, so only null means blank.
       const before = typeof change.from === "number" ? change.from : null;
@@ -156,9 +162,15 @@ export function describeActivity(
     case "ticket.claimed":
       return "claimed this ticket";
     case "ticket.archived":
-      return "archived this ticket";
+      // Finishing a Sprint archives its Done Tickets and names the Sprint.
+      return typeof payload.sprint === "number"
+        ? `archived this ticket when ${sprintName(payload.sprint)} finished`
+        : "archived this ticket";
     case "ticket.restored":
-      return "restored this ticket";
+      // A Ticket whose Sprint had finished comes back in no Sprint.
+      return typeof payload.sprint === "number"
+        ? `restored this ticket and removed it from the finished ${sprintName(payload.sprint)}`
+        : "restored this ticket";
     case "ticket.detached":
       return typeof payload.parent === "string"
         ? `detached this from ${payload.parent}`
