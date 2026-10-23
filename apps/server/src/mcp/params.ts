@@ -15,6 +15,10 @@ export const estimateDescription = "Points from 0 to 100, or null to leave it bl
 export const labelsDescription =
   "Label names, such as api. A name no label has yet creates one. Check list_labels first and reuse existing names.";
 
+/** How create_ticket and update_ticket describe `sprint`. */
+export const sprintDescription =
+  "The number of a planned or active sprint in the ticket's project to put it in, such as 4, or null for no sprint. See list_sprints. Epics are never in a sprint.";
+
 /** How create_ticket and update_ticket describe `progress`. */
 export const progressDescription =
   "How far along the work is, from 0 to 100, or null to leave it blank. Update it as you work.";

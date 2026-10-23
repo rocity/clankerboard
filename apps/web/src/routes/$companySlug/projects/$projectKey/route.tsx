@@ -1,15 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
-import { ChevronLeft, UsersRound } from "lucide-react";
+import { CalendarRange, ChevronLeft, UsersRound } from "lucide-react";
 import { AgentPromptDialog } from "@/components/agent-prompt-dialog";
 import { Board } from "@/components/board";
 import { BoardFilterBar } from "@/components/board-filter-bar";
 import { CreateTicketDialog } from "@/components/create-ticket-dialog";
+import { SprintBar } from "@/components/sprint-bar";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { toBoardFilters, validateBoardSearch } from "@/lib/board-search";
 import { projectQuery } from "@/lib/projects";
 import { sessionQuery } from "@/lib/queries";
+import { sprintMode, sprintsQuery } from "@/lib/sprints";
 import { ticketsQuery } from "@/lib/tickets";
 
 // A Project's board. Ticket routes (the detail panel) nest under this one, so
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/$companySlug/projects/$projectKey")({
       await Promise.all([
         queryClient.ensureQueryData(projectQuery(params.projectKey)),
         queryClient.ensureQueryData(ticketsQuery(params.projectKey)),
+        queryClient.ensureQueryData(sprintsQuery(params.projectKey)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) throw notFound();
@@ -40,7 +43,13 @@ function ProjectBoard() {
   const navigate = Route.useNavigate();
   const { data: project } = useQuery(projectQuery(projectKey));
   const { data: me } = useQuery(sessionQuery);
-  const filters = toBoardFilters(search, me?.id);
+  const { data: sprints = [] } = useQuery(sprintsQuery(projectKey));
+  // A Project that runs Sprints shows only the active one's Tickets, or none while none is active.
+  const mode = sprintMode(sprints);
+  const filters = {
+    ...toBoardFilters(search, me?.id),
+    sprint: mode.kind === "active" ? "active" : undefined,
+  };
 
   return (
     <div className="grid gap-4">
@@ -63,12 +72,22 @@ function ProjectBoard() {
                 {projectKey}
               </span>
             </div>
-            {project?.team && (
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <UsersRound className="size-3.5" aria-hidden />
-                {project.team.name}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-x-4 text-sm text-muted-foreground">
+              {project?.team && (
+                <p className="flex items-center gap-1.5">
+                  <UsersRound className="size-3.5" aria-hidden />
+                  {project.team.name}
+                </p>
+              )}
+              <Link
+                to="/$companySlug/projects/$projectKey/sprints"
+                params={{ companySlug, projectKey }}
+                className="-mx-1 flex min-h-11 items-center gap-1.5 rounded-md px-1 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 md:min-h-6"
+              >
+                <CalendarRange className="size-3.5" aria-hidden />
+                Sprints
+              </Link>
+            </div>
           </div>
           <div className="grid gap-2">
             <AgentPromptDialog
@@ -80,13 +99,22 @@ function ProjectBoard() {
           </div>
         </div>
       </div>
-      <BoardFilterBar
-        projectKey={projectKey}
-        search={search}
-        onChange={(patch) => navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })}
-        onClear={() => navigate({ search: {}, replace: true })}
-      />
-      <Board projectKey={projectKey} filters={filters} />
+      {mode.kind !== "off" && (
+        <SprintBar companySlug={companySlug} projectKey={projectKey} mode={mode} />
+      )}
+      {mode.kind !== "idle" && (
+        <>
+          <BoardFilterBar
+            projectKey={projectKey}
+            search={search}
+            onChange={(patch) =>
+              navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
+            }
+            onClear={() => navigate({ search: {}, replace: true })}
+          />
+          <Board projectKey={projectKey} filters={filters} />
+        </>
+      )}
       <Outlet />
     </div>
   );

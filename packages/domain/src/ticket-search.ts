@@ -2,6 +2,7 @@ import {
   type AssigneeFilter,
   type ListTicketsQuery,
   normalizeLabelName,
+  type SprintFilter,
   type TicketPriority,
   type TicketStatus,
 } from "@agentkanban/shared";
@@ -27,6 +28,7 @@ import {
   isBlocked,
   projects,
   selectTickets,
+  sprints,
   type TicketRow,
   type TicketView,
   tickets,
@@ -140,6 +142,22 @@ function hasLabel(name: string) {
   )`;
 }
 
+/** In the active Sprint of its Project, in no Sprint, or in the Sprint of that number in its Project. */
+function inSprint(filter: SprintFilter) {
+  switch (filter.kind) {
+    case "none":
+      return isNull(tickets.sprintId);
+    case "active":
+      return sql`exists (
+        select 1 from ${sprints} where ${sprints.id} = ${tickets.sprintId} and ${sprints.state} = 'active'
+      )`;
+    case "number":
+      return sql`exists (
+        select 1 from ${sprints} where ${sprints.id} = ${tickets.sprintId} and ${sprints.number} = ${filter.number}
+      )`;
+  }
+}
+
 /**
  * Tickets matching every given filter, in board order (by Status, then
  * rank) unless asked for `urgency`, one page at a time. Archived Tickets are
@@ -167,6 +185,7 @@ export async function listTickets(
         filter.teamId ? eq(projects.teamId, filter.teamId) : undefined,
         filter.blocked === undefined ? undefined : filter.blocked ? isBlocked() : not(isBlocked()),
         filter.label ? hasLabel(filter.label) : undefined,
+        filter.sprint ? inSprint(filter.sprint) : undefined,
         filter.q
           ? sql`${tickets.search} @@ websearch_to_tsquery('english', ${filter.q})`
           : undefined,

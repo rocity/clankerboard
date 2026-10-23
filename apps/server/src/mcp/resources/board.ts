@@ -2,11 +2,12 @@ import {
   DomainError,
   getProject,
   listProjects,
+  listSprints,
   listTickets,
   notFound,
   type TicketView,
 } from "@agentkanban/domain";
-import { projectKey, statusLabels, ticketStatuses } from "@agentkanban/shared";
+import { projectKey, sprintName, statusLabels, ticketStatuses } from "@agentkanban/shared";
 import {
   type McpServer,
   ProtocolError,
@@ -30,6 +31,7 @@ const uriOf = (key: string) => `agentkanban://projects/${key}/board`;
 /**
  * `agentkanban://projects/{key}/board`: one Markdown section per Status, most
  * urgent first. Archived Tickets and Done Tickets past the window are left out.
+ * A Project that runs Sprints shows only its active Sprint, as the web board does.
  */
 export function registerBoardResource(server: McpServer, env: ToolEnv, config: BoardConfig) {
   const { deps, ctx } = env;
@@ -47,7 +49,7 @@ export function registerBoardResource(server: McpServer, env: ToolEnv, config: B
     {
       mimeType: "text/markdown",
       description:
-        "A project's tickets in Markdown, grouped by status and most urgent first, with ticket key, type, priority, title, and assignee, and blocked marked. Archived tickets and old Done tickets are left out. Read it to see what is pending before you claim a ticket.",
+        "A project's tickets in Markdown, grouped by status and most urgent first, with ticket key, type, priority, title, and assignee, and blocked marked. Archived tickets and old Done tickets are left out. A project that runs sprints shows only its active sprint's tickets. Read it to see what is pending before you claim a ticket.",
     },
     async (uri, { key }) => {
       try {
@@ -66,6 +68,12 @@ async function boardMarkdown(env: ToolEnv, config: BoardConfig, key: string) {
   if (!parsedKey.success) throw notFound();
   const project = await getProject(deps, ctx, parsedKey.data);
   const doneSince = new Date(deps.clock.now().getTime() - config.doneWindowMs);
+  const heading = `# ${project.key} board: ${project.name}`;
+  const sprints = await listSprints(deps, ctx, project.key);
+  const active = sprints.find((sprint) => sprint.state === "active");
+  if (sprints.length > 0 && !active) {
+    return `${heading}\n\nNo sprint is active, so the board is empty. See list_sprints.`;
+  }
 
   const tickets: TicketView[] = [];
   let cursor: string | undefined;
@@ -73,7 +81,13 @@ async function boardMarkdown(env: ToolEnv, config: BoardConfig, key: string) {
     const page = await listTickets(
       deps,
       ctx,
-      { projectKey: project.key, archived: "exclude", limit: pageSize, cursor },
+      {
+        projectKey: project.key,
+        archived: "exclude",
+        sprint: active ? { kind: "active" } : undefined,
+        limit: pageSize,
+        cursor,
+      },
       { order: "urgency", doneSince },
     );
     tickets.push(...page.tickets);
@@ -92,7 +106,15 @@ async function boardMarkdown(env: ToolEnv, config: BoardConfig, key: string) {
     const body = lines.length === 0 ? empty : [note, lines.join("\n")].filter(Boolean).join("\n\n");
     return `## ${statusLabels[status]}\n\n${body}`;
   });
-  return [`# ${project.key} board: ${project.name}`, ...sections].join("\n\n");
+  const intro = active
+    ? [
+        `${sprintName(active.number)} is active and ends ${active.endsOn}.`,
+        active.goal && `Goal: ${active.goal}`,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : null;
+  return [heading, ...(intro ? [intro] : []), ...sections].join("\n\n");
 }
 
 /**

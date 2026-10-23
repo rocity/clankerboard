@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { actorsQuery } from "@/lib/actors";
 import type { TicketData } from "@/lib/board";
+import { openSprints, sprintOption, sprintsQuery } from "@/lib/sprints";
 import type { AssigneePick } from "@/lib/ticket-detail";
 import { ticketsQuery } from "@/lib/tickets";
 import { capitalized } from "@/lib/timeline";
@@ -128,12 +129,14 @@ type Props = {
   onEstimate: (estimate: number | null) => Promise<unknown>;
   onProgress: (progress: number | null) => Promise<unknown>;
   onParent: (parentKey: string | null) => Promise<unknown>;
+  onSprint: (sprint: number | null) => Promise<unknown>;
   onAssignee: (assignee: AssigneePick) => Promise<unknown>;
 };
 
 /**
  * The fields of a Ticket that are picked from a list, the Estimate, and the
  * Progress, which has a row of its own with its bar. Each saves on its own.
+ * The Sprint shows once the Project has Sprints.
  */
 export function TicketFields({
   ticket,
@@ -143,12 +146,17 @@ export function TicketFields({
   onEstimate,
   onProgress,
   onParent,
+  onSprint,
   onAssignee,
 }: Props) {
   const archived = ticket.archivedAt !== null;
   // Parent choices come from the unfiltered board, which holds only live Tickets.
   const { data: tickets = [] } = useQuery(ticketsQuery(ticket.projectKey));
   const { data: actors = [] } = useQuery(actorsQuery);
+  const { data: sprints = [] } = useQuery(sprintsQuery(ticket.projectKey));
+  const sprintChoices = openSprints(sprints);
+  // A Ticket archived in a Sprint that has since finished still shows where it was.
+  const finishedSprint = ticket.sprint?.state === "finished" ? ticket.sprint : null;
 
   const parents = tickets.filter((t) => parentTypesAllowed[ticket.type].includes(t.type));
   const current = ticket.parent;
@@ -275,6 +283,25 @@ export function TicketFields({
             </option>
           ))}
         </PickField>
+        {(sprints.length > 0 || ticket.sprint) && (
+          <PickField
+            id="ticket-sprint"
+            label="Sprint"
+            value={ticket.sprint ? String(ticket.sprint.number) : ""}
+            disabled={archived || ticket.type === "epic"}
+            onPick={(value) => onSprint(value ? Number(value) : null)}
+          >
+            <option value="">No sprint</option>
+            {sprintChoices.map((s) => (
+              <option key={s.number} value={s.number}>
+                {sprintOption(s)}
+              </option>
+            ))}
+            {finishedSprint && (
+              <option value={finishedSprint.number}>{sprintOption(finishedSprint)}</option>
+            )}
+          </PickField>
+        )}
       </div>
     </div>
   );

@@ -30,6 +30,8 @@ export type BoardFilters = {
   archived?: "include";
   /** `true` for only Blocked Tickets, `false` for only unblocked ones. */
   blocked?: "true" | "false";
+  /** `active` for the active Sprint, `none` for no Sprint, or a Sprint number. Not in the URL: the board sets it. */
+  sprint?: string;
 };
 
 /** What a Ticket cannot say about itself: the Team of its Project, when known. */
@@ -59,6 +61,7 @@ export function ticketMatchesFilters(
   if (filters.parentKey && ticket.parent?.key !== filters.parentKey.toUpperCase()) return false;
   if (filters.blocked && String(ticket.blocked) !== filters.blocked) return false;
   if (filters.label && !hasLabel(ticket, filters.label)) return false;
+  if (filters.sprint && !inSprint(ticket, filters.sprint)) return false;
   if (filters.teamId && projectTeamId !== undefined && projectTeamId !== filters.teamId) {
     return false;
   }
@@ -71,6 +74,13 @@ export const hasSearch = (filters: BoardFilters) => Boolean(filters.q);
 /** The list endpoint's rule: the name matches without regard to case or surrounding spaces. */
 const hasLabel = (ticket: TicketData, name: string) =>
   ticket.labels.some((label) => normalizeLabelName(label.name) === normalizeLabelName(name));
+
+/** The list endpoint's rule, using the Sprint state the snapshot carries. */
+function inSprint({ sprint }: TicketData, wanted: string) {
+  if (wanted === "none") return sprint === null;
+  if (wanted === "active") return sprint?.state === "active";
+  return sprint?.number === Number(wanted);
+}
 
 function assigneeMatches(assignee: TicketData["assignee"], wanted: string) {
   if (wanted === "unassigned") return assignee === null;

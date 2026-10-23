@@ -1,6 +1,7 @@
 import {
   companyRoles,
   labelColors,
+  sprintStates,
   teamRoles,
   ticketLinkKinds,
   ticketPriorities,
@@ -14,6 +15,7 @@ import {
   boolean,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -251,10 +253,51 @@ export const projects = pgTable(
     key: text().notNull(),
     /** The number the next Ticket gets. Never goes back, so numbers are never reused. */
     nextTicketNumber: integer().notNull().default(1),
+    /** The number the next Sprint gets. Never goes back, like `nextTicketNumber`. */
+    nextSprintNumber: integer().notNull().default(1),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique().on(t.companyId, t.key), index().on(t.teamId)],
+);
+
+export const sprintState = pgEnum("sprint_state", sprintStates);
+
+// A numbered stretch of work in one Project (Spec 10). The Sprints domain
+// module owns the rules; the schema keeps one active Sprint per Project and
+// dates that match the state.
+export const sprints = pgTable(
+  "sprints",
+  {
+    id: text().primaryKey(),
+    companyId: text()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    projectId: text()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    number: integer().notNull(),
+    goal: text().notNull().default(""),
+    state: sprintState().notNull().default("planned"),
+    startedAt: timestamp({ withTimezone: true }),
+    /** A calendar date, as `YYYY-MM-DD`. Set when the Sprint starts. */
+    endsOn: date({ mode: "string" }),
+    finishedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique().on(t.projectId, t.number),
+    uniqueIndex("sprints_one_active_per_project").on(t.projectId).where(sql`${t.state} = 'active'`),
+    check(
+      "sprints_dates_match_state",
+      sql`case ${t.state}
+        when 'planned' then num_nonnulls(${t.startedAt}, ${t.endsOn}, ${t.finishedAt}) = 0
+        when 'active' then num_nonnulls(${t.startedAt}, ${t.endsOn}) = 2 and ${t.finishedAt} is null
+        else num_nonnulls(${t.startedAt}, ${t.endsOn}, ${t.finishedAt}) = 3
+      end`,
+    ),
+  ],
 );
 
 export const ticketType = pgEnum("ticket_type", ticketTypes);
@@ -297,6 +340,8 @@ export const tickets = pgTable(
     estimate: integer(),
     /** A percentage from 0 to 100, as an Actor reported it. Null means blank, distinct from 0. */
     progress: integer(),
+    /** Always a Sprint of the same Project. Null is no Sprint. */
+    sprintId: text().references(() => sprints.id, { onDelete: "set null" }),
     /** Fractional-index position within the Ticket's Status column. */
     rank: rankText().notNull(),
     assigneeUserId: actorUser(),
@@ -316,6 +361,7 @@ export const tickets = pgTable(
     index("tickets_search_index").using("gin", t.search),
     index().on(t.projectId, t.status, t.rank),
     index().on(t.parentId),
+    index().on(t.sprintId),
     check(
       "tickets_one_assignee",
       sql`num_nonnulls(${t.assigneeUserId}, ${t.assigneeAgentId}) <= 1`,

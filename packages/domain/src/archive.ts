@@ -8,6 +8,7 @@ import { assertMayArchive, assertMayHardDelete } from "./permissions";
 import {
   findTicket,
   saveTicket,
+  sprintsOf,
   type TicketRow,
   type TicketView,
   ticketActivity,
@@ -38,6 +39,26 @@ async function detachChildren(tx: Tx, parent: TicketRow, record: RecordActivity)
   return keys;
 }
 
+/**
+ * Archives one live Ticket inside a change that already checked the caller
+ * may: detaches its children, records `ticket.archived` with `payload` added,
+ * and records any dependent it unblocks. Finishing a Sprint archives this way too.
+ */
+export async function archiveRow(
+  tx: Tx,
+  row: TicketRow,
+  record: RecordActivity,
+  now: Date,
+  payload: Record<string, unknown> = {},
+): Promise<TicketView> {
+  const recordFlips = await watchDependents(tx, row);
+  const detached = await detachChildren(tx, row, record);
+  const view = await saveTicket(tx, row, { archivedAt: now, updatedAt: now });
+  await record(ticketActivity(row, "ticket.archived", { detached, ...payload }));
+  await recordFlips(record, "archived");
+  return view;
+}
+
 /** Hides a Ticket from the board, keeping its Comments and Activity. Its children stay live, without a Parent. */
 export async function archiveTicket(
   deps: DomainDeps,
@@ -48,17 +69,15 @@ export async function archiveTicket(
   return withActivity(deps, ctx, async (tx, record) => {
     const row = await findTicket(tx, ctx, key, true);
     if (row.archivedAt) throw conflict("This ticket is already archived.");
-    const now = deps.clock.now();
-    const recordFlips = await watchDependents(tx, row);
-    const detached = await detachChildren(tx, row, record);
-    const view = await saveTicket(tx, row, { archivedAt: now, updatedAt: now });
-    await record(ticketActivity(row, "ticket.archived", { detached }));
-    await recordFlips(record, "archived");
-    return view;
+    return archiveRow(tx, row, record, deps.clock.now());
   });
 }
 
-/** Brings an archived Ticket back. Detached children are not re-attached. */
+/**
+ * Brings an archived Ticket back. Detached children are not re-attached. A
+ * Ticket whose Sprint has finished comes back in no Sprint, so it never hides
+ * in a Sprint nobody plans from; the payload names the Sprint it left.
+ */
 export async function restoreTicket(
   deps: DomainDeps,
   ctx: CompanyContext,
@@ -69,8 +88,14 @@ export async function restoreTicket(
     const row = await findTicket(tx, ctx, key, true);
     if (!row.archivedAt) throw conflict("This ticket isn't archived.");
     const recordFlips = await watchDependents(tx, row);
-    const view = await saveTicket(tx, row, { archivedAt: null, updatedAt: deps.clock.now() });
-    await record(ticketActivity(row, "ticket.restored"));
+    const sprint = row.sprintId ? (await sprintsOf(tx, [row.sprintId])).get(row.sprintId) : null;
+    const left = sprint?.state === "finished" ? sprint : null;
+    const view = await saveTicket(tx, row, {
+      archivedAt: null,
+      updatedAt: deps.clock.now(),
+      ...(left ? { sprintId: null } : {}),
+    });
+    await record(ticketActivity(row, "ticket.restored", left ? { sprint: left.number } : {}));
     await recordFlips(record, "restored");
     return view;
   });

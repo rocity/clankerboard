@@ -7,6 +7,7 @@ import { getTicketTool } from "./get-ticket";
 import { linkTicketsTool } from "./link-tickets";
 import { listLabelsTool } from "./list-labels";
 import { listProjectsTool } from "./list-projects";
+import { listSprintsTool } from "./list-sprints";
 import { listTicketsTool } from "./list-tickets";
 import { moveTicketTool } from "./move-ticket";
 import { unlinkTicketsTool } from "./unlink-tickets";
@@ -26,4 +27,5 @@ export const tools: Tool[] = [
   linkTicketsTool,
   unlinkTicketsTool,
   listLabelsTool,
+  listSprintsTool,
 ];

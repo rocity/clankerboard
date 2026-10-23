@@ -6,6 +6,7 @@ import { highlightTicket } from "./live-highlight";
 import { isMoving } from "./move-ticket";
 import { projectKeys } from "./projects";
 import { sessionQuery } from "./queries";
+import { refreshSprints, sprintKeys } from "./sprints";
 import { dropTicket, putTicket, ticketKeys } from "./tickets";
 
 /** An Activity as the stream sends it (`streamedActivity` in shared, with timestamps as text). */
@@ -48,6 +49,12 @@ export const activityKinds = [
   "project.created",
   "project.updated",
   "project.deleted",
+  // Project Activity with no snapshot: the Project's Sprints and board are read again.
+  "sprint.created",
+  "sprint.updated",
+  "sprint.started",
+  "sprint.finished",
+  "sprint.deleted",
 ] as const;
 
 /** Parses an event's data, or null when it is not an Activity this app understands. */
@@ -86,6 +93,12 @@ export function applyLiveEvent(queryClient: QueryClient, { activity, ticket }: L
     if (kind === "project.deleted" && typeof key === "string") {
       void queryClient.invalidateQueries({ queryKey: ticketKeys.board(key) });
     }
+    return;
+  }
+
+  if (kind.startsWith("sprint.")) {
+    const projectKey = activity.payload.projectKey;
+    if (typeof projectKey === "string") refreshSprints(queryClient, projectKey);
     return;
   }
 
@@ -128,4 +141,5 @@ export function applyLiveEvent(queryClient: QueryClient, { activity, ticket }: L
 export function resync(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ticketKeys.all });
   void queryClient.invalidateQueries({ queryKey: projectKeys.all });
+  void queryClient.invalidateQueries({ queryKey: sprintKeys.all });
 }

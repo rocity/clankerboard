@@ -1,4 +1,9 @@
-import { statusLabels, type TicketLinkViewKind, ticketLinkViewKinds } from "@agentkanban/shared";
+import {
+  sprintName,
+  statusLabels,
+  type TicketLinkViewKind,
+  ticketLinkViewKinds,
+} from "@agentkanban/shared";
 import type {
   McpActorView,
   McpCommentView,
@@ -30,9 +35,10 @@ function points(estimate: number | null) {
 }
 
 /**
- * One line per Ticket: `**CB-3** [task, To Do, medium, 3 pts, 40% done, blocked] Title (assignee: Ada) labels: api, web`.
- * Leave the Status out where the line already sits under its Status. A blank
- * Estimate, a blank Progress, an unblocked Ticket, and no Labels add nothing.
+ * One line per Ticket: `**CB-3** [task, To Do, medium, sprint 4, 3 pts, 40% done, blocked] Title (assignee: Ada) labels: api, web`.
+ * Leave the Status out where the line already sits under its Status. No
+ * Sprint, a blank Estimate, a blank Progress, an unblocked Ticket, and no
+ * Labels add nothing.
  */
 export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
   const estimate = points(ticket.estimate);
@@ -40,6 +46,7 @@ export function ticketLine(ticket: TicketSummary, { status = true } = {}) {
     ticket.type,
     ...(status ? [statusLabels[ticket.status]] : []),
     ticket.priority,
+    ...(ticket.sprint === null ? [] : [`sprint ${ticket.sprint}`]),
     ...(estimate ? [estimate] : []),
     ...(ticket.progress === null ? [] : [`${ticket.progress}% done`]),
     ...(ticket.blocked ? ["blocked"] : []),
@@ -58,6 +65,7 @@ export function ticketMarkdown(ticket: McpTicketView) {
     `Estimate: ${points(ticket.estimate) ?? "none"}`,
     `Progress: ${ticket.progress === null ? "none" : `${ticket.progress}%`}`,
     `Labels: ${ticket.labels.map((label) => label.name).join(", ") || "none"}`,
+    `Sprint: ${ticket.sprint ? `${sprintName(ticket.sprint.number)} (${ticket.sprint.state})` : "none"}`,
     `Assignee: ${ticket.assignee ? actorLabel(ticket.assignee) : "unassigned"}`,
     `Parent: ${ticket.parent ? `**${ticket.parent.key}** [${ticket.parent.type}] ${ticket.parent.title}` : "none"}`,
     `Created by: ${actorLabel(ticket.createdBy)}`,

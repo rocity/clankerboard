@@ -43,6 +43,14 @@ export function assertMayManageLabels(ctx: CompanyContext) {
   if (!canManageLabels(ctx.role)) throw forbidden();
 }
 
+/**
+ * Creating, editing, starting, finishing, and deleting Sprints are for Users of
+ * any Role, so the plan only changes by a human's hand. Agents put Tickets in them.
+ */
+export function assertMayManageSprints(ctx: CompanyContext) {
+  if (ctx.actor.type !== "user") throw forbidden("Agents can't change sprints.");
+}
+
 /** Archiving and restoring are for Users, so every Agent change stays visible on the board. */
 export function assertMayArchive(ctx: CompanyContext) {
   if (ctx.actor.type !== "user") throw forbidden("Agents can't archive or restore tickets.");

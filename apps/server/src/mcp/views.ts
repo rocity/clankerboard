@@ -48,13 +48,17 @@ export const ticketSummary = mcpTicketView
     assignee: true,
     parent: true,
   })
-  .extend({ labels: z.array(z.string()) });
+  .extend({
+    labels: z.array(z.string()),
+    sprint: z.number().int().nullable().describe("The sprint number, or null for no sprint."),
+  });
 export type TicketSummary = z.output<typeof ticketSummary>;
 
 export function summarize(ticket: McpTicketView): TicketSummary {
   const { key, title, type, status, priority, estimate, progress, blocked, assignee, parent } =
     ticket;
   const labels = ticket.labels.map((label) => label.name);
+  const sprint = ticket.sprint?.number ?? null;
   return {
     key,
     title,
@@ -67,6 +71,7 @@ export function summarize(ticket: McpTicketView): TicketSummary {
     assignee,
     parent,
     labels,
+    sprint,
   };
 }
 

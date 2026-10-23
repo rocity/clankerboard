@@ -6,6 +6,7 @@ import {
   estimateDescription,
   labelsDescription,
   progressDescription,
+  sprintDescription,
   ticketKeyParam,
 } from "../params";
 import { defineTool } from "../tool";
@@ -16,7 +17,7 @@ const { shape } = updateTicketInput;
 export const updateTicketTool = defineTool({
   name: "update_ticket",
   description:
-    "Change a ticket's title, description, priority, parent, estimate, progress, or labels, by its ticket key. Fields you leave out stay as they are. While you work a ticket, update its progress so the humans watching the board see how far along it is.",
+    "Change a ticket's title, description, priority, parent, estimate, progress, labels, or sprint, by its ticket key. Fields you leave out stay as they are. While you work a ticket, update its progress so the humans watching the board see how far along it is.",
   // The spec gives Agents no way to change a Ticket's type.
   input: updateTicketInput.omit({ type: true }).extend({
     key: ticketKeyParam,
@@ -31,6 +32,7 @@ export const updateTicketTool = defineTool({
     labels: shape.labels.describe(
       `Replaces the whole set of labels: pass the current labels plus any to add, or [] to remove them all. ${labelsDescription}`,
     ),
+    sprint: shape.sprint.describe(sprintDescription),
   }),
   output: z.object({ ticket: mcpTicketView }),
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
