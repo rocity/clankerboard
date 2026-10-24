@@ -202,14 +202,15 @@ export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props)
 
           <Links companySlug={companySlug} projectKey={projectKey} ticket={ticket} />
 
-          <Timeline ticketKey={ticket.key} />
-
-          <section aria-labelledby="comment-heading" className="grid gap-2 pb-4">
+          {/* Above the Timeline, so a new Comment shows right under where it was written. */}
+          <section aria-labelledby="comment-heading" className="grid gap-2">
             <h3 id="comment-heading" className="text-sm font-semibold">
               Add a comment
             </h3>
             <CommentComposer onSubmit={(body) => mutations.comment.mutateAsync(body)} />
           </section>
+
+          <Timeline ticketKey={ticket.key} />
         </div>
 
         <ConfirmDialog

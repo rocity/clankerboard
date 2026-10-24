@@ -206,12 +206,12 @@ test.describe("adding and removing", () => {
     await expect
       .poll(() => timelineLines(dialog))
       .toEqual([
-        expect.stringContaining("Ada created this ticket"),
-        expect.stringContaining("Ada marked this as blocked by PLAT-2"),
-        expect.stringContaining("Ada marked PLAT-2 as blocking this, so this is blocked"),
-        expect.stringContaining("Ada marked this as blocking WEB-1"),
-        expect.stringContaining("Ada removed the link to PLAT-2"),
         expect.stringContaining("Ada removed the link to PLAT-2, so this is no longer blocked"),
+        expect.stringContaining("Ada removed the link to PLAT-2"),
+        expect.stringContaining("Ada marked this as blocking WEB-1"),
+        expect.stringContaining("Ada marked PLAT-2 as blocking this, so this is blocked"),
+        expect.stringContaining("Ada marked this as blocked by PLAT-2"),
+        expect.stringContaining("Ada created this ticket"),
       ]);
 
     // The other side reads from its own point of view.
@@ -220,17 +220,17 @@ test.describe("adding and removing", () => {
     await expect
       .poll(() => timelineLines(other))
       .toEqual([
-        expect.stringContaining("Ada created this ticket"),
-        expect.stringContaining("Ada marked this as blocked by PLAT-1"),
         expect.stringContaining("Ada marked PLAT-1 as blocking this, so this is blocked"),
+        expect.stringContaining("Ada marked this as blocked by PLAT-1"),
+        expect.stringContaining("Ada created this ticket"),
       ]);
     await page.goto(ticketUrl("PLAT-2"));
     await expect
       .poll(() => timelineLines(panel(page, "PLAT-2")))
       .toEqual([
-        expect.stringContaining("Ada created this ticket"),
-        expect.stringContaining("Ada marked this as blocking PLAT-1"),
         expect.stringContaining("Ada removed the link to PLAT-1"),
+        expect.stringContaining("Ada marked this as blocking PLAT-1"),
+        expect.stringContaining("Ada created this ticket"),
       ]);
   });
 
@@ -246,11 +246,11 @@ test.describe("adding and removing", () => {
       group(links(dialog), "Related").getByRole("link", { name: /Same bug/ }),
     ).toBeVisible();
     await expect
-      .poll(async () => (await timelineLines(dialog)).at(-1))
+      .poll(async () => (await timelineLines(dialog))[0])
       .toContain("Ada linked this to PLAT-2");
     await page.goto(ticketUrl("PLAT-2"));
     await expect
-      .poll(async () => (await timelineLines(panel(page, "PLAT-2"))).at(-1))
+      .poll(async () => (await timelineLines(panel(page, "PLAT-2")))[0])
       .toContain("Ada linked this to PLAT-1");
   });
 

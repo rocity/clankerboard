@@ -218,7 +218,9 @@ test("an Agent Comment over MCP appears live in an open Ticket", async ({ page }
   await agent.tool("claim_ticket", { key: "PLAT-1" });
   await expect(panel.getByLabel("Status")).toHaveValue("in_progress");
   await expect(panel.getByLabel("Assignee")).toHaveValue(/agent:/);
-  await expect(panel.locator('[data-kind="activity"]').last()).toContainText("claimed this ticket");
+  await expect(panel.locator('[data-kind="activity"]').first()).toContainText(
+    "claimed this ticket",
+  );
   await agent.close();
 });
 

@@ -14,7 +14,7 @@ function When({ iso }: { iso: string }) {
   );
 }
 
-/** The Ticket's Comments and Activity in the order they happened, each credited to its Actor. */
+/** The Ticket's Comments and Activity, newest first, each credited to its Actor. */
 export function Timeline({ ticketKey }: { ticketKey: string }) {
   const { data: entries, error, refetch } = useQuery(timelineQuery(ticketKey));
   const { data: actors = [] } = useQuery(actorsQuery);
@@ -46,7 +46,8 @@ export function Timeline({ ticketKey }: { ticketKey: string }) {
         )
       ) : (
         <ol className="grid gap-3">
-          {entries.map((entry) =>
+          {/* The server sends the Timeline oldest first. */}
+          {entries.toReversed().map((entry) =>
             entry.type === "comment" ? (
               <li
                 key={`comment-${entry.id}`}

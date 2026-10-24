@@ -328,6 +328,10 @@ test.describe("timeline and comments", () => {
     const dialog = await openTicket(page, "PLAT-1");
 
     const composer = dialog.getByRole("textbox", { name: "Comment" });
+    // The newest entry is at the top, so the composer sits right above it.
+    const composerBox = await composer.boundingBox();
+    const timelineBox = await timeline(dialog).boundingBox();
+    expect(composerBox?.y).toBeLessThan(timelineBox?.y ?? 0);
     await composer.fill("Looks **good**, ship it");
     await dialog.getByRole("tab", { name: "Preview" }).click();
     await expect(dialog.getByTestId("markdown-preview").locator("strong")).toHaveText("good");
@@ -354,7 +358,7 @@ test.describe("timeline and comments", () => {
     await expect(dialog.getByRole("button", { name: "Add comment" })).toBeDisabled();
   });
 
-  test("merges Comments and Activity in time order, with Agents marked", async ({ page }) => {
+  test("merges Comments and Activity newest first, with Agents marked", async ({ page }) => {
     await setUp(page);
     const agent = await createAgent(page, "Claude-1");
     const apiKey = await createApiKey(page, agent.id);
@@ -375,18 +379,18 @@ test.describe("timeline and comments", () => {
     const items = timeline(dialog).getByRole("listitem");
     await expect(items).toHaveCount(5);
     const texts = (await items.allInnerTexts()).map((text) => text.replace(/\s+/g, " "));
-    expect(texts[0]).toContain("Ada created this ticket");
-    expect(texts[1]).toContain("Ada moved this from Backlog to To Do");
+    expect(texts[0]).toContain("Agent here");
+    expect(texts[1]).toContain("Claude-1 claimed this ticket");
     expect(texts[2]).toContain("Human first");
-    expect(texts[3]).toContain("Claude-1 claimed this ticket");
-    expect(texts[4]).toContain("Agent here");
+    expect(texts[3]).toContain("Ada moved this from Backlog to To Do");
+    expect(texts[4]).toContain("Ada created this ticket");
 
     // Agents carry the bot icon and a label. Users do not.
-    const agentComment = items.nth(4);
+    const agentComment = items.nth(0);
     await expect(agentComment.getByRole("img", { name: "Agent" })).toBeVisible();
     await expect(agentComment).toContainText("Agent");
     await expect(items.nth(2).getByRole("img", { name: "Agent" })).toHaveCount(0);
-    await expect(items.nth(3).getByRole("img", { name: "Agent" })).toBeVisible();
+    await expect(items.nth(1).getByRole("img", { name: "Agent" })).toBeVisible();
   });
 });
 
