@@ -2,19 +2,13 @@ import { sprintName } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ChevronLeft, Plus } from "lucide-react";
+import { NoSprintCard } from "@/components/sprints/no-sprint-card";
 import { SprintCard } from "@/components/sprints/sprint-card";
-import { SprintTickets } from "@/components/sprints/sprint-tickets";
 import { Button } from "@/components/ui/button";
 import { ApiError, errorMessage } from "@/lib/api";
 import { compareTickets } from "@/lib/board";
 import { projectQuery } from "@/lib/projects";
-import {
-  calendarDay,
-  plannedSprints,
-  sprintsQuery,
-  sprintTotals,
-  useSprintMutations,
-} from "@/lib/sprints";
+import { calendarDay, plannedSprints, sprintsQuery, useSprintMutations } from "@/lib/sprints";
 import { ticketsQuery } from "@/lib/tickets";
 
 // A Project's Sprints, for planning. It is a page of its own, not nested under
@@ -113,22 +107,12 @@ function SprintsPage() {
         />
       ))}
 
-      <section
-        aria-label="No sprint"
-        className="rounded-xl border bg-card text-card-foreground shadow-sm"
-      >
-        <div className="grid gap-1 p-4">
-          <h2 className="text-base font-semibold">No sprint</h2>
-          <p className="text-sm text-muted-foreground">{sprintTotals(unplanned)}</p>
-        </div>
-        <SprintTickets
-          companySlug={companySlug}
-          projectKey={projectKey}
-          tickets={unplanned}
-          sprints={sprints}
-          empty="Every ticket is in a sprint."
-        />
-      </section>
+      <NoSprintCard
+        companySlug={companySlug}
+        projectKey={projectKey}
+        sprints={sprints}
+        tickets={unplanned}
+      />
 
       {finished.length > 0 && (
         <section aria-label="Finished sprints" className="grid gap-3">

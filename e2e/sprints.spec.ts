@@ -309,4 +309,45 @@ test.describe("Sprints page", () => {
     await expect(finished).toContainText("Wrap up");
     await expect(page.getByText("Shipped")).toHaveCount(0);
   });
+
+  test("splits no sprint into Open and Backlog tabs, a page at a time, with Done on asking", async ({
+    page,
+  }) => {
+    await setUp(page);
+    for (let i = 1; i <= 22; i++) {
+      await createTicket(page, { projectKey: "PLAT", title: `Item ${i}` });
+    }
+    const started = await createTicket(page, { projectKey: "PLAT", title: "Started" });
+    await moveTicket(page, started.key, "in_progress");
+    const shipped = await createTicket(page, { projectKey: "PLAT", title: "Shipped" });
+    await moveTicket(page, shipped.key, "done");
+    await page.goto(sprintsUrl);
+
+    const noSprint = sprintCard(page, "No sprint");
+    const tabPanel = noSprint.getByRole("tabpanel");
+    await expect(noSprint).toContainText("24 tickets · 1 done · 0 pts");
+    await expect(noSprint.getByRole("tab", { name: "Open (1)" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(tabPanel.getByRole("listitem")).toHaveCount(1);
+    await expect(row(page, "No sprint", started.key)).toBeVisible();
+
+    await expect(row(page, "No sprint", shipped.key)).toHaveCount(0);
+    await noSprint.getByRole("button", { name: "Show done tickets (1)" }).click();
+    await expect(row(page, "No sprint", shipped.key)).toBeVisible();
+    await noSprint.getByRole("button", { name: "Hide done tickets" }).click();
+    await expect(row(page, "No sprint", shipped.key)).toHaveCount(0);
+
+    await noSprint.getByRole("tab", { name: "Backlog (22)" }).click();
+    await expect(tabPanel.getByRole("listitem")).toHaveCount(20);
+    await expect(tabPanel).toContainText("1–20 of 22");
+    await expect(tabPanel.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await tabPanel.getByRole("button", { name: "Next" }).click();
+    await expect(tabPanel.getByRole("listitem")).toHaveCount(2);
+    await expect(tabPanel).toContainText("21–22 of 22");
+    await expect(tabPanel.getByText("Item 22")).toBeVisible();
+    await expect(tabPanel.getByRole("button", { name: "Next" })).toBeDisabled();
+    expect(await scrollsSideways(page)).toBe(false);
+  });
 });

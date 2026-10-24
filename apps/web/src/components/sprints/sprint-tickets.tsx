@@ -1,6 +1,8 @@
 import { statusLabels } from "@agentkanban/shared";
 import { Link } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { errorMessage } from "@/lib/api";
 import type { TicketData } from "@/lib/board";
@@ -16,23 +18,69 @@ type Props = {
   empty: string;
 };
 
-/** A Sprint's Tickets, or the Tickets in no Sprint, each with a select that moves it. */
+/** How many Tickets a list shows at a time. */
+export const ticketsPerPage = 20;
+
+/**
+ * A Sprint's Tickets, or the Tickets in no Sprint, each with a select that
+ * moves it, a page at a time.
+ */
 export function SprintTickets({ companySlug, projectKey, tickets, sprints, empty }: Props) {
+  const [page, setPage] = useState(0);
   if (tickets.length === 0) {
     return <p className="border-t px-4 py-3 text-sm text-muted-foreground">{empty}</p>;
   }
+  // Tickets leave the list as they move, so the page can't stay past the last one.
+  const pages = Math.ceil(tickets.length / ticketsPerPage);
+  const current = Math.min(page, pages - 1);
+  const first = current * ticketsPerPage;
+  const shown = tickets.slice(first, first + ticketsPerPage);
   return (
-    <ul className="divide-y border-t">
-      {tickets.map((ticket) => (
-        <TicketRow
-          key={ticket.key}
-          companySlug={companySlug}
-          projectKey={projectKey}
-          ticket={ticket}
-          sprints={sprints}
-        />
-      ))}
-    </ul>
+    <>
+      <ul className="divide-y border-t">
+        {shown.map((ticket) => (
+          <TicketRow
+            key={ticket.key}
+            companySlug={companySlug}
+            projectKey={projectKey}
+            ticket={ticket}
+            sprints={sprints}
+          />
+        ))}
+      </ul>
+      {pages > 1 && (
+        <nav
+          aria-label="Pages"
+          className="flex items-center justify-between gap-3 border-t px-4 py-2"
+        >
+          <p className="text-sm text-muted-foreground">
+            {first + 1}–{first + shown.length} of {tickets.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 md:h-8"
+              disabled={current === 0}
+              onClick={() => setPage(current - 1)}
+            >
+              <ChevronLeft />
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 md:h-8"
+              disabled={current === pages - 1}
+              onClick={() => setPage(current + 1)}
+            >
+              Next
+              <ChevronRight />
+            </Button>
+          </div>
+        </nav>
+      )}
+    </>
   );
 }
 
