@@ -58,7 +58,7 @@ function LinkedTicket({ companySlug, projectKey, link, onUnlink }: RowProps) {
         search={(prev) => (sameProject ? prev : {})}
         className={`${rowClass} flex-1`}
       >
-        <TypeIcon type={link.type} className="text-muted-foreground" />
+        <TypeIcon type={link.type} />
         <span className="shrink-0 font-mono text-xs text-muted-foreground">{link.key}</span>
         <span className="min-w-0 flex-1 truncate">{link.title}</span>
         {link.archived && (
@@ -167,7 +167,7 @@ function AddLink({ ticketKey, linked, onPick, onCancel }: AddProps) {
                     if (added) setSearch("");
                   }}
                 >
-                  <TypeIcon type={t.type} className="text-muted-foreground" />
+                  <TypeIcon type={t.type} />
                   <span className="shrink-0 font-mono text-xs text-muted-foreground">{t.key}</span>
                   <span className="min-w-0 flex-1 truncate">{t.title}</span>
                 </button>

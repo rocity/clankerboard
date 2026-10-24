@@ -5,16 +5,19 @@ import { ProgressBar } from "@/components/progress-bar";
 import type { TicketData } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
-const typeIcons: Record<TicketType, { icon: LucideIcon; label: string }> = {
-  epic: { icon: Zap, label: "Epic" },
-  story: { icon: BookOpen, label: "Story" },
-  task: { icon: CircleCheck, label: "Task" },
-  bug: { icon: Bug, label: "Bug" },
+/** Each Type has its own color, so a glance tells a Bug from a Story. */
+const typeIcons: Record<TicketType, { icon: LucideIcon; label: string; className: string }> = {
+  epic: { icon: Zap, label: "Epic", className: "text-violet-600 dark:text-violet-400" },
+  story: { icon: BookOpen, label: "Story", className: "text-emerald-600 dark:text-emerald-400" },
+  task: { icon: CircleCheck, label: "Task", className: "text-sky-600 dark:text-sky-400" },
+  bug: { icon: Bug, label: "Bug", className: "text-red-600 dark:text-red-400" },
 };
 
 export function TypeIcon({ type, className }: { type: TicketType; className?: string }) {
-  const { icon: Icon, label } = typeIcons[type];
-  return <Icon role="img" aria-label={label} className={cn("size-3.5 shrink-0", className)} />;
+  const { icon: Icon, label, className: color } = typeIcons[type];
+  return (
+    <Icon role="img" aria-label={label} className={cn("size-3.5 shrink-0", color, className)} />
+  );
 }
 
 function initials(name: string) {

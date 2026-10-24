@@ -29,7 +29,7 @@ export function Children({ companySlug, projectKey, ticketKey }: Props) {
               search={(prev) => prev}
               className="flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-sm outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 md:min-h-9"
             >
-              <TypeIcon type={child.type} className="text-muted-foreground" />
+              <TypeIcon type={child.type} />
               <span className="shrink-0 font-mono text-xs text-muted-foreground">{child.key}</span>
               <span className="min-w-0 flex-1 truncate">{child.title}</span>
               <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium">
