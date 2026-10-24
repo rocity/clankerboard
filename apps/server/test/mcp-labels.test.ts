@@ -65,9 +65,7 @@ describe("Labels over MCP", () => {
     expect(created.structuredContent).toMatchObject({
       ticket: { key: "CB-2", labels: [{ name: "API" }, { name: "web" }] },
     });
-    expect(updated.structuredContent).toMatchObject({
-      ticket: { labels: [{ name: "API" }, { name: "docs" }] },
-    });
+    expect(updated.structuredContent).toMatchObject({ ticket: { labels: ["API", "docs"] } });
     const last = (await activityOf(owner.request, "CB-2")).at(-1);
     expect(last).toMatchObject({
       kind: "ticket.updated",

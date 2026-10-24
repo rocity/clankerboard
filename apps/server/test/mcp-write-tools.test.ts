@@ -115,6 +115,42 @@ describe("MCP write tools", () => {
       });
     });
 
+    it("confirms with the Ticket's summary line, not its description", async () => {
+      const t = buildTestApp();
+      const { owner, client } = await setup(t);
+      await createTicket(owner.request, {
+        projectKey: "CB",
+        title: "Fix login",
+        description: "A long spec the Agent already has.",
+      });
+
+      const result = await client.callTool({
+        name: "update_ticket",
+        arguments: { key: "CB-1", progress: 40 },
+      });
+
+      expect(result.isError).toBeFalsy();
+      expect(textOf(result)).toBe(
+        "Updated **CB-1** [task, Backlog, medium, 40% done] Fix login (unassigned)",
+      );
+      expect(result.structuredContent).toEqual({
+        ticket: {
+          key: "CB-1",
+          title: "Fix login",
+          type: "task",
+          status: "backlog",
+          priority: "medium",
+          estimate: null,
+          progress: 40,
+          blocked: false,
+          assignee: null,
+          parent: null,
+          labels: [],
+          sprint: null,
+        },
+      });
+    });
+
     it("clears the Parent with null and leaves other fields alone", async () => {
       const t = buildTestApp();
       const { owner, client } = await setup(t);
@@ -165,6 +201,30 @@ describe("MCP write tools", () => {
         actor: { type: "agent", id: agent.id },
         payload: { from: { status: "backlog" }, to: { status: "review" } },
       });
+    });
+
+    it("confirms with the Ticket's summary line, not its description", async () => {
+      const t = buildTestApp();
+      const { owner, client } = await setup(t);
+      await createTicket(owner.request, {
+        projectKey: "CB",
+        title: "Fix login",
+        description: "A long spec the Agent already has.",
+      });
+
+      const result = await client.callTool({
+        name: "move_ticket",
+        arguments: { key: "CB-1", status: "in_progress" },
+      });
+
+      expect(result.isError).toBeFalsy();
+      expect(textOf(result)).toBe(
+        "Moved **CB-1** [task, In Progress, medium] Fix login (unassigned)",
+      );
+      expect(result.structuredContent).toMatchObject({
+        ticket: { key: "CB-1", status: "in_progress", labels: [], sprint: null },
+      });
+      expect(result.structuredContent).not.toHaveProperty("ticket.description");
     });
 
     it("moves a Ticket to the bottom of its own Status", async () => {

@@ -105,7 +105,7 @@ describe("Sprints over MCP", () => {
       ticket: { key: "CB-1", sprint: { number: 1, state: "planned" } },
     });
     expect(textOf(created)).toContain("- Sprint: Sprint 1 (planned)");
-    expect(moved.structuredContent).toMatchObject({ ticket: { sprint: { number: 2 } } });
+    expect(moved.structuredContent).toMatchObject({ ticket: { sprint: 2 } });
     expect(refused).toMatchObject({ isError: true, content: [{ text: "CB has no Sprint 7." }] });
     expect((await activityOf(owner.request, "CB-1")).at(-1)).toMatchObject({
       kind: "ticket.updated",
