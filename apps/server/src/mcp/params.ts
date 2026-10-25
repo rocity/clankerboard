@@ -17,7 +17,7 @@ export const labelsDescription =
 
 /** How create_ticket and update_ticket describe `sprint`. */
 export const sprintDescription =
-  "The number of a planned or active sprint in the ticket's project to put it in, such as 4, or null for no sprint. See list_sprints. Epics are never in a sprint.";
+  "The number of a planned or active sprint in the ticket's project to put it in, such as 4, or null for no sprint. See list_sprints.";
 
 /** How create_ticket and update_ticket describe `progress`. */
 export const progressDescription =

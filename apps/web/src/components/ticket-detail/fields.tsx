@@ -288,7 +288,7 @@ export function TicketFields({
             id="ticket-sprint"
             label="Sprint"
             value={ticket.sprint ? String(ticket.sprint.number) : ""}
-            disabled={archived || ticket.type === "epic"}
+            disabled={archived}
             onPick={(value) => onSprint(value ? Number(value) : null)}
           >
             <option value="">No sprint</option>

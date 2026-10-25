@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { type CreateTicketInput, sprintName, type UpdateTicketInput } from "@agentkanban/shared";
+import type { CreateTicketInput, UpdateTicketInput } from "@agentkanban/shared";
 import { eq, sql } from "drizzle-orm";
 import { withActivity } from "./activity";
 import { actorColumns, refOf } from "./actors";
 import { changedFields } from "./changes";
 import type { CompanyContext, DomainDeps } from "./context";
-import { conflict, invalid, notFound } from "./errors";
+import { conflict, notFound } from "./errors";
 import { assertChildrenAccept, assertPlacement } from "./hierarchy";
 import { labelChanges, resolveLabels, setTicketLabels } from "./labels";
 import { findProject } from "./projects";
@@ -41,7 +41,7 @@ export async function createTicket(
     const project = await findProject(tx, ctx, input.projectKey);
     const parent = input.parentKey ? await findParent(tx, ctx, input.parentKey) : null;
     assertPlacement({ type: input.type, projectId: project.id }, parent);
-    const sprint = await resolveSprint(tx, project, input.sprint, input.type);
+    const sprint = await resolveSprint(tx, project, input.sprint);
     // Taking the number locks the Project row, so concurrent creates queue
     // here and each sees the previous one's rank.
     const [counter] = await tx
@@ -134,9 +134,9 @@ export async function updateTicket(
       };
     }
 
-    // Read only when this update could move the Ticket or make it an Epic.
+    // Read only when this update could move the Ticket.
     const currentSprint =
-      row.sprintId && (sprintNumber !== undefined || type === "epic")
+      row.sprintId && sprintNumber !== undefined
         ? (await sprintsOf(tx, [row.sprintId])).get(row.sprintId)
         : null;
     let sprintId = row.sprintId;
@@ -146,14 +146,9 @@ export async function updateTicket(
         tx,
         { id: row.projectId, key: row.projectKey },
         sprintNumber,
-        type,
       );
       sprintId = sprint?.id ?? null;
       changes.sprint = { from: currentSprint?.number ?? null, to: sprintNumber };
-    } else if (type === "epic" && currentSprint) {
-      throw invalid(
-        `Remove ${ticketKeyOf(row)} from ${sprintName(currentSprint.number)} before making it an epic.`,
-      );
     }
     if (Object.keys(changes).length === 0) return ticketView(tx, row);
 

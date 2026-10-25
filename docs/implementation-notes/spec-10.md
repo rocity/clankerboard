@@ -23,7 +23,6 @@ Deliberate choices made while implementing Spec 10 (Sprints). Reviewers: treat t
 - **The next Sprint is locked** (`for update`) while it is chosen, and a new one takes its number from the Project row, as Tickets do.
 - **Archived Tickets in a finishing Sprint stay with it.** They were already off the board. Restoring one of them later brings it back in no Sprint, and the `ticket.restored` payload says `{ sprint: N }`. A Ticket restored while its Sprint is still open keeps it.
 - **Changing an archived Ticket's Sprint is refused** ("Restore CB-4 before changing its sprint."), unlike its Labels or Estimate, so an archived Ticket's Sprint always says where it was when archived.
-- **Type change to Epic while in a Sprint is refused**, with "Remove CB-4 from Sprint 4 before making it an epic." Sending `type: "epic"` and `sprint: null` together is allowed. "Take ... out" was the spec's draft; "take" is avoided copy (it means Claim).
 - **"You can delete only a planned sprint."** The spec's draft said "can be deleted"; "deleted" is avoided copy (it means Archived), so the sentence uses the verb.
 - **Every User may manage Sprints, so there is no Role function.** `assertMayManageSprints` in the domain only refuses Agents. Delete also calls `assertMayDelete`, as every hard delete does.
 - **Dates.** `startedAt` and `finishedAt` are the clock's moments; `endsOn` is compared with the start's UTC date, so "today" is the server's UTC day. A Sprint may end the day it starts. The default length is the last finished Sprint's start date to its end date, at least one day.
@@ -55,8 +54,8 @@ Deliberate choices made while implementing Spec 10 (Sprints). Reviewers: treat t
 
 ## 10-05 Sprint in Ticket detail, the create dialog, and the Timeline
 
-- **Detail's Sprint select sits under Parent,** in the full-width block with Assignee, and saves on pick like the other selects. It shows once the Project has Sprints, or when the Ticket is in one. Its choices are "No sprint", the active Sprint marked "(active)", then the Planned Sprints by number (`openSprints`). It is disabled for an Epic and for an archived Ticket, matching the server's refusals; an archived Ticket whose Sprint finished shows it as "Sprint N (finished)".
-- **The create dialog defaults to the active Sprint,** so a Ticket created from a board in Sprint mode lands on it. It shows only when the Project has open Sprints. Choosing Epic disables it (a disabled select sends nothing, which the dialog reads as no Sprint); the select is keyed by "is it an Epic", so switching back restores the default.
+- **Detail's Sprint select sits under Parent,** in the full-width block with Assignee, and saves on pick like the other selects. It shows once the Project has Sprints, or when the Ticket is in one. Its choices are "No sprint", the active Sprint marked "(active)", then the Planned Sprints by number (`openSprints`). It is disabled for an archived Ticket, matching the server's refusal; an archived Ticket whose Sprint finished shows it as "Sprint N (finished)".
+- **The create dialog defaults to the active Sprint,** so a Ticket created from a board in Sprint mode lands on it, an Epic included. It shows only when the Project has open Sprints.
 - **Timeline copy:** "moved this to Sprint 2", "moved this from Sprint 1 to Sprint 2", "removed this from Sprint 2"; a finish's archive reads "archived this ticket when Sprint 1 finished"; a restore out of a finished Sprint reads "restored this ticket and removed it from the finished Sprint 1". "Took this out" from the spec's draft became "removed this from", since "take" is avoided copy.
 - **No live code.** A Sprint change is `ticket.updated` with a snapshot, which every board view already places through `ticketMatchesFilters`, now Sprint-aware.
 
@@ -66,10 +65,14 @@ Deliberate choices made while implementing Spec 10 (Sprints). Reviewers: treat t
 - **Ways in:** a "Sprints" link under the Project's name on every board, beside its Team, and "Plan sprints" on the Sprint bar when no Sprint is active and none is Planned.
 - **Order:** the active Sprint, the Planned Sprints by number, "No sprint", then Finished Sprints newest first. A Project with no Sprints says what having one does to the board.
 - **Everything is counted from the board's live Tickets** (the unfiltered board query), grouped by each snapshot's Sprint, rather than from the Sprint view's counts. The page then follows live changes through the same snapshots the board does, without refetching the Sprints on every Ticket event. Rows are in board order (Status, then rank).
-- **"No sprint" leaves out Epics,** since they can never be planned into a Sprint; they stay on the board.
 - **Each row has a Sprint select** (No sprint, the active Sprint, the Planned ones) labelled "Sprint for PLAT-4", which saves on pick, shows the pick while the request is out, and shows the server's refusal under the row. It is the spec's quick, phone-friendly move; drag and drop between Sprints is out of scope.
 - **Create sprint makes one straight away,** Planned with no goal, numbered by the server; the goal is edited on its card. There is no create dialog to fill in.
 - **The goal is a one-line field** on each open Sprint's card, saved on Enter or blur and put back on Escape, like a Label's name.
 - **Start sprint shows only while no Sprint is active,** so the button is never there to be refused. Finish sprint and Start sprint are the same components as on the board's bar.
 - **Delete is for Planned Sprints,** an icon button named "Delete Sprint N" with a confirmation that says where its Tickets go: "Its 2 tickets go back to no sprint."
 - **Finished Sprints are a plain list:** name, "Finished Oct 9", and the goal. Their Tickets were archived or moved, so there is nothing to list under them.
+
+## Epics in Sprints
+
+- **Reverses the spec's "Epics are never in a Sprint", at the user's request,** so an Epic shows as a card on a board in Sprint mode once it is in the active Sprint. Without a Sprint an Epic matched no Sprint filter and vanished from that board. Epics now follow every Sprint rule other Tickets do: the create dialog defaults them to the active Sprint, Ticket detail and the Sprints page move them, and a Ticket keeps its Sprint when it becomes an Epic.
+- **Finishing a Sprint treats an Epic like any Ticket.** A Done Epic is archived, which detaches its children as any archive does; an Epic not Done moves to the next Sprint.

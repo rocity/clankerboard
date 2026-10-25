@@ -469,7 +469,7 @@ describe("Tickets in Sprints", () => {
         expect((await ticket(as, "CB-1")).sprint).toBeNull();
       });
 
-      it("refuses Epics, Sprints the Project doesn't have, and Finished Sprints", async () => {
+      it("refuses Sprints the Project doesn't have, and Finished Sprints", async () => {
         const t = buildTestApp();
         const s = await setup(t);
         const as = actor.as(s);
@@ -480,7 +480,6 @@ describe("Tickets in Sprints", () => {
         await createTicket(as, { projectKey: "CB", title: "A" });
 
         for (const [body, status, error] of [
-          [{ type: "epic", sprint: 2 }, 400, "Epics can't be in a sprint."],
           [{ sprint: 3 }, 400, "CB has no Sprint 3."],
           [{ sprint: 1 }, 400, "Sprint 1 is finished."],
           [{ sprint: 0 }, 400, "Sprints are numbered from 1."],
@@ -497,24 +496,22 @@ describe("Tickets in Sprints", () => {
         }
       });
 
-      it("refuses making a Ticket in a Sprint an Epic", async () => {
+      it("puts Epics in a Sprint, and keeps a Ticket's Sprint when it becomes an Epic", async () => {
         const t = buildTestApp();
         const s = await setup(t);
         const as = actor.as(s);
         await newSprint(s.owner.request);
         await createTicket(as, { projectKey: "CB", title: "A", sprint: 1 });
+        const epic = await createTicket(as, {
+          projectKey: "CB",
+          title: "Theme",
+          type: "epic",
+          sprint: 1,
+        });
 
-        await refusal(
-          await patch(as, "CB-1", { type: "epic" }),
-          400,
-          "Remove CB-1 from Sprint 1 before making it an epic.",
-        );
-        if (actor.name === "a User") {
-          const both = await ok<{ ticket: TicketJson }>(
-            await patch(as, "CB-1", { type: "epic", sprint: null }),
-          );
-          expect(both.ticket.sprint).toBeNull();
-        }
+        expect(epic.sprint).toEqual({ number: 1, state: "planned" });
+        const changed = await ok<{ ticket: TicketJson }>(await patch(as, "CB-1", { type: "epic" }));
+        expect(changed.ticket.sprint).toEqual({ number: 1, state: "planned" });
       });
     });
   }

@@ -120,7 +120,7 @@ How far along a Ticket is, as reported by an Actor: a whole-number percentage fr
 _Avoid_: Completion, percent done
 
 **Sprint**:
-A numbered stretch of work in one Project, such as Sprint 4, holding the Tickets planned for it. It is Planned, then Active, then Finished, and a Project has at most one Active Sprint. Finishing a Sprint archives its Done Tickets and moves the rest to the next Sprint. Epics are never in a Sprint. A Ticket in no Sprint is "no sprint" in copy, never "the backlog", which is a Status.
+A numbered stretch of work in one Project, such as Sprint 4, holding the Tickets planned for it. It is Planned, then Active, then Finished, and a Project has at most one Active Sprint. Finishing a Sprint archives its Done Tickets and moves the rest to the next Sprint. Any Ticket, Epics included, can be in a Sprint. A Ticket in no Sprint is "no sprint" in copy, never "the backlog", which is a Status.
 _Avoid_: Iteration, timebox
 
 ## History

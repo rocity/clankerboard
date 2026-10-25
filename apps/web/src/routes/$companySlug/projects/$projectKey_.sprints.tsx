@@ -45,8 +45,7 @@ function SprintsPage() {
 
   const sorted = [...tickets].sort(compareTickets);
   const inSprint = (number: number) => sorted.filter((t) => t.sprint?.number === number);
-  // Epics never go in a Sprint, so they are not planned here.
-  const unplanned = sorted.filter((t) => t.sprint === null && t.type !== "epic");
+  const unplanned = sorted.filter((t) => t.sprint === null);
   const active = sprints.find((s) => s.state === "active");
   const planned = plannedSprints(sprints);
   const finished = sprints

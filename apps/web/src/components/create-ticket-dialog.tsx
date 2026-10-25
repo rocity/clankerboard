@@ -68,7 +68,6 @@ export function CreateTicketDialog({ projectKey }: Props) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const parentKey = String(form.get("parent") ?? "");
-    // A disabled select (an Epic's) sends nothing, which is no Sprint.
     const sprint = String(form.get("sprint") ?? "");
     // Left empty, the Estimate is blank. The shared schema refuses anything out of range.
     const estimate = String(form.get("estimate") ?? "").trim();
@@ -172,13 +171,10 @@ export function CreateTicketDialog({ projectKey }: Props) {
           {sprintChoices.length > 0 && (
             <div className="grid gap-2">
               <Label htmlFor="new-ticket-sprint">Sprint</Label>
-              {/* Keyed by type, so an Epic drops its Sprint and a change back picks the default again. */}
               <NativeSelect
-                key={type === "epic" ? "epic" : "work"}
                 id="new-ticket-sprint"
                 name="sprint"
-                defaultValue={type === "epic" ? "" : String(activeSprint?.number ?? "")}
-                disabled={type === "epic"}
+                defaultValue={String(activeSprint?.number ?? "")}
               >
                 <option value="">No sprint</option>
                 {sprintChoices.map((s) => (

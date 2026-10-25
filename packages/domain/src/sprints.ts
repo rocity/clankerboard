@@ -6,7 +6,6 @@ import {
   type SprintView,
   type StartSprintInput,
   sprintName,
-  type TicketType,
   type UpdateSprintInput,
   utcDate,
 } from "@agentkanban/shared";
@@ -368,18 +367,15 @@ export async function deleteSprint(
 }
 
 /**
- * The Sprint a Ticket of `type` is being put in, by number in its Project, or
- * null for no Sprint. Refuses an Epic, a number the Project doesn't have, and
- * a Finished Sprint.
+ * The Sprint a Ticket is being put in, by number in its Project, or null for
+ * no Sprint. Refuses a number the Project doesn't have and a Finished Sprint.
  */
 export async function resolveSprint(
   tx: Db | Tx,
   project: ProjectRef,
   number: number | null,
-  type: TicketType,
 ): Promise<SprintRow | null> {
   if (number === null) return null;
-  if (type === "epic") throw invalid("Epics can't be in a sprint.");
   const [row] = await tx
     .select()
     .from(sprints)
