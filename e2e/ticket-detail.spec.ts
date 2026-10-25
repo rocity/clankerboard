@@ -529,6 +529,12 @@ test.describe("small screens and themes", () => {
         200,
       ),
       description,
+      type: "story",
+    });
+    await createTicket(page, {
+      projectKey: "PLAT",
+      title: `A child with a long title ${"x".repeat(150)}`,
+      parentKey: "PLAT-1",
     });
     await assignTicket(page, "PLAT-1", { type: "agent", id: agent.id });
     await addComment(page, "PLAT-1", `Comment ${longWord} with a very long word`);
@@ -552,6 +558,15 @@ test.describe("small screens and themes", () => {
         ).length,
     );
     expect(overflow).toBe(0);
+    // Code blocks and tables scroll on their own; nothing else in the panel scrolls sideways.
+    const scrolling = await dialog.evaluate((el) =>
+      [el, ...el.querySelectorAll("*")]
+        .filter((node) => node.tagName !== "PRE" && !node.querySelector(":scope > table"))
+        .filter((node) => ["auto", "scroll"].includes(getComputedStyle(node).overflowX))
+        .filter((node) => node.scrollWidth > node.clientWidth + 1)
+        .map((node) => node.outerHTML.slice(0, 80)),
+    );
+    expect(scrolling).toEqual([]);
 
     if (onPhone(page)) {
       // A phone gets the whole screen.

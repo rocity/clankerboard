@@ -22,7 +22,7 @@ export function Children({ companySlug, projectKey, ticketKey }: Props) {
       </h3>
       <ul className="grid gap-1.5">
         {children.map((child) => (
-          <li key={child.key}>
+          <li key={child.key} className="min-w-0">
             <Link
               to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
               params={{ companySlug, projectKey, ticketKey: child.key }}
