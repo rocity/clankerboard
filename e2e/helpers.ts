@@ -118,6 +118,32 @@ export function scrollsSideways(page: Page) {
   );
 }
 
+/** A board filter that takes several values: the button that opens its checkboxes. */
+export const filterButton = (page: Page, name: string) =>
+  page.getByRole("button", { name, exact: true });
+
+/**
+ * Opens a board filter, leaves exactly these choices (by label) ticked, and
+ * closes it. No labels picks the "Any" choice, which clears the filter.
+ */
+export async function pickFilter(page: Page, name: string, ...labels: string[]) {
+  await filterButton(page, name).click();
+  const menu = page.getByRole("menu");
+  const options = menu.getByRole("menuitemcheckbox");
+  if (labels.length === 0) {
+    await options.first().click();
+  } else {
+    // The first choice is "Any", which the others replace.
+    for (const option of (await options.all()).slice(1)) {
+      const wanted = labels.includes((await option.textContent()) ?? "");
+      if (wanted !== ((await option.getAttribute("aria-checked")) === "true")) await option.click();
+      await expect(option).toHaveAttribute("aria-checked", String(wanted));
+    }
+  }
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+}
+
 /** The box of an element once its animations have finished, so a dialog's zoom-in is not measured. */
 export async function settledBox(locator: Locator) {
   await locator.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));

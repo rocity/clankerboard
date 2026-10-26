@@ -5,6 +5,7 @@ import {
   createProject,
   createTicket,
   joinCompany,
+  pickFilter,
   scrollsSideways,
   signUp,
 } from "./helpers";
@@ -177,7 +178,7 @@ test.describe("filter", () => {
     await expect(page.getByRole("article")).toHaveCount(3);
 
     await openFilters(page);
-    await page.getByRole("combobox", { name: "Label", exact: true }).selectOption("api");
+    await pickFilter(page, "Label", "api");
 
     await expect(page).toHaveURL(/[?&]label=api/);
     await expect(page.getByRole("article")).toHaveCount(1);

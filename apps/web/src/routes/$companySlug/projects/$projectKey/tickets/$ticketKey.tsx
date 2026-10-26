@@ -19,6 +19,7 @@ export const Route = createFileRoute("/$companySlug/projects/$projectKey/tickets
     // The API takes any letter case. The URL shows the Key as the Ticket spells it.
     if (ticket.key !== params.ticketKey) {
       throw redirect({
+        from: "/$companySlug/projects/$projectKey/tickets/$ticketKey",
         to: "/$companySlug/projects/$projectKey/tickets/$ticketKey",
         params: { ...params, ticketKey: ticket.key },
         search: (prev) => prev,
@@ -54,6 +55,7 @@ function TicketNotFound() {
         <p className="text-sm text-muted-foreground">This project has no ticket with this key.</p>
         <Button asChild className="h-11">
           <Link
+            from="/$companySlug/projects/$projectKey/tickets/$ticketKey"
             to="/$companySlug/projects/$projectKey"
             params={{ companySlug, projectKey }}
             search={(prev) => prev}

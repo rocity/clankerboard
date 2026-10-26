@@ -66,6 +66,7 @@ export function StatusLane({ status, tickets }: Props) {
           {tickets.map((ticket) => (
             <DraggableTicket key={ticket.key} ticket={ticket}>
               <Link
+                from="/$companySlug/projects/$projectKey"
                 to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
                 params={{ companySlug, projectKey, ticketKey: ticket.key }}
                 // The board's filters live in its search params, so opening a Ticket keeps them.

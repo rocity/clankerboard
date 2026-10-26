@@ -3,6 +3,7 @@ import { createRouter } from "@tanstack/react-router";
 import { onUnauthorized } from "@/lib/api";
 import { resetActiveCompany } from "@/lib/companies";
 import { isPublicPath } from "@/lib/redirect";
+import { stringifySearch } from "@/lib/search-params";
 import { routeTree } from "./routeTree.gen";
 
 export const queryClient = new QueryClient({
@@ -23,6 +24,7 @@ export const router = createRouter({
   context: { queryClient },
   defaultPreload: "intent",
   scrollRestoration: true,
+  stringifySearch,
 });
 
 declare module "@tanstack/react-router" {

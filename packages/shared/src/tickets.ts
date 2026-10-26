@@ -175,19 +175,32 @@ export const archivedFilter = z
 
 export const listChildrenQuery = z.object({ archived: archivedFilter });
 
+/**
+ * A query value given once (`type=bug`) or repeated (`type=bug&type=story`),
+ * read as a list. A Ticket matches the filter when it matches any value in it.
+ */
+function anyOf<T extends z.ZodType<unknown, string>>(schema: T) {
+  return z.preprocess(
+    (value: string | string[]) => (Array.isArray(value) ? value : [value]),
+    z.array(schema).min(1),
+  );
+}
+
 export const listTicketsQuery = z.object({
   projectKey: projectKey.optional(),
   status: ticketStatus.optional(),
-  type: ticketType.optional(),
-  priority: ticketPriority.optional(),
-  assignee: assigneeFilter.optional(),
-  parentKey: ticketKey.optional(),
-  teamId: z.string().min(1).optional(),
+  type: anyOf(ticketType).optional(),
+  priority: anyOf(ticketPriority).optional(),
+  assignee: anyOf(assigneeFilter).optional(),
+  /** Children of any of these Tickets. */
+  parentKey: anyOf(ticketKey).optional(),
+  /** Tickets of Projects owned by any of these Teams. */
+  teamId: anyOf(z.string().min(1)).optional(),
   /** Free text over title and description. */
   q: z.string().trim().max(200).optional(),
   archived: archivedFilter,
-  /** Only Tickets carrying the Label of this name, without regard to case. */
-  label: labelName.optional(),
+  /** Only Tickets carrying a Label of any of these names, without regard to case. */
+  label: anyOf(labelName).optional(),
   /** `active`, `none`, or a Sprint number, matched in each Ticket's own Project. */
   sprint: sprintFilter.optional(),
   /** Only Blocked Tickets (true) or only unblocked ones (false). */

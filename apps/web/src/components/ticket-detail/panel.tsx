@@ -44,6 +44,7 @@ export function TicketPanel({ companySlug, projectKey, ticketKey, role }: Props)
   const toBoard = useCallback(
     () =>
       navigate({
+        from: "/$companySlug/projects/$projectKey/tickets/$ticketKey",
         to: "/$companySlug/projects/$projectKey",
         params: { companySlug, projectKey },
         search: (prev) => prev,

@@ -105,6 +105,40 @@ describe("Listing Tickets", () => {
     ]);
   });
 
+  it("matches any of a filter's repeated values, and every filter given", async () => {
+    const t = buildTestApp();
+    const { owner, bob, agent, teamId } = await setup(t);
+    const label = (key: string, labels: string[]) =>
+      owner.request(`/api/tickets/${key}`, { method: "PATCH", body: JSON.stringify({ labels }) });
+    await label("CB-1", ["api"]);
+    await label("CB-3", ["Web"]);
+    await label("MOB-1", ["mobile"]);
+
+    expect(await keys(owner.request, "type=epic&type=story")).toEqual(["CB-1", "CB-2"]);
+    expect(await keys(owner.request, "priority=high&priority=urgent")).toEqual(["CB-1", "CB-3"]);
+    expect(
+      await keys(owner.request, `assignee=user:${bob.user.id}&assignee=agent:${agent.id}`),
+    ).toEqual(["CB-2", "CB-3"]);
+    expect(await keys(owner.request, "assignee=unassigned&assignee=agents")).toEqual([
+      "CB-1",
+      "CB-3",
+      "MOB-1",
+    ]);
+    expect(await keys(owner.request, "label=api&label=web")).toEqual(["CB-1", "CB-3"]);
+    expect(await keys(owner.request, `teamId=${teamId}&teamId=nobody`)).toEqual([
+      "CB-1",
+      "CB-2",
+      "CB-3",
+    ]);
+    expect(await keys(owner.request, "parentKey=CB-1&parentKey=CB-3")).toEqual(["CB-2"]);
+    expect(await keys(owner.request, "type=bug&type=epic&priority=urgent&priority=medium")).toEqual(
+      ["CB-3", "MOB-1"],
+    );
+    const bad = await owner.request("/api/tickets?type=bug&type=nonsense");
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: "Pick epic, story, task, or bug." });
+  });
+
   it("finds Tickets by words in the description", async () => {
     const t = buildTestApp();
     const { owner, bearer } = await setup(t);

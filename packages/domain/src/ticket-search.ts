@@ -12,6 +12,7 @@ import {
   desc,
   eq,
   gte,
+  inArray,
   isNotNull,
   isNull,
   ne,
@@ -132,13 +133,14 @@ function assigneeCondition(filter: AssigneeFilter) {
   }
 }
 
-/** Carries the Label of this name, without regard to case. A name no Label has matches nothing. */
-function hasLabel(name: string) {
+/** Carries a Label of any of these names, without regard to case. A name no Label has matches nothing. */
+function hasLabel(names: string[]) {
+  const wanted = names.map((name) => sql`${normalizeLabelName(name)}`);
   return sql`exists (
     select 1 from ticket_labels tl
     join labels l on l.id = tl.label_id
     where tl.ticket_id = ${tickets.id}
-      and lower(l.name) = ${normalizeLabelName(name)}
+      and lower(l.name) in (${sql.join(wanted, sql`, `)})
   )`;
 }
 
@@ -169,7 +171,9 @@ export async function listTickets(
   filter: ListTicketsQuery,
   { order = "board", doneSince }: ListTicketsOptions = {},
 ): Promise<{ tickets: TicketView[]; nextCursor: string | null }> {
-  const parent = filter.parentKey ? await findTicket(db, ctx, filter.parentKey) : null;
+  const parents = filter.parentKey
+    ? await Promise.all(filter.parentKey.map((key) => findTicket(db, ctx, key)))
+    : null;
   const after = filter.cursor ? decodeCursor(order, filter.cursor) : null;
   const rows = await selectTickets(db)
     .where(
@@ -178,11 +182,16 @@ export async function listTickets(
         filter.archived === "exclude" ? isNull(tickets.archivedAt) : undefined,
         filter.projectKey ? eq(projects.key, filter.projectKey) : undefined,
         filter.status ? eq(tickets.status, filter.status) : undefined,
-        filter.type ? eq(tickets.type, filter.type) : undefined,
-        filter.priority ? eq(tickets.priority, filter.priority) : undefined,
-        filter.assignee ? assigneeCondition(filter.assignee) : undefined,
-        parent ? eq(tickets.parentId, parent.id) : undefined,
-        filter.teamId ? eq(projects.teamId, filter.teamId) : undefined,
+        filter.type ? inArray(tickets.type, filter.type) : undefined,
+        filter.priority ? inArray(tickets.priority, filter.priority) : undefined,
+        filter.assignee ? or(...filter.assignee.map(assigneeCondition)) : undefined,
+        parents
+          ? inArray(
+              tickets.parentId,
+              parents.map((p) => p.id),
+            )
+          : undefined,
+        filter.teamId ? inArray(projects.teamId, filter.teamId) : undefined,
         filter.blocked === undefined ? undefined : filter.blocked ? isBlocked() : not(isBlocked()),
         filter.label ? hasLabel(filter.label) : undefined,
         filter.sprint ? inSprint(filter.sprint) : undefined,

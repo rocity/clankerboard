@@ -52,6 +52,7 @@ function LinkedTicket({ companySlug, projectKey, link, onUnlink }: RowProps) {
   return (
     <li className="flex min-w-0 items-center gap-1">
       <Link
+        from="/$companySlug/projects/$projectKey/tickets/$ticketKey"
         to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
         params={{ companySlug, projectKey: link.projectKey, ticketKey: link.key }}
         // The board's filters belong to this Project's board, so they only carry over within it.

@@ -10,23 +10,28 @@ import {
 import type { BoardFilters } from "./tickets";
 
 /**
- * The filters as they sit in the board's URL: `?assignee=agents&type=bug&q=login`.
- * `assignee` is the list endpoint's value, or `me` for whoever opens the link.
- * `epic` is an Epic's Ticket Key, `team` a Team id, `archived` is on or absent,
- * and `blocked` is `only` or `hide`, as the filter reads, or absent for both.
- * `label` is a Label's name.
+ * The filters as they sit in the board's URL: `?assignee=agents&type=bug&type=story&q=login`.
+ * Each filter but the search, Blocked, and archived may repeat, and a Ticket
+ * matches when it matches any of its values. `assignee` is the list
+ * endpoint's value, or `me` for whoever opens the link. `epic` is an Epic's
+ * Ticket Key, `team` a Team id, `label` a Label's name, `archived` is on or
+ * absent, and `blocked` is `only` or `hide`, as the filter reads, or absent
+ * for both.
  */
 export type BoardSearch = {
-  assignee?: string;
-  type?: TicketType;
-  priority?: TicketPriority;
-  epic?: string;
-  team?: string;
-  label?: string;
+  assignee?: string[];
+  type?: TicketType[];
+  priority?: TicketPriority[];
+  epic?: string[];
+  team?: string[];
+  label?: string[];
   q?: string;
   archived?: true;
   blocked?: BlockedChoice;
 };
+
+/** The filters that take several values. */
+export type ListFilter = "assignee" | "type" | "priority" | "epic" | "team" | "label";
 
 export const blockedChoices = ["only", "hide"] as const;
 export type BlockedChoice = (typeof blockedChoices)[number];
@@ -40,28 +45,39 @@ function text(value: unknown) {
 }
 
 /**
+ * A param given once or repeated, as its valid values without repeats, or
+ * undefined when none is valid.
+ */
+function list<T>(value: unknown, read: (item: string) => T | undefined): T[] | undefined {
+  const items = (Array.isArray(value) ? value : [value]).map(text).filter(Boolean) as string[];
+  const valid = [...new Set(items.map(read).filter((item) => item !== undefined))];
+  return valid.length > 0 ? valid : undefined;
+}
+
+const parsed =
+  <T>(schema: { safeParse(value: unknown): { success: true; data: T } | { success: false } }) =>
+  (item: string) => {
+    const result = schema.safeParse(item);
+    return result.success ? result.data : undefined;
+  };
+
+/**
  * Reads the board's search params. A value that is not valid (a typo, an old
  * link, a made-up Status) is dropped, so the board falls back to showing
  * everything for that filter rather than failing.
  */
 export function validateBoardSearch(search: Record<string, unknown>): BoardSearch {
-  const assignee = text(search.assignee);
-  const type = ticketType.safeParse(text(search.type));
-  const priority = ticketPriority.safeParse(text(search.priority));
-  const epic = ticketKey.safeParse(text(search.epic));
   const q = text(search.q)?.slice(0, maxSearchLength);
   const blocked = blockedChoices.find((choice) => choice === text(search.blocked));
-  const label = labelName.safeParse(text(search.label));
   return {
-    assignee:
-      assignee && (assignee === "me" || assigneeFilter.safeParse(assignee).success)
-        ? assignee
-        : undefined,
-    type: type.success ? type.data : undefined,
-    priority: priority.success ? priority.data : undefined,
-    epic: epic.success ? epic.data.toUpperCase() : undefined,
-    team: text(search.team) || undefined,
-    label: label.success ? label.data : undefined,
+    assignee: list(search.assignee, (item) =>
+      item === "me" || assigneeFilter.safeParse(item).success ? item : undefined,
+    ),
+    type: list(search.type, parsed(ticketType)),
+    priority: list(search.priority, parsed(ticketPriority)),
+    epic: list(search.epic, (item) => parsed(ticketKey)(item)?.toUpperCase()),
+    team: list(search.team, (item) => item),
+    label: list(search.label, parsed(labelName)),
     q: q || undefined,
     archived: search.archived === true || search.archived === "true" ? true : undefined,
     blocked,
@@ -70,9 +86,11 @@ export function validateBoardSearch(search: Record<string, unknown>): BoardSearc
 
 /** The filters to send to the list endpoint. `me` becomes the viewer's own User id. */
 export function toBoardFilters(search: BoardSearch, meId: string | undefined): BoardFilters {
-  const assignee = search.assignee === "me" ? (meId ? `user:${meId}` : undefined) : search.assignee;
+  const assignee = search.assignee?.flatMap((value) =>
+    value !== "me" ? [value] : meId ? [`user:${meId}`] : [],
+  );
   return {
-    assignee,
+    assignee: assignee?.length ? assignee : undefined,
     type: search.type,
     priority: search.priority,
     parentKey: search.epic,

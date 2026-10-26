@@ -2,6 +2,7 @@ import { ticketPriorities, ticketTypes } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { type ReactNode, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { FilterSelect } from "@/components/filter-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,15 +73,9 @@ export function BoardFilterBar({
   const { data: actors = [] } = useQuery(actorsQuery);
   const { data: teams = [] } = useQuery(teamsQuery);
   const { data: labels = [] } = useQuery(labelsQuery);
-  const labelKnown = labels.some((l) => l.name === search.label);
   const epics = tickets.filter((t) => t.type === "epic");
   const users = actors.filter((a) => a.type === "user");
   const agents = actors.filter((a) => a.type === "agent");
-
-  const assigneeKnown =
-    !search.assignee ||
-    ["me", "unassigned", "agents", "users"].includes(search.assignee) ||
-    actors.some((a) => `${a.type}:${a.id}` === search.assignee);
 
   return (
     <div className="grid gap-3">
@@ -110,118 +105,85 @@ export function BoardFilterBar({
         className={`grid-cols-2 gap-3 md:flex md:flex-wrap md:items-end ${open ? "grid" : "hidden md:flex"}`}
       >
         <Field id="filter-assignee" label="Assignee">
-          <NativeSelect
+          <FilterSelect
             id="filter-assignee"
-            value={search.assignee ?? ""}
-            onChange={(e) => onChange({ assignee: e.target.value || undefined })}
-          >
-            <option value="">Anyone</option>
-            <option value="me">Me</option>
-            <option value="unassigned">Unassigned</option>
-            <option value="agents">Any agent</option>
-            <option value="users">Any user</option>
-            {users.length > 0 && (
-              <optgroup label="Users">
-                {users.map((a) => (
-                  <option key={a.id} value={`user:${a.id}`}>
-                    {a.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {agents.length > 0 && (
-              <optgroup label="Agents">
-                {agents.map((a) => (
-                  <option key={a.id} value={`agent:${a.id}`}>
-                    {a.revoked ? `${a.name} (revoked)` : a.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {!assigneeKnown && <option value={search.assignee}>Unknown assignee</option>}
-          </NativeSelect>
+            anyLabel="Anyone"
+            groups={[
+              {
+                choices: [
+                  { value: "me", label: "Me" },
+                  { value: "unassigned", label: "Unassigned" },
+                  { value: "agents", label: "Any agent" },
+                  { value: "users", label: "Any user" },
+                ],
+              },
+              {
+                label: "Users",
+                choices: users.map((a) => ({ value: `user:${a.id}`, label: a.name })),
+              },
+              {
+                label: "Agents",
+                choices: agents.map((a) => ({
+                  value: `agent:${a.id}`,
+                  label: a.revoked ? `${a.name} (revoked)` : a.name,
+                })),
+              },
+            ]}
+            value={search.assignee}
+            onChange={(assignee) => onChange({ assignee })}
+            unknownLabel={() => "Unknown assignee"}
+          />
         </Field>
         <Field id="filter-priority" label="Priority">
-          <NativeSelect
+          <FilterSelect
             id="filter-priority"
-            value={search.priority ?? ""}
-            onChange={(e) =>
-              onChange({ priority: (e.target.value || undefined) as BoardSearch["priority"] })
-            }
-          >
-            <option value="">Any priority</option>
-            {ticketPriorities.map((p) => (
-              <option key={p} value={p}>
-                {capitalized(p)}
-              </option>
-            ))}
-          </NativeSelect>
+            anyLabel="Any priority"
+            groups={[
+              { choices: ticketPriorities.map((p) => ({ value: p, label: capitalized(p) })) },
+            ]}
+            value={search.priority}
+            onChange={(priority) => onChange({ priority: priority as BoardSearch["priority"] })}
+          />
         </Field>
         <Field id="filter-type" label="Type">
-          <NativeSelect
+          <FilterSelect
             id="filter-type"
-            value={search.type ?? ""}
-            onChange={(e) =>
-              onChange({ type: (e.target.value || undefined) as BoardSearch["type"] })
-            }
-          >
-            <option value="">Any type</option>
-            {ticketTypes.map((t) => (
-              <option key={t} value={t}>
-                {capitalized(t)}
-              </option>
-            ))}
-          </NativeSelect>
+            anyLabel="Any type"
+            groups={[{ choices: ticketTypes.map((t) => ({ value: t, label: capitalized(t) })) }]}
+            value={search.type}
+            onChange={(type) => onChange({ type: type as BoardSearch["type"] })}
+          />
         </Field>
         <Field id="filter-epic" label="Epic">
-          <NativeSelect
+          <FilterSelect
             id="filter-epic"
-            value={search.epic ?? ""}
-            onChange={(e) => onChange({ epic: e.target.value || undefined })}
-          >
-            <option value="">Any epic</option>
-            {epics.map((epic) => (
-              <option key={epic.key} value={epic.key}>
-                {epic.key} {epic.title}
-              </option>
-            ))}
-            {search.epic && !epics.some((e) => e.key === search.epic) && (
-              <option value={search.epic}>{search.epic}</option>
-            )}
-          </NativeSelect>
+            anyLabel="Any epic"
+            groups={[
+              { choices: epics.map((e) => ({ value: e.key, label: `${e.key} ${e.title}` })) },
+            ]}
+            value={search.epic}
+            onChange={(epic) => onChange({ epic })}
+          />
         </Field>
         <Field id="filter-team" label="Team">
-          <NativeSelect
+          <FilterSelect
             id="filter-team"
-            value={search.team ?? ""}
-            onChange={(e) => onChange({ team: e.target.value || undefined })}
-          >
-            <option value="">All teams</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-            {search.team && !teams.some((t) => t.id === search.team) && (
-              <option value={search.team}>Unknown team</option>
-            )}
-          </NativeSelect>
+            anyLabel="All teams"
+            groups={[{ choices: teams.map((t) => ({ value: t.id, label: t.name })) }]}
+            value={search.team}
+            onChange={(team) => onChange({ team })}
+            unknownLabel={() => "Unknown team"}
+          />
         </Field>
         <Field id="filter-label" label="Label">
-          <NativeSelect
+          {/* A link may name a Label in another case, or one since renamed or deleted: it shows as named. */}
+          <FilterSelect
             id="filter-label"
-            value={search.label ?? ""}
-            onChange={(e) => onChange({ label: e.target.value || undefined })}
-          >
-            <option value="">Any label</option>
-            {labels.map((l) => (
-              <option key={l.id} value={l.name}>
-                {l.name}
-              </option>
-            ))}
-            {/* A link may name a Label in another case, or one since renamed or deleted. */}
-            {search.label && !labelKnown && <option value={search.label}>{search.label}</option>}
-          </NativeSelect>
+            anyLabel="Any label"
+            groups={[{ choices: labels.map((l) => ({ value: l.name, label: l.name })) }]}
+            value={search.label}
+            onChange={(label) => onChange({ label })}
+          />
         </Field>
         <Field id="filter-blocked" label="Blocked">
           <NativeSelect

@@ -7,8 +7,10 @@ import {
   createProject,
   createTeam,
   createTicket,
+  filterButton,
   linkTickets,
   moveTicket,
+  pickFilter,
   scrollsSideways,
   signUp,
 } from "./helpers";
@@ -39,11 +41,19 @@ async function openFilters(page: Page) {
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 }
 
-/** A filter's dropdown. (Not by label: a Ticket Type icon is also labelled "Epic".) */
+/** The Blocked filter, a plain dropdown. (Not by label: a Ticket Type icon is also labelled "Epic".) */
 const select = (page: Page, name: string) => page.getByRole("combobox", { name, exact: true });
 
-/** The query string of the page URL as a plain object. */
-const params = (page: Page) => Object.fromEntries(new URL(page.url()).searchParams);
+/** The query string of the page URL as a plain object. A repeated param is a list. */
+function params(page: Page) {
+  const search = new URL(page.url()).searchParams;
+  return Object.fromEntries(
+    [...new Set(search.keys())].map((key) => {
+      const values = search.getAll(key);
+      return [key, values.length > 1 ? values : values[0]];
+    }),
+  );
+}
 
 type Seed = { agentId: string; userId: string };
 
@@ -77,7 +87,7 @@ test("filters by any Agent and searches by text, and the URL holds both", async 
   await expect(page.getByRole("article")).toHaveCount(4);
 
   await openFilters(page);
-  await select(page, "Assignee").selectOption({ label: "Any agent" });
+  await pickFilter(page, "Assignee", "Any agent");
   await expectTitles(page, ["Fix login redirect", "Fix header spacing"]);
   await page.getByRole("searchbox", { name: "Search" }).fill("login");
   await expectTitles(page, ["Fix login redirect"]);
@@ -87,7 +97,7 @@ test("filters by any Agent and searches by text, and the URL holds both", async 
   await page.reload();
   await expectTitles(page, ["Fix login redirect"]);
   await openFilters(page);
-  await expect(select(page, "Assignee")).toHaveValue("agents");
+  await expect(filterButton(page, "Assignee")).toHaveText("Any agent");
   await expect(page.getByRole("searchbox", { name: "Search" })).toHaveValue("login");
 
   // So does a fresh browser context given the same link.
@@ -141,28 +151,28 @@ test.describe("each filter", () => {
     await showBoard(page);
     await expectTitles(page, all);
     await openFilters(page);
-    const assignee = select(page, "Assignee");
+    const assignee = (...labels: string[]) => pickFilter(page, "Assignee", ...labels);
 
-    await assignee.selectOption({ label: "Me" });
+    await assignee("Me");
     await expectTitles(page, ["Rounding bug"]);
     expect(params(page)).toEqual({ assignee: "me" });
 
-    await assignee.selectOption({ label: "Any user" });
+    await assignee("Any user");
     await expectTitles(page, ["Rounding bug"]);
     expect(params(page)).toEqual({ assignee: "users" });
 
-    await assignee.selectOption({ label: "Claude" });
+    await assignee("Claude");
     await expectTitles(page, ["Pay by card"]);
     expect(params(page)).toEqual({ assignee: `agent:${agentId}` });
 
-    await assignee.selectOption({ label: "Ada" });
+    await assignee("Ada");
     await expectTitles(page, ["Rounding bug"]);
     expect(params(page)).toEqual({ assignee: `user:${userId}` });
 
-    await assignee.selectOption({ label: "Unassigned" });
+    await assignee("Unassigned");
     await expectTitles(page, ["Checkout", "Other epic", "Write docs"]);
 
-    await assignee.selectOption({ label: "Anyone" });
+    await assignee();
     await expectTitles(page, all);
     expect(params(page)).toEqual({});
   });
@@ -172,20 +182,71 @@ test.describe("each filter", () => {
     await showBoard(page);
     await openFilters(page);
 
-    await select(page, "Priority").selectOption({ label: "Urgent" });
+    await pickFilter(page, "Priority", "Urgent");
     await expectTitles(page, ["Pay by card"]);
-    await select(page, "Priority").selectOption({ label: "Any priority" });
+    await pickFilter(page, "Priority");
 
-    await select(page, "Type").selectOption({ label: "Epic" });
+    await pickFilter(page, "Type", "Epic");
     await expectTitles(page, ["Checkout", "Other epic"]);
-    await select(page, "Type").selectOption({ label: "Any type" });
+    await pickFilter(page, "Type");
 
-    await select(page, "Epic").selectOption({ label: "PLAT-1 Checkout" });
+    await pickFilter(page, "Epic", "PLAT-1 Checkout");
     await expectTitles(page, ["Pay by card", "Rounding bug"]);
     expect(params(page)).toEqual({ epic: "PLAT-1" });
-    await select(page, "Type").selectOption({ label: "Bug" });
+    await pickFilter(page, "Type", "Bug");
     await expectTitles(page, ["Rounding bug"]);
     expect(params(page)).toEqual({ epic: "PLAT-1", type: "bug" });
+  });
+
+  test("narrow by several values of one filter, and combine them with the others", async ({
+    page,
+    browser,
+  }) => {
+    const { agentId } = await seed(page);
+    await showBoard(page);
+    await openFilters(page);
+
+    // The list stays open while choices are ticked.
+    await filterButton(page, "Type").click();
+    await page.getByRole("menuitemcheckbox", { name: "Bug" }).click();
+    await page.getByRole("menuitemcheckbox", { name: "Story" }).click();
+    await page.keyboard.press("Escape");
+    await expectTitles(page, ["Pay by card", "Rounding bug"]);
+    // In the list's order, whatever order they were ticked in.
+    expect(params(page)).toEqual({ type: ["story", "bug"] });
+    await expect(filterButton(page, "Type")).toContainText("Story, Bug");
+    await expect(filterButton(page, "Type")).toContainText("2");
+
+    await pickFilter(page, "Priority", "Urgent", "Low");
+    await expectTitles(page, ["Pay by card"]);
+    await pickFilter(page, "Type", "Story", "Bug", "Task");
+    await expectTitles(page, ["Pay by card", "Write docs"]);
+
+    await pickFilter(page, "Assignee", "Claude", "Unassigned");
+    await expectTitles(page, ["Pay by card", "Write docs"]);
+    expect(params(page)).toEqual({
+      type: ["story", "task", "bug"],
+      priority: ["low", "urgent"],
+      assignee: ["unassigned", `agent:${agentId}`],
+    });
+
+    // A shared link opens the same view, with each choice still ticked.
+    const { viewport, colorScheme, hasTouch } = test.info().project.use;
+    const context = await browser.newContext({
+      viewport,
+      colorScheme,
+      hasTouch,
+      storageState: await page.context().storageState(),
+    });
+    const shared = await context.newPage();
+    await shared.goto(page.url());
+    await expectTitles(shared, ["Pay by card", "Write docs"]);
+    await openFilters(shared);
+    await filterButton(shared, "Priority").click();
+    await expect(shared.getByRole("menuitemcheckbox", { name: "Urgent" })).toBeChecked();
+    await expect(shared.getByRole("menuitemcheckbox", { name: "Low" })).toBeChecked();
+    await expect(shared.getByRole("menuitemcheckbox", { name: "High" })).not.toBeChecked();
+    await context.close();
   });
 
   test("narrow by Team: only a Project of that Team shows Tickets", async ({ page }) => {
@@ -196,14 +257,18 @@ test.describe("each filter", () => {
     await showBoard(page);
     await openFilters(page);
 
-    await select(page, "Team").selectOption({ label: "Payments" });
+    await pickFilter(page, "Team", "Payments");
     await expectTitles(page, all);
     expect(params(page)).toEqual({ team: team.id });
 
-    await select(page, "Team").selectOption({ label: "Design" });
+    await pickFilter(page, "Team", "Design");
     await expectTitles(page, []);
     await expect(page.getByText("No tickets match these filters.")).toBeVisible();
     expect(params(page)).toEqual({ team: other.id });
+
+    await pickFilter(page, "Team", "Payments", "Design");
+    await expectTitles(page, all);
+    expect(params(page)).toEqual({ team: [other.id, team.id] });
   });
 
   test("a link with filters opens the filtered board, and ignores bad values", async ({ page }) => {
@@ -217,11 +282,15 @@ test.describe("each filter", () => {
     );
     await expectTitles(page, ["Pay by card"]);
     await openFilters(page);
-    await expect(select(page, "Type")).toHaveValue("");
-    await expect(select(page, "Assignee")).toHaveValue("");
-    await expect(select(page, "Epic")).toHaveValue("");
+    await expect(filterButton(page, "Type")).toHaveText("Any type");
+    await expect(filterButton(page, "Assignee")).toHaveText("Anyone");
+    await expect(filterButton(page, "Epic")).toHaveText("Any epic");
     await expect(page.getByLabel("Show archived")).not.toBeChecked();
-    await expect(select(page, "Priority")).toHaveValue("urgent");
+    await expect(filterButton(page, "Priority")).toHaveText("Urgent");
+
+    // A bad value among good ones is dropped on its own.
+    await showBoard(page, "?type=bug&type=nonsense&type=story");
+    await expectTitles(page, ["Pay by card", "Rounding bug"]);
   });
 
   test("a numeric search is still text", async ({ page }) => {
@@ -243,7 +312,7 @@ test.describe("each filter", () => {
     await expectTitles(page, all);
     expect(params(page)).toEqual({});
     await expect(page.getByRole("searchbox", { name: "Search" })).toHaveValue("");
-    await expect(select(page, "Type")).toHaveValue("");
+    await expect(filterButton(page, "Type")).toHaveText("Any type");
     await expect(page.getByRole("button", { name: "Clear filters" })).toHaveCount(0);
   });
 
@@ -570,19 +639,19 @@ test.describe("on a phone and on a desktop", () => {
     const toggle = page.getByRole("button", { name: /^Filters/ });
 
     if (onPhone(page)) {
-      await expect(select(page, "Assignee")).toBeHidden();
+      await expect(filterButton(page, "Assignee")).toBeHidden();
       await expect(toggle).toHaveAttribute("aria-expanded", "false");
       await toggle.click();
       await expect(toggle).toHaveAttribute("aria-expanded", "true");
-      await expect(select(page, "Assignee")).toBeVisible();
+      await expect(filterButton(page, "Assignee")).toBeVisible();
       await toggle.click();
-      await expect(select(page, "Assignee")).toBeHidden();
+      await expect(filterButton(page, "Assignee")).toBeHidden();
       // The board is in view while the filters are folded away.
       await expect(page.getByRole("article", { name: "Something to do" })).toBeInViewport();
     } else {
       await expect(toggle).toBeHidden();
-      await expect(select(page, "Assignee")).toBeVisible();
-      await expect(select(page, "Team")).toBeVisible();
+      await expect(filterButton(page, "Assignee")).toBeVisible();
+      await expect(filterButton(page, "Team")).toBeVisible();
       await expect(page.getByLabel("Show archived")).toBeVisible();
     }
     expect(await scrollsSideways(page)).toBe(false);
@@ -602,11 +671,11 @@ test.describe("on a phone and on a desktop", () => {
     for (const [name, locator] of [
       ["Filters", toggle],
       ["Search", page.getByRole("searchbox", { name: "Search" })],
-      ["Assignee", select(page, "Assignee")],
-      ["Priority", select(page, "Priority")],
-      ["Type", select(page, "Type")],
-      ["Epic", select(page, "Epic")],
-      ["Team", select(page, "Team")],
+      ["Assignee", filterButton(page, "Assignee")],
+      ["Priority", filterButton(page, "Priority")],
+      ["Type", filterButton(page, "Type")],
+      ["Epic", filterButton(page, "Epic")],
+      ["Team", filterButton(page, "Team")],
       ["Blocked", select(page, "Blocked")],
       ["Show archived", page.getByText("Show archived")],
       ["Clear filters", page.getByRole("button", { name: "Clear filters" })],
@@ -631,7 +700,7 @@ test.describe("on a phone and on a desktop", () => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.reload();
       await openFilters(page);
-      const field = select(page, "Assignee");
+      const field = filterButton(page, "Assignee");
       await expect(field).toBeVisible();
       const style = await field.evaluate((el) => {
         const css = getComputedStyle(el);

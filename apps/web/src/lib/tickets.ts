@@ -11,21 +11,22 @@ import { projectKeys } from "./projects";
 
 /**
  * What narrows a Project's board. These are the list endpoint's own query
- * values, so 06-09 can pass typed search params straight through.
+ * values, so 06-09 can pass typed search params straight through. A list
+ * matches a Ticket that matches any of its values.
  */
 export type BoardFilters = {
-  type?: TicketType;
-  priority?: TicketPriority;
+  type?: TicketType[];
+  priority?: TicketPriority[];
   /** `unassigned`, `agents`, `users`, `user:<id>`, or `agent:<id>`. */
-  assignee?: string;
-  /** An Epic or Story, to show its direct children. */
-  parentKey?: string;
+  assignee?: string[];
+  /** Epics or Stories, to show their direct children. */
+  parentKey?: string[];
   /** Free text over title and description. */
   q?: string;
-  /** Only Projects of this Team. On one Project's board that is all of it or none of it. */
-  teamId?: string;
-  /** Only Tickets carrying the Label of this name, in any case. */
-  label?: string;
+  /** Only Projects of these Teams. On one Project's board that is all of it or none of it. */
+  teamId?: string[];
+  /** Only Tickets carrying a Label of any of these names, in any case. */
+  label?: string[];
   /** `include` adds archived Tickets to the live ones. The list has no archived-only filter. */
   archived?: "include";
   /** `true` for only Blocked Tickets, `false` for only unblocked ones. */
@@ -55,14 +56,22 @@ export function ticketMatchesFilters(
   { projectTeamId }: FilterContext = {},
 ) {
   if (ticket.archivedAt && filters.archived !== "include") return false;
-  if (filters.type && ticket.type !== filters.type) return false;
-  if (filters.priority && ticket.priority !== filters.priority) return false;
-  if (filters.assignee && !assigneeMatches(ticket.assignee, filters.assignee)) return false;
-  if (filters.parentKey && ticket.parent?.key !== filters.parentKey.toUpperCase()) return false;
+  if (filters.type && !filters.type.includes(ticket.type)) return false;
+  if (filters.priority && !filters.priority.includes(ticket.priority)) return false;
+  if (filters.assignee && !filters.assignee.some((a) => assigneeMatches(ticket.assignee, a))) {
+    return false;
+  }
+  if (filters.parentKey && !filters.parentKey.some((k) => ticket.parent?.key === k.toUpperCase())) {
+    return false;
+  }
   if (filters.blocked && String(ticket.blocked) !== filters.blocked) return false;
-  if (filters.label && !hasLabel(ticket, filters.label)) return false;
+  if (filters.label && !filters.label.some((name) => hasLabel(ticket, name))) return false;
   if (filters.sprint && !inSprint(ticket, filters.sprint)) return false;
-  if (filters.teamId && projectTeamId !== undefined && projectTeamId !== filters.teamId) {
+  if (
+    filters.teamId &&
+    projectTeamId !== undefined &&
+    !filters.teamId.includes(projectTeamId ?? "")
+  ) {
     return false;
   }
   return true;
@@ -94,11 +103,17 @@ export function isFiltered(filters: BoardFilters) {
   return Object.keys(normalize(filters)).length > 0;
 }
 
-/** Drops empty values and fixes the key order, so equal filters share one cache entry. */
+/**
+ * Drops empty values and fixes the order of keys and of each list's values,
+ * so equal filters share one cache entry.
+ */
 function normalize(filters: BoardFilters): BoardFilters {
-  const entries = Object.entries(filters).filter(
-    ([, value]) => value !== undefined && value !== "",
-  );
+  const entries = Object.entries(filters)
+    .filter(([, value]) => value !== undefined && value !== "" && value.length !== 0)
+    .map(([key, value]): [string, unknown] => [
+      key,
+      Array.isArray(value) ? [...value].sort() : value,
+    ]);
   return Object.fromEntries(entries.sort(([a], [b]) => (a < b ? -1 : 1)));
 }
 

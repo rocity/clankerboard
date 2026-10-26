@@ -24,6 +24,7 @@ export function Children({ companySlug, projectKey, ticketKey }: Props) {
         {children.map((child) => (
           <li key={child.key} className="min-w-0">
             <Link
+              from="/$companySlug/projects/$projectKey/tickets/$ticketKey"
               to="/$companySlug/projects/$projectKey/tickets/$ticketKey"
               params={{ companySlug, projectKey, ticketKey: child.key }}
               search={(prev) => prev}

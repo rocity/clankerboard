@@ -2,10 +2,14 @@ import { findAssignee, listTickets, refOf } from "@agentkanban/domain";
 import {
   type AssigneeFilter,
   assigneeFilter,
+  labelName,
   listTicketsQuery,
   type SprintFilter,
   sprintNumber,
+  ticketKey,
   ticketPage,
+  ticketPriority,
+  ticketType,
 } from "@agentkanban/shared";
 import { z } from "zod";
 import { bulletList, ticketLine } from "../markdown";
@@ -15,6 +19,8 @@ import { summarize, ticketSummary, withEmails } from "../views";
 const limitError = { error: "Limits are whole numbers from 1 to 100." };
 const assigneeError = "Give me, unassigned, agents, users, a user's email, or an agent's name.";
 const sprintError = { error: "Filter sprints by active, none, or a sprint number." };
+
+const listOf = <T>(value: T | undefined) => (value === undefined ? undefined : [value]);
 
 /** `active` and `none` as the REST filter reads them, or a number as JSON gives it. */
 const sprintFilterOf = (sprint: "active" | "none" | number): SprintFilter =>
@@ -32,9 +38,12 @@ async function assigneeFilterOf({ deps, ctx }: ToolEnv, handle: string): Promise
   return { kind: "actor", actor: await findAssignee(deps, ctx, handle) };
 }
 
+// One value per filter, where the REST list takes several.
 const input = listTicketsQuery
-  .pick({ projectKey: true, status: true, type: true, priority: true, q: true, cursor: true })
+  .pick({ projectKey: true, status: true, q: true, cursor: true })
   .extend({
+    type: ticketType.optional(),
+    priority: ticketPriority.optional(),
     assignee: z
       .string({ error: assigneeError })
       .trim()
@@ -43,13 +52,11 @@ const input = listTicketsQuery
       .describe(
         "Who the tickets are assigned to: me, unassigned, agents, users, a user's email, or an agent's name.",
       ),
-    parentKey: listTicketsQuery.shape.parentKey.describe(
-      "Only children of this ticket key, such as CB-42.",
-    ),
+    parentKey: ticketKey.optional().describe("Only children of this ticket key, such as CB-42."),
     q: listTicketsQuery.shape.q.describe("Words to find in the title or description."),
-    label: listTicketsQuery.shape.label.describe(
-      "Only tickets with this label, such as api, in any case. See list_labels.",
-    ),
+    label: labelName
+      .optional()
+      .describe("Only tickets with this label, such as api, in any case. See list_labels."),
     limit: z
       .number(limitError)
       .int(limitError)
@@ -81,14 +88,18 @@ export const listTicketsTool = defineTool({
     nextCursor: ticketPage.shape.nextCursor,
   }),
   annotations: { readOnlyHint: true },
-  async run({ assignee, sprint, ...filter }, env) {
+  async run({ assignee, sprint, type, priority, parentKey, label, ...filter }, env) {
     const { deps, ctx } = env;
     const page = await listTickets(
       deps,
       ctx,
       {
         ...filter,
-        assignee: assignee === undefined ? undefined : await assigneeFilterOf(env, assignee),
+        type: listOf(type),
+        priority: listOf(priority),
+        parentKey: listOf(parentKey),
+        label: listOf(label),
+        assignee: assignee === undefined ? undefined : [await assigneeFilterOf(env, assignee)],
         sprint: sprint === undefined ? undefined : sprintFilterOf(sprint),
         archived: "exclude",
       },
