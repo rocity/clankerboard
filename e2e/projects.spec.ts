@@ -111,7 +111,9 @@ test("a Project can be created under a Team from the dialog", async ({ page }) =
 
   await expect(page).toHaveURL("/acme-robotics/projects/API");
   await page.goto("/acme-robotics");
-  await expect(page.getByRole("link", { name: /Core API/ })).toContainText("Platform");
+  await expect(
+    page.getByRole("list", { name: "Projects" }).getByRole("link", { name: /Core API/ }),
+  ).toContainText("Platform");
 });
 
 test("the Projects list fits the viewport and its controls are touch sized", async ({ page }) => {
@@ -121,7 +123,9 @@ test("the Projects list fits the viewport and its controls are touch sized", asy
     key: "LONG",
   });
   await page.reload();
-  await expect(page.getByRole("link", { name: /A Project With/ })).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "Projects" }).getByRole("link", { name: /A Project With/ }),
+  ).toBeVisible();
   expect(await scrollsSideways(page)).toBe(false);
 
   const onPhone = (page.viewportSize()?.width ?? 0) < 768;
@@ -147,4 +151,59 @@ test("an unknown Project Key says so", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Project not found" })).toBeVisible();
   await page.getByRole("link", { name: "Back to projects" }).click();
   await expect(page).toHaveURL("/acme-robotics");
+});
+
+test("switches Project from a panel when the screen is too narrow for the sidebar", async ({
+  page,
+}) => {
+  await openCompany(page);
+  await createProject(page, { name: "Core API", key: "API" });
+  await createProject(page, { name: "Phone App", key: "APP" });
+  await page.goto("/acme-robotics/projects/API");
+  await expect(page.getByRole("heading", { name: "Core API" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Projects" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Switch project" }).click();
+  const panel = page.getByRole("dialog", { name: "Projects" });
+  await expect(panel.getByRole("link", { name: /Core API/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await panel.getByRole("link", { name: /Phone App/ }).click();
+
+  await expect(page).toHaveURL("/acme-robotics/projects/APP");
+  await expect(page.getByRole("heading", { name: "Phone App" })).toBeVisible();
+  await expect(panel).toHaveCount(0);
+  expect(await scrollsSideways(page)).toBe(false);
+});
+
+test("a wide screen keeps the sidebar beside the board, and it can be hidden", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 768, "One wide run is enough.");
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await openCompany(page);
+  await createProject(page, { name: "Core API", key: "API" });
+  await createProject(page, { name: "Phone App", key: "APP" });
+  await page.goto("/acme-robotics/projects/API");
+  const sidebar = page.getByRole("navigation", { name: "Projects" });
+  await expect(sidebar.getByRole("link", { name: /Core API/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  // The sidebar leaves room for every Status.
+  for (const status of ["Backlog", "To Do", "In Progress", "Review", "Done"]) {
+    await expect(page.getByRole("region", { name: status })).toBeInViewport({ ratio: 1 });
+  }
+
+  await sidebar.getByRole("link", { name: /Phone App/ }).click();
+  await expect(page).toHaveURL("/acme-robotics/projects/APP");
+  await expect(page.getByRole("heading", { name: "Phone App" })).toBeVisible();
+
+  // Hiding it is remembered across a reload.
+  await page.getByRole("button", { name: "Hide projects" }).click();
+  await expect(sidebar).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Phone App" })).toBeVisible();
+  await expect(sidebar).toHaveCount(0);
+  await page.getByRole("button", { name: "Show projects" }).click();
+  await expect(sidebar).toBeVisible();
 });

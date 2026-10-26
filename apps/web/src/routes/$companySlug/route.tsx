@@ -3,6 +3,7 @@ import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppHeader } from "@/components/app-header";
 import { AuthLayout } from "@/components/auth-layout";
+import { ProjectSidebar, useProjectSidebar } from "@/components/project-sidebar";
 import { StreamNotice } from "@/components/stream-notice";
 import { Button } from "@/components/ui/button";
 import { activateCompany } from "@/lib/companies";
@@ -29,6 +30,7 @@ function CompanyLayout() {
   const { companySlug } = Route.useParams();
   const { company } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const sidebar = useProjectSidebar();
 
   // One stream per tab, for as long as a Company page is open. `ensureStream`
   // already ran in `beforeLoad`; this repeats it for a remount (StrictMode).
@@ -39,10 +41,17 @@ function CompanyLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <AppHeader companySlug={companySlug} />
-      <main className="flex-1 px-4 py-6 md:px-6">
-        <Outlet />
-      </main>
+      <AppHeader
+        companySlug={companySlug}
+        sidebarShown={sidebar.shown}
+        onToggleSidebar={sidebar.toggle}
+      />
+      <div className="flex flex-1">
+        <ProjectSidebar companySlug={companySlug} shown={sidebar.shown} />
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-6">
+          <Outlet />
+        </main>
+      </div>
       <StreamNotice />
     </div>
   );

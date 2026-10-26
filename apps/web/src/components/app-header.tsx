@@ -4,13 +4,26 @@ import { SquareKanban } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { CompanyNav } from "@/components/company-nav";
 import { CompanySwitcher } from "@/components/company-switcher";
+import { ProjectSidebarToggle } from "@/components/project-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 
-export function AppHeader({ companySlug }: { companySlug: string }) {
+type Props = {
+  companySlug: string;
+  /** Whether the Project sidebar shows on a wide screen. */
+  sidebarShown: boolean;
+  onToggleSidebar: () => void;
+};
+
+export function AppHeader({ companySlug, sidebarShown, onToggleSidebar }: Props) {
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
       <div className="flex h-14 items-center gap-2 px-4 md:gap-4 md:px-6">
+        <ProjectSidebarToggle
+          companySlug={companySlug}
+          shown={sidebarShown}
+          onToggle={onToggleSidebar}
+        />
         <Link
           to="/$companySlug"
           params={{ companySlug }}

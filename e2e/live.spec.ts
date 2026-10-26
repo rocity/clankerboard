@@ -328,9 +328,13 @@ test("a filtered board takes only the Tickets that match, and a search board ref
 test("a new Project shows on the Projects list without a reload", async ({ page }) => {
   await seedAcme(page, []);
   await page.goto("/acme-robotics");
-  await expect(page.getByRole("link", { name: /Platform/ })).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "Projects" }).getByRole("link", { name: /Platform/ }),
+  ).toBeVisible();
   await createProject(page, { name: "Billing", key: "BILL" });
-  await expect(page.getByRole("link", { name: /Billing/ })).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "Projects" }).getByRole("link", { name: /Billing/ }),
+  ).toBeVisible();
 });
 
 test("a dropped connection catches up on what it missed, without refetching the board", async ({
@@ -450,7 +454,10 @@ test("switching Company switches the stream", async ({ page }) => {
 
   await page.getByRole("button", { name: "Company" }).click();
   await page.getByRole("menuitem", { name: "Globex" }).click();
-  await page.getByRole("link", { name: /Platform/ }).click();
+  await page
+    .getByRole("list", { name: "Projects" })
+    .getByRole("link", { name: /Platform/ })
+    .click();
   await expect(ticketIn(page, "Backlog", "Globex task")).toBeVisible();
   // The first stream was closed and one for Globex opened.
   expect(await sources(page)).toBe(2);
@@ -462,7 +469,10 @@ test("switching Company switches the stream", async ({ page }) => {
   // And back: Acme's board is live again, and Globex's stream is gone.
   await page.getByRole("button", { name: "Company" }).click();
   await page.getByRole("menuitem", { name: "Acme Robotics" }).click();
-  await page.getByRole("link", { name: /Platform/ }).click();
+  await page
+    .getByRole("list", { name: "Projects" })
+    .getByRole("link", { name: /Platform/ })
+    .click();
   await expect(ticketIn(page, "Backlog", "Acme task")).toBeVisible();
   expect(await sources(page)).toBe(3);
   await acmeAgent.tool("claim_ticket", { key: "PLAT-1" });
@@ -523,7 +533,10 @@ test("switching Company never reads the old Project key against the new Company"
   await page.waitForTimeout(500);
   expect(reads).toEqual([]);
 
-  await page.getByRole("link", { name: /Platform/ }).click();
+  await page
+    .getByRole("list", { name: "Projects" })
+    .getByRole("link", { name: /Platform/ })
+    .click();
   await expect(ticketIn(page, "Backlog", "Globex task")).toBeVisible();
   await expect(page.getByRole("article")).toHaveCount(1);
 });

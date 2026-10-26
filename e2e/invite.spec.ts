@@ -66,7 +66,9 @@ test("flow 2: invite by copied link, accept in a fresh browser, and land in the 
   await expect(invitee.page).toHaveURL("/acme-robotics");
   await expect(invitee.page.getByRole("heading", { name: "Acme Robotics" })).toBeVisible();
   await expect(invitee.page.getByRole("heading", { name: "Projects" })).toBeVisible();
-  await expect(invitee.page.getByText("Platform")).toBeVisible();
+  await expect(
+    invitee.page.getByRole("list", { name: "Projects" }).getByText("Platform"),
+  ).toBeVisible();
   await invitee.page.getByRole("link", { name: "Members" }).click();
   await expect(
     invitee.page.getByRole("listitem").filter({ hasText: "grace@example.com" }),

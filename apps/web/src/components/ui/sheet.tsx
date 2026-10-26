@@ -15,14 +15,15 @@ function SheetClose({ ...props }: React.ComponentProps<typeof SheetPrimitive.Clo
 }
 
 /**
- * A panel that slides in from the right edge: a side panel from the `md`
- * breakpoint, the whole screen below it.
+ * A panel that slides in from the right edge (or the left, with `side`): a side
+ * panel from the `md` breakpoint, the whole screen below it.
  */
 function SheetContent({
   className,
   children,
+  side = "right",
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content>) {
+}: React.ComponentProps<typeof SheetPrimitive.Content> & { side?: "left" | "right" }) {
   return (
     <SheetPrimitive.Portal>
       <SheetPrimitive.Overlay
@@ -32,7 +33,10 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex h-dvh w-full flex-col bg-background shadow-xl outline-none duration-200 md:max-w-2xl md:border-l data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:animate-in data-[state=open]:slide-in-from-right",
+          "fixed inset-y-0 z-50 flex h-dvh w-full flex-col bg-background shadow-xl outline-none duration-200 md:max-w-2xl data-[state=closed]:animate-out data-[state=open]:animate-in",
+          side === "right"
+            ? "right-0 md:border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+            : "left-0 md:border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
           className,
         )}
         {...props}
