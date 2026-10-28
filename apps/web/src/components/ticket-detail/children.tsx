@@ -1,6 +1,6 @@
-import { statusLabels } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { StatusPill } from "@/components/status-pill";
 import { TypeIcon } from "@/components/ticket-summary";
 import { childrenQuery } from "@/lib/ticket-detail";
 
@@ -33,9 +33,7 @@ export function Children({ companySlug, projectKey, ticketKey }: Props) {
               <TypeIcon type={child.type} />
               <span className="shrink-0 font-mono text-xs text-muted-foreground">{child.key}</span>
               <span className="min-w-0 flex-1 truncate">{child.title}</span>
-              <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium">
-                {statusLabels[child.status]}
-              </span>
+              <StatusPill status={child.status} />
             </Link>
           </li>
         ))}

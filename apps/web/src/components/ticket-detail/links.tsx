@@ -1,8 +1,9 @@
-import { statusLabels, type TicketLinkViewKind } from "@agentkanban/shared";
+import type { TicketLinkViewKind } from "@agentkanban/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Lock, Plus, X } from "lucide-react";
 import { useId, useState } from "react";
+import { StatusPill } from "@/components/status-pill";
 import { TypeIcon } from "@/components/ticket-summary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,9 +68,7 @@ function LinkedTicket({ companySlug, projectKey, link, onUnlink }: RowProps) {
             Archived
           </span>
         )}
-        <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium">
-          {statusLabels[link.status]}
-        </span>
+        <StatusPill status={link.status} />
       </Link>
       <Button
         type="button"
